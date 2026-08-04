@@ -70,6 +70,9 @@
   .starter-text{flex:1;min-width:0;text-align:left;background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;border-radius:999px;padding:.22rem .6rem;font:inherit;font-size:.78rem;cursor:pointer;transition:opacity .5s ease}
   .starter-text:hover{background:#ffedd5}
   .starter-next{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:.22rem .5rem;font-size:.78rem;line-height:1;cursor:pointer}
+  .rubric-row{border:1px solid var(--border);border-radius:8px;padding:.5rem .7rem;margin-bottom:.6rem;background:var(--panel)}
+  .rub-score{padding:.4rem .5rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.85rem;background:#fff}
+  .rub-comment{min-height:56px}
   @media (max-width:820px){.wrap{grid-template-columns:1fr;height:auto}.preview{height:70vh;border-top:1px solid var(--border)}}
 </style>
 </head>
@@ -150,6 +153,35 @@
       <p class="hint" style="margin:.2rem 0 .6rem">Upload two screenshots showing your work is organized: (1) your properly named and organized <strong>HTML files</strong>, and (2) your properly named and organized <strong>images</strong>. These appear in a collapsible “File Management” section at the end of your post.</p>
       <div class="drop" id="fmDrop">Drag your two screenshots here, or click to choose</div>
       <div class="thumbs" id="fmThumbs"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Self Grade Rubric</legend>
+      <p class="hint" style="margin:.2rem 0 .6rem">Grade your own work honestly against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a>. A score <strong>and</strong> a brief comment are required for each category. This renders as a collapsible “Self Grade Rubric” table at the end of your post.</p>
+      <div class="rubric-row" data-label="Project Update (Technical Writing)">
+        <label>Project Update (Technical Writing)
+          <select class="rub-score">
+            <option value="">Select a score…</option>
+            <option>Level 4</option><option>Level 3</option><option>Level 2</option><option>Level 1</option><option>No Credit</option>
+          </select></label>
+        <label>Comments<textarea class="rub-comment" placeholder="Why did you give yourself this score?"></textarea></label>
+      </div>
+      <div class="rubric-row" data-label="Connections/Synthesis">
+        <label>Connections/Synthesis
+          <select class="rub-score">
+            <option value="">Select a score…</option>
+            <option>Level 4</option><option>Level 3</option><option>Level 2</option><option>Level 1</option><option>No Credit</option>
+          </select></label>
+        <label>Comments<textarea class="rub-comment" placeholder="Why did you give yourself this score?"></textarea></label>
+      </div>
+      <div class="rubric-row" data-label="File Management">
+        <label>File Management
+          <select class="rub-score">
+            <option value="">Select a score…</option>
+            <option>Level 4</option><option>Level 3</option><option>Level 2</option><option>Level 1</option><option>No Credit</option>
+          </select></label>
+        <label>Comments<textarea class="rub-comment" placeholder="Why did you give yourself this score?"></textarea></label>
+      </div>
     </fieldset>
   </div>
 
@@ -428,7 +460,12 @@ function collect(){
       };
     }),
     reflection:val("reflection"),
-    fileMgmt:state.fileMgmt.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl}))
+    fileMgmt:state.fileMgmt.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl})),
+    rubric:[...document.querySelectorAll(".rubric-row")].map(r=>({
+      category:r.dataset.label,
+      score:r.querySelector(".rub-score").value,
+      comments:r.querySelector(".rub-comment").value.trim()
+    }))
   };
 }
 
@@ -452,13 +489,17 @@ figure img{display:block;width:100%;height:auto;border-radius:10px;border:1px so
 figcaption{font-family:system-ui,sans-serif;font-size:.85rem;color:var(--muted);margin-top:.5rem;font-style:italic}
 pre{background:#0f172a;color:#e2e8f0;padding:1.1rem 1.25rem;border-radius:10px;overflow-x:auto;font-size:.9rem;line-height:1.5}
 code{font-family:"SF Mono",Consolas,monospace}
-details.filemgmt{margin:0 0 3rem;border:1px solid var(--border);border-radius:10px;padding:0 1.25rem}
-details.filemgmt>summary{cursor:pointer;list-style:none;font-family:system-ui,sans-serif;font-weight:700;font-size:1.25rem;color:rgb(25,25,25);padding:1rem 0;display:flex;align-items:center;gap:.5rem}
-details.filemgmt>summary::-webkit-details-marker{display:none}
-details.filemgmt>summary::before{content:"▸";color:var(--accent);font-size:.9em}
-details.filemgmt[open]>summary{border-bottom:1px solid var(--border);margin-bottom:1rem}
-details.filemgmt[open]>summary::before{content:"▾"}
+details.filemgmt,details.rubric{margin:0 0 3rem;border:1px solid var(--border);border-radius:10px;padding:0 1.25rem}
+details.filemgmt>summary,details.rubric>summary{cursor:pointer;list-style:none;font-family:system-ui,sans-serif;font-weight:700;font-size:1.25rem;color:rgb(25,25,25);padding:1rem 0;display:flex;align-items:center;gap:.5rem}
+details.filemgmt>summary::-webkit-details-marker,details.rubric>summary::-webkit-details-marker{display:none}
+details.filemgmt>summary::before,details.rubric>summary::before{content:"▸";color:var(--accent);font-size:.9em}
+details.filemgmt[open]>summary,details.rubric[open]>summary{border-bottom:1px solid var(--border);margin-bottom:1rem}
+details.filemgmt[open]>summary::before,details.rubric[open]>summary::before{content:"▾"}
 details.filemgmt .gallery{margin-top:0}
+.rubric-table{width:100%;border-collapse:collapse;font-family:system-ui,sans-serif;font-size:.95rem;margin-bottom:1.25rem}
+.rubric-table th,.rubric-table td{border:1px solid var(--border);padding:.55rem .7rem;text-align:left;vertical-align:top}
+.rubric-table th{background:#fff7ed;font-weight:700;color:rgb(25,25,25)}
+.rubric-table td:nth-child(2){white-space:nowrap;font-weight:600}
 footer{max-width:860px;margin:2rem auto 3rem;padding:1.25rem;border-top:1px solid var(--border);font-family:system-ui,sans-serif;font-size:.9rem;color:var(--muted);text-align:center}
 @media (max-width:640px){body{font-size:16px}.gallery{grid-template-columns:1fr}}
 `;
@@ -508,13 +549,16 @@ function buildHTML(d){
   const fmImgs=(d.fileMgmt||[]).filter(i=>i.dataUrl);
   const fileMgmt=fmImgs.length
     ? `<details class="filemgmt">\n<summary>File Management</summary>\n${fileGallery(fmImgs)}\n</details>`:"";
+  const rubricRows=(d.rubric||[]).filter(r=>r.score||r.comments);
+  const rubric=rubricRows.length
+    ? `<details class="rubric">\n<summary>Self Grade Rubric</summary>\n<table class="rubric-table"><thead><tr><th>Category</th><th>Score</th><th>Comments</th></tr></thead><tbody>\n${rubricRows.map(r=>`<tr><td>${esc(r.category)}</td><td>${esc(r.score)}</td><td>${esc(r.comments)}</td></tr>`).join("\n")}\n</tbody></table>\n</details>`:"";
   // Embedded editable state so this page can be re-opened in the generator.
   // Photos are omitted here (they're already inline above) to avoid doubling
   // the file size; they're recovered from the rendered <img> tags on load.
   const editData={v:2,meta:d.meta,reflection:d.reflection,weeks:d.weeks.map(w=>({
     text1:w.text1,
     images1:(w.images1||[]).map(i=>({name:i.name,caption:i.caption}))
-  })),fileMgmt:(d.fileMgmt||[]).map(i=>({name:i.name,caption:i.caption}))};
+  })),fileMgmt:(d.fileMgmt||[]).map(i=>({name:i.name,caption:i.caption})),rubric:d.rubric||[]};
   const dataJson=JSON.stringify(editData).replace(/</g,"\\u003c");
   return `<!doctype html>
 <html lang="en">
@@ -536,6 +580,7 @@ ${cover}
 ${sections||"<p>Fill in your project update to see your portfolio here.</p>"}
 ${reflection}
 ${fileMgmt}
+${rubric}
 </main>
 <footer><p>${esc(name)} · ${monthYear}</p></footer>
 <script type="application/json" id="portfolio-data">${dataJson}<\/script>
@@ -584,6 +629,9 @@ function validate(){
   const captioned=all.filter(i=>i.caption&&i.caption.trim()).length;
   const imgOK=g1n===UPDATE_IMAGES, capOK=all.length>0&&captioned===all.length;
   const fmN=state.fileMgmt.filter(i=>i.dataUrl).length, fmOK=fmN===FILEMGMT_IMAGES;
+  const rubRows=[...document.querySelectorAll(".rubric-row")];
+  const rubDone=rubRows.filter(r=>r.querySelector(".rub-score").value&&r.querySelector(".rub-comment").value.trim()).length;
+  const rubOK=rubRows.length>0&&rubDone===rubRows.length;
   const nameOK=!!$("firstName").value.trim() && !!$("lastName").value.trim();
   const grOK=!!$("grade").value, unOK=!!$("unit").value;
   const kt=keyTermCount(), ktOK=kt>=MIN_KEYTERMS;
@@ -597,8 +645,9 @@ function validate(){
     row(imgOK,`Add exactly ${UPDATE_IMAGES} images to your update (now ${g1n})`)+
     row(capOK,`Add a brief caption to every image (${captioned}/${all.length} captioned)`)+
     row(okR,`Reflection/Synthesis: ${REFLECT_MIN}–${REFLECT_MAX} words (now ${wr})`)+
-    row(fmOK,`Add exactly ${FILEMGMT_IMAGES} File Management screenshots (now ${fmN})`);
-  const ok=ok1&&imgOK&&capOK&&okR&&fmOK&&nameOK&&grOK&&unOK&&ktOK;
+    row(fmOK,`Add exactly ${FILEMGMT_IMAGES} File Management screenshots (now ${fmN})`)+
+    row(rubOK,`Self Grade Rubric: score + comment for all ${rubRows.length} categories (${rubDone}/${rubRows.length})`);
+  const ok=ok1&&imgOK&&capOK&&okR&&fmOK&&rubOK&&nameOK&&grOK&&unOK&&ktOK;
   $("download").disabled=!ok;
   $("download").title=ok?"":"Finish the requirements above to enable download";
   return ok;
@@ -680,6 +729,7 @@ $("clear").onclick=()=>{
   ["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).value="");
   state.cover=null;renderCover();
   state.fileMgmt=[];renderFileMgmt();
+  setRubric([]);
   $("weeks").innerHTML="";state.images={};
   addWeek();
   updatePreview();
@@ -700,6 +750,7 @@ function loadData(d){
   state.cover=d.cover||null;renderCover();
   state.fileMgmt=(d.fileMgmt||[]).map(i=>({name:i.name||"",caption:i.caption||"",dataUrl:i.dataUrl}));
   renderFileMgmt();
+  setRubric(d.rubric);
   $("weeks").innerHTML="";state.images={};
   addWeek((d.weeks&&d.weeks[0])||{});
   updatePreview();
@@ -716,6 +767,19 @@ function autosave(){
   },600);
 }
 ["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
+// ---- self grade rubric ----
+function setRubric(arr){
+  arr=arr||[];
+  document.querySelectorAll(".rubric-row").forEach(r=>{
+    const found=arr.find(x=>x.category===r.dataset.label)||{};
+    r.querySelector(".rub-score").value=found.score||"";
+    r.querySelector(".rub-comment").value=found.comments||"";
+  });
+}
+document.querySelectorAll(".rub-score,.rub-comment").forEach(el=>{
+  el.addEventListener("input",()=>{autosave();schedulePreview();validate();});
+  el.addEventListener("change",()=>{autosave();schedulePreview();validate();});
+});
 wireStarter($("reflection"),$("reflection-starter"),STARTERS.reflection,Math.floor(Math.random()*STARTERS.reflection.length));
 
 // ---- boot ----
