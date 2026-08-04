@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Weekly Portfolio Post Generator</title>
+<title>Unit Post Generator</title>
 <style>
   :root{
-    --accent:#0ea5e9; --ink:#1e293b; --muted:#64748b; --border:#e2e8f0;
-    --panel:#f8fafc; --ok:#16a34a;
+    --accent:#ea580c; --ink:#1e293b; --muted:#64748b; --border:#e2e8f0;
+    --panel:#fff7ed; --ok:#16a34a;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#f1f5f9}
-  header.app{background:#0f172a;color:#fff;padding:1.1rem 1.25rem}
+  header.app{background:#431407;color:#fff;padding:1.1rem 1.25rem}
   header.app h1{margin:0;font-size:1.25rem}
-  header.app p{margin:.25rem 0 0;color:#cbd5e1;font-size:.9rem}
+  header.app p{margin:.25rem 0 0;color:#fed7aa;font-size:.9rem}
   .app-head{display:flex;justify-content:space-between;align-items:center;gap:1rem}
   .switch-link{flex:none;background:rgba(255,255,255,.12);color:#fff;text-decoration:none;font-size:.82rem;font-weight:600;padding:.5rem .8rem;border-radius:999px;border:1px solid rgba(255,255,255,.25);white-space:nowrap}
   .switch-link:hover{background:rgba(255,255,255,.22)}
@@ -31,7 +31,7 @@
   .hint{font-weight:400;color:var(--muted);font-size:.78rem}
   input[type=text],textarea{width:100%;padding:.55rem .65rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.9rem}
   textarea{resize:vertical;line-height:1.5}
-  .w-text{min-height:120px}
+  .w-text{min-height:200px}
   .row{display:flex;gap:.6rem;flex-wrap:wrap}
   .row>div{flex:1;min-width:140px}
   button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:.55rem .9rem;cursor:pointer}
@@ -40,7 +40,7 @@
   .btn.ghost{background:transparent;color:var(--muted);border:1px dashed var(--border)}
   .toolbar{background:#f1f5f9;padding:.5rem 0 .75rem;display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem;border-bottom:1px solid var(--border)}
   .drop{border:2px dashed var(--border);border-radius:10px;padding:1rem;text-align:center;color:var(--muted);font-size:.85rem;cursor:pointer;background:var(--panel)}
-  .drop.over{border-color:var(--accent);background:#e0f2fe;color:var(--accent)}
+  .drop.over{border-color:var(--accent);background:#ffedd5;color:var(--accent)}
   .drop.busy{opacity:.75;border-style:solid;color:var(--accent);cursor:progress}
   .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.6rem;margin-top:.6rem}
   .thumb{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff}
@@ -50,7 +50,7 @@
   .thumb .fignum{font-size:.68rem;font-weight:700;color:var(--accent);padding:.2rem .4rem;border-top:1px solid var(--border)}
   .week .whead{display:flex;justify-content:space-between;align-items:center}
   .savednote{font-size:.78rem;color:var(--ok)}
-  .help{background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:.6rem .75rem;font-size:.82rem;color:#0e7490;margin-bottom:1rem}
+  .help{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:.6rem .75rem;font-size:.82rem;color:#9a3412;margin-bottom:1rem}
   button:disabled{opacity:.5;cursor:not-allowed}
   .gate{border:1px solid var(--border);border-radius:8px;padding:.6rem .75rem;margin-bottom:1rem;background:#fff;font-size:.84rem}
   .gate .ghead{font-weight:700;margin-bottom:.4rem}
@@ -67,8 +67,8 @@
   .tip a{color:#c2410c;font-weight:600}
   .starter{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin:.4rem 0 0;font-size:.78rem}
   .starter-label{color:var(--muted);font-weight:600;white-space:nowrap}
-  .starter-text{flex:1;min-width:0;text-align:left;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:999px;padding:.22rem .6rem;font:inherit;font-size:.78rem;cursor:pointer;transition:opacity .5s ease}
-  .starter-text:hover{background:#dbeafe}
+  .starter-text{flex:1;min-width:0;text-align:left;background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;border-radius:999px;padding:.22rem .6rem;font:inherit;font-size:.78rem;cursor:pointer;transition:opacity .5s ease}
+  .starter-text:hover{background:#ffedd5}
   .starter-next{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:.22rem .5rem;font-size:.78rem;line-height:1;cursor:pointer}
   @media (max-width:820px){.wrap{grid-template-columns:1fr;height:auto}.preview{height:70vh;border-top:1px solid var(--border)}}
 </style>
@@ -77,10 +77,10 @@
 <header class="app">
   <div class="app-head">
     <div>
-      <h1>📘 Rotation Post Generator</h1>
-      <p>Write up this week's work, add captioned photos, and download a finished portfolio page.</p>
+      <h1>📗 Unit Post Generator</h1>
+      <p>Write up your project's progress this unit, add captioned photos, and download a finished portfolio page.</p>
     </div>
-    <a class="switch-link" href="unit.html">Unit Post Generator →</a>
+    <a class="switch-link" href="index.html">← Weekly Rotation Generator</a>
   </div>
 </header>
 
@@ -98,8 +98,8 @@
     <div class="gate" id="gate"></div>
 
     <div class="help">
-      <strong>How this works:</strong> Write up <em>this week's</em> work, add at least two captioned photos,
-      then click <em>Download portfolio</em> and submit to Canvas. 
+      <strong>How this works:</strong> Write up your project's progress over <em>this unit</em> (300–400 words), add four captioned photos,
+      then click <em>Download portfolio</em> and submit to Canvas.
       <br><strong>Key terms:</strong> wrap a word in asterisks like *torque* to show it as a light-blue key term.
     </div>
 
@@ -110,15 +110,6 @@
         <div><label>Last name<input type="text" id="lastName" placeholder="Lovelace"></label></div>
       </div>
       <label>Project name<input type="text" id="project" placeholder="Proj"></label>
-      <label>Classroom
-        <select id="classroom">
-          <option value="">Select a classroom...</option>
-          <option value="Art">Art</option>
-          <option value="Physics">Physics</option>
-          <option value="Computer Lab">Computer Lab</option>
-          <option value="Machine Shop">Machine Shop</option>
-        </select>
-      </label>
       <div class="row">
         <div><label>Grade
           <select id="grade">
@@ -149,9 +140,16 @@
 
     <fieldset>
       <legend>Personal Reflection/Synthesis</legend>
-      <textarea id="reflection" style="min-height:80px" placeholder="Text here..."></textarea>
+      <textarea id="reflection" style="min-height:160px" placeholder="Text here..."></textarea>
       <div class="starter" id="reflection-starter"></div>
       <div class="counter" id="reflection-count"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>File Management</legend>
+      <p class="hint" style="margin:.2rem 0 .6rem">Upload two screenshots showing your work is organized: (1) your properly named and organized <strong>HTML files</strong>, and (2) your properly named and organized <strong>images</strong>. These appear in a collapsible “File Management” section at the end of your post.</p>
+      <div class="drop" id="fmDrop">Drag your two screenshots here, or click to choose</div>
+      <div class="thumbs" id="fmThumbs"></div>
     </fieldset>
   </div>
 
@@ -165,36 +163,36 @@
 <script>
 const $=id=>document.getElementById(id);
 const val=id=>$(id).value.trim();
-const state={images:{},cover:null};
+const state={images:{},cover:null,fileMgmt:[]};
 let weekCount=0;
 
 // ===== Sentence starters — EDIT THESE LISTS FREELY ===================
-// "moment" shows under Learning Moment 1 & 2; "reflection" shows under the
-// Weekly reflection. Click a suggestion to drop it into the box.
+// "update" shows under the Project Update box; "reflection" shows under the
+// Reflection/Synthesis box. Click a suggestion to drop it into the box.
 const STARTERS={
-  // Each opener targets a different angle on the week's work (a decision, a bug,
-  // a test, an iteration, a constraint...) so posts on the same year-long project
-  // stay distinct — and reads like real engineering to a future college/employer.
-  moment:[
-    "This week I focused on _____, and my goal was to _____.",
+  // Each opener targets a different angle on the unit's progress (a goal, a
+  // design decision, a setback, testing, iteration, teamwork...) so month-long
+  // updates read like real engineering to a future college/employer.
+  update:[
+    "This unit I set out to _____, and by now I've _____.",
+    "Over the past few weeks I designed and built _____ so that it could _____.",
+    "The biggest milestone this unit was _____, which I reached by _____.",
     "I decided to _____ instead of _____ because _____.",
-    "I designed and built _____ so that it could _____.",
     "When _____ didn't work the way I expected, I _____, and _____.",
     "To _____, I taught myself to use _____; the trickiest part was _____.",
     "I tested _____ by _____, and the results showed _____.",
     "I improved _____ by _____, which made _____ noticeably better.",
-    "A constraint I had to work around was _____, so I _____.",
+    "A constraint I had to work around this unit was _____, so I _____.",
     "I worked with _____ to _____; my specific contribution was _____.",
-    "I applied _____ to _____, which helped me _____.",
   ],
   // Synthesis: step back — growth, pride, what was hard, and where it's headed.
   reflection:[
-    "The part I'm most proud of this week is _____, because _____.",
+    "The part I'm most proud of this unit is _____, because _____.",
     "I was surprised that _____, which changed how I think about _____.",
     "I used to think _____, but now I understand that _____.",
-    "The biggest challenge was _____, and I worked through it by _____.",
-    "A skill I strengthened this week — _____ — is one I can see using in _____.",
-    "This week's work builds on _____ from earlier, because _____.",
+    "The biggest challenge this unit was _____, and I worked through it by _____.",
+    "A skill I strengthened this unit — _____ — is one I can see using in _____.",
+    "This unit's work builds on _____ from earlier, because _____.",
     "If I did this again, I would _____, because _____.",
     "My next step is to _____, so that _____.",
   ],
@@ -344,63 +342,64 @@ function renderCover(){
   box.appendChild(t);
 }
 
+// ---- file management screenshots (a document-level pair, shown in a collapsible section) ----
+wireDrop($("fmDrop"),async files=>{
+  for(const f of files){
+    try{const r=await readImage(f);if(r)state.fileMgmt.push(r);}
+    catch(e){imgError(f);}
+  }
+  renderFileMgmt();autosave();updatePreview();validate();
+});
+function renderFileMgmt(){
+  const box=$("fmThumbs");box.innerHTML="";
+  state.fileMgmt.forEach((im,idx)=>{
+    const t=document.createElement("div");t.className="thumb";
+    t.innerHTML=`<img src="${im.dataUrl}"><input type="text" placeholder="Caption (optional)..." value="${esc(im.caption)}"><button class="rm">remove</button>`;
+    t.querySelector("input").addEventListener("input",e=>{im.caption=e.target.value;autosave();schedulePreview();});
+    t.querySelector(".rm").onclick=()=>{state.fileMgmt.splice(idx,1);renderFileMgmt();autosave();updatePreview();validate();};
+    box.appendChild(t);
+  });
+}
+
 // ---- weeks ----
 function addWeek(data={}){
   const id=uid();
   const mapImgs=a=>(a||[]).map(i=>({name:i.name||"",caption:i.caption||"",dataUrl:i.dataUrl}));
   state.images[id]={
-    g1:mapImgs(data.images1||data.images),   // data.images = legacy single-group drafts
-    g2:mapImgs(data.images2)
+    g1:mapImgs(data.images1||data.images)   // data.images = legacy single-group drafts
   };
   const fs=document.createElement("fieldset");
   fs.className="week";fs.dataset.id=id;
   fs.innerHTML=`
-    <legend>Weekly Learning</legend>
-    <label>This week's focus
-      <input type="text" class="w-title" placeholder="Short title"></label>
-    <label>Learning Moment/Challenge 1 
+    <legend>Project Update</legend>
+    <label>Your progress this unit <span class="hint">(300–400 words)</span>
       <textarea class="w-text" data-lm="1" placeholder="Text here..."></textarea></label>
     <div class="starter" data-lm="1"></div>
     <div class="counter w-count" data-for="1"></div>
-    <label>Images for Moment 1 </label>
+    <label>Images for this update <span class="hint">(exactly 4, each with a brief caption)</span></label>
     <div class="drop wdrop" data-group="g1">Drag images here, or click to choose</div>
     <div class="thumbs wthumbs" data-group="g1"></div>
-    <label>Learning Moment/Challenge 2
-      <textarea class="w-text" data-lm="2" placeholder="Text here..."></textarea></label>
-    <div class="starter" data-lm="2"></div>
-    <div class="counter w-count" data-for="2"></div>
-    <label>Images for Moment 2 </label>
-    <div class="drop wdrop" data-group="g2">Drag images here, or click to choose</div>
-    <div class="thumbs wthumbs" data-group="g2"></div>
-    <div class="tip">💻 <strong>Want to show code?</strong> Use <a href="https://ray.so/#padding=32&amp;language=cpp&amp;theme=candy&amp;background=true&amp;darkMode=true&amp;lineNumbers=true" target="_blank" rel="noopener">ray.so</a> for generating images of code, then upload that image to one of the moments above (and caption it).</div>`;
+    <div class="tip">💻 <strong>Want to show code?</strong> Use <a href="https://ray.so/#padding=32&amp;language=cpp&amp;theme=candy&amp;background=true&amp;darkMode=true&amp;lineNumbers=true" target="_blank" rel="noopener">ray.so</a> for generating images of code, then upload that image above (and caption it).</div>`;
   $("weeks").appendChild(fs);
-  fs.querySelector(".w-title").value=data.title||"";
   fs.querySelector('.w-text[data-lm="1"]').value=data.text1||data.text||"";
-  fs.querySelector('.w-text[data-lm="2"]').value=data.text2||"";
-  ["g1","g2"].forEach(g=>{
-    wireDrop(fs.querySelector(`.wdrop[data-group="${g}"]`),async files=>{
-      for(const f of files){
-        try{const r=await readImage(f);if(r)state.images[id][g].push(r);}
-        catch(e){imgError(f);}
-      }
-      renderThumbs(id);autosave();updatePreview();validate();
-    });
+  wireDrop(fs.querySelector('.wdrop[data-group="g1"]'),async files=>{
+    for(const f of files){
+      try{const r=await readImage(f);if(r)state.images[id].g1.push(r);}
+      catch(e){imgError(f);}
+    }
+    renderThumbs(id);autosave();updatePreview();validate();
   });
   fs.querySelectorAll("input,textarea").forEach(el=>el.addEventListener("input",()=>{autosave();schedulePreview();validate();}));
-  // Start LM1 and LM2 on two different random suggestions so students glimpse more
-  // of the list, and never see the same phrase in both boxes at once.
-  const _mN=STARTERS.moment.length, _s1=Math.floor(Math.random()*_mN);
-  const _s2=(_s1+1+Math.floor(Math.random()*Math.max(1,_mN-1)))%_mN;   // != _s1 when _mN>=2
-  wireStarter(fs.querySelector('.w-text[data-lm="1"]'),fs.querySelector('.starter[data-lm="1"]'),STARTERS.moment,_s1);
-  wireStarter(fs.querySelector('.w-text[data-lm="2"]'),fs.querySelector('.starter[data-lm="2"]'),STARTERS.moment,_s2);
+  const _uN=STARTERS.update.length;
+  wireStarter(fs.querySelector('.w-text[data-lm="1"]'),fs.querySelector('.starter[data-lm="1"]'),STARTERS.update,Math.floor(Math.random()*_uN));
   renderThumbs(id);
   return id;
 }
 function renderThumbs(id){
   const card=[...document.querySelectorAll(".week")].find(c=>c.dataset.id===id);
   if(!card)return;
-  let fig=0;  // figure numbers run across both groups, in document order
-  ["g1","g2"].forEach(g=>{
+  let fig=0;  // figure numbers run across the update's images, in document order
+  ["g1"].forEach(g=>{
     const box=card.querySelector(`.wthumbs[data-group="${g}"]`);
     if(!box)return;
     box.innerHTML="";
@@ -418,30 +417,28 @@ function renderThumbs(id){
 // ---- collect + build ----
 function collect(){
   return {
-    meta:{first:val("firstName"),last:val("lastName"),student:(val("firstName")+" "+val("lastName")).trim(),project:val("project"),classroom:val("classroom"),grade:val("grade"),unit:val("unit")},
+    meta:{first:val("firstName"),last:val("lastName"),student:(val("firstName")+" "+val("lastName")).trim(),project:val("project"),grade:val("grade"),unit:val("unit")},
     cover:state.cover||null,
     weeks:[...document.querySelectorAll(".week")].map(card=>{
-      const im=state.images[card.dataset.id]||{g1:[],g2:[]};
+      const im=state.images[card.dataset.id]||{g1:[]};
       const m=a=>a.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl}));
       return {
-        title:card.querySelector(".w-title").value.trim(),
         text1:card.querySelector('.w-text[data-lm="1"]').value,
-        text2:card.querySelector('.w-text[data-lm="2"]').value,
-        images1:m(im.g1),
-        images2:m(im.g2)
+        images1:m(im.g1)
       };
     }),
-    reflection:val("reflection")
+    reflection:val("reflection"),
+    fileMgmt:state.fileMgmt.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl}))
   };
 }
 
 const PORTFOLIO_CSS=`
-:root{--accent:#0ea5e9;--ink:#1e293b;--muted:#64748b;--bg:#fff;--border:#e2e8f0}
+:root{--accent:#ea580c;--ink:#1e293b;--muted:#64748b;--bg:#fff;--border:#e2e8f0}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,"Times New Roman",serif;font-size:18px;line-height:1.65}
 .cover{position:relative;margin-bottom:2.5rem}
-.cover .banner{height:300px;background:linear-gradient(120deg,#0ea5e9,#1e293b)}
+.cover .banner{height:300px;background:linear-gradient(120deg,#f97316,#7c2d12)}
 .cover img{display:block;width:100%;max-height:460px;object-fit:cover}
-.cover-text{position:absolute;left:0;bottom:0;width:100%;padding:2rem 1.5rem 1.25rem;background:linear-gradient(to top,rgba(15,23,42,.78),transparent);color:#fff;font-family:system-ui,sans-serif}
+.cover-text{position:absolute;left:0;bottom:0;width:100%;padding:2rem 1.5rem 1.25rem;background:linear-gradient(to top,rgba(67,20,7,.8),transparent);color:#fff;font-family:system-ui,sans-serif}
 .cover-text h1{font-size:clamp(1.8rem,5vw,3rem);margin:0}
 .subtitle{margin:.3rem 0 0;font-size:1.05rem;opacity:.92}
 main{max-width:860px;margin:0 auto;padding:0 1.25rem}
@@ -455,6 +452,13 @@ figure img{display:block;width:100%;height:auto;border-radius:10px;border:1px so
 figcaption{font-family:system-ui,sans-serif;font-size:.85rem;color:var(--muted);margin-top:.5rem;font-style:italic}
 pre{background:#0f172a;color:#e2e8f0;padding:1.1rem 1.25rem;border-radius:10px;overflow-x:auto;font-size:.9rem;line-height:1.5}
 code{font-family:"SF Mono",Consolas,monospace}
+details.filemgmt{margin:0 0 3rem;border:1px solid var(--border);border-radius:10px;padding:0 1.25rem}
+details.filemgmt>summary{cursor:pointer;list-style:none;font-family:system-ui,sans-serif;font-weight:700;font-size:1.25rem;color:rgb(25,25,25);padding:1rem 0;display:flex;align-items:center;gap:.5rem}
+details.filemgmt>summary::-webkit-details-marker{display:none}
+details.filemgmt>summary::before{content:"▸";color:var(--accent);font-size:.9em}
+details.filemgmt[open]>summary{border-bottom:1px solid var(--border);margin-bottom:1rem}
+details.filemgmt[open]>summary::before{content:"▾"}
+details.filemgmt .gallery{margin-top:0}
 footer{max-width:860px;margin:2rem auto 3rem;padding:1.25rem;border-top:1px solid var(--border);font-family:system-ui,sans-serif;font-size:.9rem;color:var(--muted);text-align:center}
 @media (max-width:640px){body{font-size:16px}.gallery{grid-template-columns:1fr}}
 `;
@@ -468,42 +472,49 @@ function gallery(images,ctr,group){
   return figs?`<div class="gallery" data-group="${group}">\n${figs}\n</div>`:"";
 }
 
+// File-management screenshots: no figure numbers, captions optional.
+function fileGallery(images){
+  const figs=images.filter(i=>i.dataUrl).map(i=>{
+    const cap=i.caption?`<figcaption>${esc(i.caption)}</figcaption>`:"";
+    return `<figure><img src="${i.dataUrl}" alt="${esc(i.caption||"File management screenshot")}">${cap}</figure>`;
+  }).join("\n");
+  return figs?`<div class="gallery" data-group="fm">\n${figs}\n</div>`:"";
+}
+
 function buildHTML(d){
   const name=d.meta.student||"My";
   const now = new Date();
   const monthYear = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   
-  const title=`${name} — ${monthYear} Portfolio Post`;
+  const title=`${name} — ${monthYear} Unit Post`;
   const gradeTxt=d.meta.grade?`Grade ${d.meta.grade}`:"";
   const unitTxt=d.meta.unit?`Unit ${d.meta.unit}`:"";
-  const sub=[d.meta.project, d.meta.classroom, gradeTxt, unitTxt].filter(Boolean).map(esc).join(" · ");
+  const sub=[d.meta.project, gradeTxt, unitTxt].filter(Boolean).map(esc).join(" · ");
   const cover=d.cover
     ? `<img src="${d.cover}" alt="Cover image">`
     : `<div class="banner"></div>`;
   const figCtr={n:0};  // figure numbers run across the whole post
   const sections=d.weeks.map((w,i)=>{
-    const imgs1=w.images1||[], imgs2=w.images2||[];
-    const hasText=w.text1||w.text2;
-    const hasImg=imgs1.some(x=>x.dataUrl)||imgs2.some(x=>x.dataUrl);
-    if(!w.title&&!hasText&&!hasImg)return "";
-    const head=esc(w.title)||"This Week";
-    let html=`<section>\n<h2>${head}</h2>\n`;
+    const imgs1=w.images1||[];
+    const hasImg=imgs1.some(x=>x.dataUrl);
+    if(!w.text1&&!hasImg)return "";
+    let html=`<section>\n<h2>Project Update</h2>\n`;
     if(w.text1)html+=paras(w.text1)+"\n";
     if(imgs1.length)html+=gallery(imgs1,figCtr,1)+"\n";
-    if(w.text2)html+=paras(w.text2)+"\n";
-    if(imgs2.length)html+=gallery(imgs2,figCtr,2)+"\n";
     return html+"</section>";
   }).filter(Boolean).join("\n\n");
   const reflection=d.reflection
     ? `<section>\n<h2>Looking Back</h2>\n${paras(d.reflection)}\n</section>`:"";
+  const fmImgs=(d.fileMgmt||[]).filter(i=>i.dataUrl);
+  const fileMgmt=fmImgs.length
+    ? `<details class="filemgmt">\n<summary>File Management</summary>\n${fileGallery(fmImgs)}\n</details>`:"";
   // Embedded editable state so this page can be re-opened in the generator.
   // Photos are omitted here (they're already inline above) to avoid doubling
   // the file size; they're recovered from the rendered <img> tags on load.
   const editData={v:2,meta:d.meta,reflection:d.reflection,weeks:d.weeks.map(w=>({
-    title:w.title,text1:w.text1,text2:w.text2,
-    images1:(w.images1||[]).map(i=>({name:i.name,caption:i.caption})),
-    images2:(w.images2||[]).map(i=>({name:i.name,caption:i.caption}))
-  }))};
+    text1:w.text1,
+    images1:(w.images1||[]).map(i=>({name:i.name,caption:i.caption}))
+  })),fileMgmt:(d.fileMgmt||[]).map(i=>({name:i.name,caption:i.caption}))};
   const dataJson=JSON.stringify(editData).replace(/</g,"\\u003c");
   return `<!doctype html>
 <html lang="en">
@@ -522,8 +533,9 @@ ${cover}
 </div>
 </header>
 <main>
-${sections||"<p>Fill in this week's entry to see your portfolio here.</p>"}
+${sections||"<p>Fill in your project update to see your portfolio here.</p>"}
 ${reflection}
+${fileMgmt}
 </main>
 <footer><p>${esc(name)} · ${monthYear}</p></footer>
 <script type="application/json" id="portfolio-data">${dataJson}<\/script>
@@ -532,63 +544,61 @@ ${reflection}
 }
 
 // ---- requirements before download ----
-const MIN_WORDS=50, MAX_WORDS=75, MIN_KEYTERMS=3;
+const UPDATE_MIN=300, UPDATE_MAX=400, REFLECT_MIN=200, REFLECT_MAX=250, MIN_KEYTERMS=3;
+const UPDATE_IMAGES=4, FILEMGMT_IMAGES=2;
 function countWords(t){const m=(t||"").trim().match(/[A-Za-z0-9][A-Za-z0-9'-]*/g);return m?m.length:0;}
 function theWeek(){return document.querySelector(".week");}
 function lmWords(n){const t=theWeek()&&theWeek().querySelector(`.w-text[data-lm="${n}"]`);return countWords(t?t.value:"");}
 function groupImgs(){
-  const card=theWeek();if(!card)return {g1:[],g2:[]};
-  return state.images[card.dataset.id]||{g1:[],g2:[]};
+  const card=theWeek();if(!card)return {g1:[]};
+  return state.images[card.dataset.id]||{g1:[]};
 }
-// Count *asterisk* key terms across both moments and the reflection, using the
+// Count *asterisk* key terms across the update box and the reflection, using the
 // same match rule as the renderer (keyTerms, above) so the count matches what
 // actually highlights. Counting each box separately avoids matching across boxes.
 function keyTermCount(){
   const re=/\*(\S(?:[^*\n]*\S)?)\*/g, wk=theWeek();
   const texts=[
     wk?wk.querySelector('.w-text[data-lm="1"]').value:"",
-    wk?wk.querySelector('.w-text[data-lm="2"]').value:"",
     $("reflection").value
   ];
   return texts.reduce((n,t)=>n+((t.match(re)||[]).length),0);
 }
-function renderCounter(el,base,words){
-  const ok=words>=MIN_WORDS&&words<=MAX_WORDS;
+function renderCounter(el,base,words,min,max){
+  const ok=words>=min&&words<=max;
   if(el){
-    el.className=base+" "+(ok?"ok":words<MIN_WORDS?"lo":"hi");
-    el.textContent=words+" / 50–75 words"+(words<MIN_WORDS?` — ${MIN_WORDS-words} more to go`
-      :words>MAX_WORDS?` — ${words-MAX_WORDS} over`:" ✓");
+    el.className=base+" "+(ok?"ok":words<min?"lo":"hi");
+    el.textContent=words+` / ${min}–${max} words`+(words<min?` — ${min-words} more to go`
+      :words>max?` — ${words-max} over`:" ✓");
   }
   return ok;
 }
 function validate(){
   const wk=theWeek();
-  const w1=lmWords(1), w2=lmWords(2), wr=countWords($("reflection").value);
-  const ok1=renderCounter(wk&&wk.querySelector('.w-count[data-for="1"]'),"counter w-count",w1);
-  const ok2=renderCounter(wk&&wk.querySelector('.w-count[data-for="2"]'),"counter w-count",w2);
-  const okR=renderCounter($("reflection-count"),"counter",wr);
+  const w1=lmWords(1), wr=countWords($("reflection").value);
+  const ok1=renderCounter(wk&&wk.querySelector('.w-count[data-for="1"]'),"counter w-count",w1,UPDATE_MIN,UPDATE_MAX);
+  const okR=renderCounter($("reflection-count"),"counter",wr,REFLECT_MIN,REFLECT_MAX);
   const im=groupImgs();
-  const g1n=im.g1.filter(i=>i.dataUrl).length, g2n=im.g2.filter(i=>i.dataUrl).length;
-  const all=[...im.g1,...im.g2].filter(i=>i.dataUrl);
+  const g1n=im.g1.filter(i=>i.dataUrl).length;
+  const all=[...im.g1].filter(i=>i.dataUrl);
   const captioned=all.filter(i=>i.caption&&i.caption.trim()).length;
-  const g1OK=g1n>=1, g2OK=g2n>=1, capOK=all.length>0&&captioned===all.length;
+  const imgOK=g1n===UPDATE_IMAGES, capOK=all.length>0&&captioned===all.length;
+  const fmN=state.fileMgmt.filter(i=>i.dataUrl).length, fmOK=fmN===FILEMGMT_IMAGES;
   const nameOK=!!$("firstName").value.trim() && !!$("lastName").value.trim();
-  const clsOK=!!$("classroom").value, grOK=!!$("grade").value, unOK=!!$("unit").value;
+  const grOK=!!$("grade").value, unOK=!!$("unit").value;
   const kt=keyTermCount(), ktOK=kt>=MIN_KEYTERMS;
   const row=(ok,label)=>`<div class="req ${ok?'ok':'no'}"><span class="mark">${ok?'✓':'○'}</span>${label}</div>`;
   $("gate").innerHTML='<div class="ghead">To download, finish these:</div>'+
     row(nameOK,`Enter your first and last name`)+
-    row(clsOK,`Choose your classroom`)+
     row(grOK,`Choose your grade`)+
     row(unOK,`Choose your unit`)+
-    row(ok1,`Learning Moment 1: 50–75 words (now ${w1})`)+
-    row(ok2,`Learning Moment 2: 50–75 words (now ${w2})`)+
-    row(okR,`Reflection/Synthesis: 50–75 words (now ${wr})`)+
-    row(g1OK,`Add at least one image to Moment 1 (now ${g1n})`)+
-    row(g2OK,`Add at least one image to Moment 2 (now ${g2n})`)+
-    row(capOK,`Caption every image (${captioned}/${all.length} captioned)`)+
-    row(ktOK,`Highlight at least ${MIN_KEYTERMS} key terms with *asterisks* (now ${kt})`);
-  const ok=ok1&&ok2&&okR&&g1OK&&g2OK&&capOK&&nameOK&&clsOK&&grOK&&unOK&&ktOK;
+    row(ok1,`Project Update: ${UPDATE_MIN}–${UPDATE_MAX} words (now ${w1})`)+
+    row(ktOK,`Highlight at least ${MIN_KEYTERMS} key terms with *asterisks* (now ${kt})`)+
+    row(imgOK,`Add exactly ${UPDATE_IMAGES} images to your update (now ${g1n})`)+
+    row(capOK,`Add a brief caption to every image (${captioned}/${all.length} captioned)`)+
+    row(okR,`Reflection/Synthesis: ${REFLECT_MIN}–${REFLECT_MAX} words (now ${wr})`)+
+    row(fmOK,`Add exactly ${FILEMGMT_IMAGES} File Management screenshots (now ${fmN})`);
+  const ok=ok1&&imgOK&&capOK&&okR&&fmOK&&nameOK&&grOK&&unOK&&ktOK;
   $("download").disabled=!ok;
   $("download").title=ok?"":"Finish the requirements above to enable download";
   return ok;
@@ -613,10 +623,9 @@ function downloadBlob(filename,content,type){
   setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
 function slug(){const m=collect().meta;return ((m.student||"portfolio")+"-"+(m.month||"")).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"portfolio";}
-// Organizable filename: <first-initial><last-name-first-4>_<classroom>_Grade<N>_Unit<N>.html
-// e.g. Ada Lovelace, Computer Lab, Grade 10, Unit 4 -> ALove_COMP_Grade10_Unit4.html
-// (name, classroom, grade and unit are all required before download, so these are always present.)
-const CLASS_SHORT={"Art":"ART","Physics":"PHYS","Machine Shop":"SHOP","Computer Lab":"COMP"};
+// Organizable filename: <first-initial><last-name-first-4>_UnitPost_Grade<N>_Unit<N>.html
+// e.g. Ada Lovelace, Grade 10, Unit 4 -> ALove_UnitPost_Grade10_Unit4.html
+// (name, grade and unit are all required before download, so these are always present.)
 function postFileName(){
   const m=collect().meta;
   const alnum=s=>((s||"").replace(/[^A-Za-z0-9]/g,""));
@@ -624,10 +633,9 @@ function postFileName(){
   const ln=alnum(m.last).slice(0,4);
   const lnCased=ln?ln[0].toUpperCase()+ln.slice(1).toLowerCase():"";
   const who=(fi+lnCased)||"XX";
-  const cls=CLASS_SHORT[m.classroom]||"CLASS";
   const grade=`Grade${alnum(m.grade)||"X"}`;
   const unit=`Unit${alnum(m.unit)||"X"}`;
-  return `${who}_${cls}_${grade}_${unit}.html`;
+  return `${who}_UnitPost_${grade}_${unit}.html`;
 }
 $("download").onclick=()=>{if(!validate())return;downloadBlob(postFileName(),buildHTML(collect()),"text/html");};
 $("save").onclick=()=>downloadBlob(slug()+"-journal.json",JSON.stringify(collect()),"application/json");
@@ -642,11 +650,12 @@ function parsePortfolioHTML(txt){
   const cov=doc.querySelector(".cover img");
   data.cover=cov?cov.getAttribute("src"):null;
   const srcs=g=>[...doc.querySelectorAll(`.gallery[data-group="${g}"] figure img`)].map(i=>i.getAttribute("src"));
-  const g1=srcs(1), g2=srcs(2);             // single weekly post
+  const g1=srcs(1);                         // single project update
   (data.weeks||[]).forEach(w=>{
     w.images1=(w.images1||[]).map((im,i)=>({...im,dataUrl:g1[i]}));
-    w.images2=(w.images2||[]).map((im,i)=>({...im,dataUrl:g2[i]}));
   });
+  const fm=srcs("fm");                      // file-management screenshots
+  data.fileMgmt=(data.fileMgmt||[]).map((im,i)=>({...im,dataUrl:fm[i]}));
   return data;
 }
 $("loadFile").onchange=e=>{
@@ -667,9 +676,10 @@ $("loadFile").onchange=e=>{
 $("refresh").onclick=updatePreview;
 $("clear").onclick=()=>{
   if(!confirm("Clear this portfolio? Everything in the form will be erased and this can't be undone."))return;
-  localStorage.removeItem("portfolioDraft");
-  ["firstName","lastName","project","classroom","grade","unit","reflection"].forEach(id=>$(id).value="");
+  localStorage.removeItem("unitPostDraft");
+  ["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).value="");
   state.cover=null;renderCover();
+  state.fileMgmt=[];renderFileMgmt();
   $("weeks").innerHTML="";state.images={};
   addWeek();
   updatePreview();
@@ -684,11 +694,12 @@ function loadData(d){
   $("firstName").value=first;
   $("lastName").value=last;
   $("project").value=d.meta?.project||"";
-  $("classroom").value=d.meta?.classroom||"";
   $("grade").value=d.meta?.grade||"";
   $("unit").value=d.meta?.unit||"";
   $("reflection").value=d.reflection||"";
   state.cover=d.cover||null;renderCover();
+  state.fileMgmt=(d.fileMgmt||[]).map(i=>({name:i.name||"",caption:i.caption||"",dataUrl:i.dataUrl}));
+  renderFileMgmt();
   $("weeks").innerHTML="";state.images={};
   addWeek((d.weeks&&d.weeks[0])||{});
   updatePreview();
@@ -699,17 +710,17 @@ let autoTimer=null;
 function autosave(){
   clearTimeout(autoTimer);
   autoTimer=setTimeout(()=>{
-    try{localStorage.setItem("portfolioDraft",JSON.stringify(collect()));
+    try{localStorage.setItem("unitPostDraft",JSON.stringify(collect()));
       $("autonote").textContent="✓ saved in this browser";
       setTimeout(()=>$("autonote").textContent="",1500);}catch(e){}
   },600);
 }
-["firstName","lastName","project","classroom","grade","unit","reflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
+["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
 wireStarter($("reflection"),$("reflection-starter"),STARTERS.reflection,Math.floor(Math.random()*STARTERS.reflection.length));
 
 // ---- boot ----
 (function init(){
-  const saved=localStorage.getItem("portfolioDraft");
+  const saved=localStorage.getItem("unitPostDraft");
   if(saved){try{loadData(JSON.parse(saved));return;}catch(e){}}
   addWeek();
   updatePreview();
