@@ -79,6 +79,13 @@
   .rub-check input{margin-top:.15rem;flex:none}
   .rub-comment-label{margin-top:.55rem}
   .rub-comment{min-height:56px}
+  .pubtoggle{display:flex;align-items:flex-start;gap:.45rem;font-size:.82rem;font-weight:600;color:var(--ink);margin:0 0 .9rem;cursor:pointer}
+  .pubtoggle input{margin-top:.15rem;flex:none}
+  /* Publish-ready toggle is hidden for now — students only need it at year-end.
+     The flag and all its logic still work (downloads default to full); the post
+     also carries a hand-editable data-public flag. To show the checkbox again,
+     delete this one rule. */
+  .pubtoggle{display:none}
   @media (max-width:820px){.wrap{grid-template-columns:1fr;height:auto}.preview{height:70vh;border-top:1px solid var(--border)}}
 </style>
 </head>
@@ -166,6 +173,8 @@
       <p class="hint" style="margin:.2rem 0 .6rem">Grade your own work honestly against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a>. Check the criteria that are truly met — your level is calculated automatically (Level 4 requires every Level 3 <em>and</em> Level 4 box) — and add a brief comment for each category (required). This renders as a collapsible “Self Grade Rubric” section at the end of your post.</p>
       <div id="rubricRows"></div>
     </fieldset>
+
+    <label class="pubtoggle"><input type="checkbox" id="publicView"> Publish-ready — hide Self Grade Rubric &amp; File Management in the downloaded post <span class="hint">(Leave unchecked for submitting to Canvas)</span></label>
   </div>
 
   <div class="preview">
@@ -444,7 +453,8 @@ function collect(){
     }),
     reflection:val("reflection"),
     fileMgmt:state.fileMgmt.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl})),
-    rubric:getRubric()
+    rubric:getRubric(),
+    publicView:$("publicView").checked
   };
 }
 
@@ -475,6 +485,7 @@ details.filemgmt>summary::before,details.rubric>summary::before{content:"▸";co
 details.filemgmt[open]>summary,details.rubric[open]>summary{border-bottom:1px solid var(--border);margin-bottom:1rem}
 details.filemgmt[open]>summary::before,details.rubric[open]>summary::before{content:"▾"}
 details.filemgmt .gallery{margin-top:0}
+body[data-public="true"] details.filemgmt,body[data-public="true"] details.rubric{display:none}
 .rub-block{margin-bottom:1.75rem}
 .rub-block:last-child{margin-bottom:.5rem}
 .rub-block h3{font-family:system-ui,sans-serif;font-size:1.1rem;color:rgb(25,25,25);margin:0 0 .5rem;display:flex;flex-wrap:wrap;align-items:baseline;gap:.6rem}
@@ -547,7 +558,7 @@ function buildHTML(d){
   const editData={v:2,meta:d.meta,reflection:d.reflection,weeks:d.weeks.map(w=>({
     text1:w.text1,
     images1:(w.images1||[]).map(i=>({name:i.name,caption:i.caption}))
-  })),fileMgmt:(d.fileMgmt||[]).map(i=>({name:i.name,caption:i.caption})),rubric:d.rubric||[]};
+  })),fileMgmt:(d.fileMgmt||[]).map(i=>({name:i.name,caption:i.caption})),rubric:d.rubric||[],publicView:!!d.publicView};
   const dataJson=JSON.stringify(editData).replace(/</g,"\\u003c");
   return `<!doctype html>
 <html lang="en">
@@ -557,7 +568,8 @@ function buildHTML(d){
 <title>${esc(title)}</title>
 <style>${PORTFOLIO_CSS}</style>
 </head>
-<body>
+<!-- PUBLISHING: change data-public="false" to "true" below to hide your Self Grade Rubric and File Management before posting this publicly. -->
+<body data-public="${d.publicView?'true':'false'}">
 <header class="cover">
 ${cover}
 <div class="cover-text">
@@ -694,6 +706,9 @@ function parsePortfolioHTML(txt){
   });
   const fm=srcs("fm");                      // file-management screenshots
   data.fileMgmt=(data.fileMgmt||[]).map((im,i)=>({...im,dataUrl:fm[i]}));
+  // The publishing flag on <body> wins over the embedded JSON, so a hand-edited
+  // data-public="true" is respected when the post is re-opened here.
+  data.publicView=doc.body.getAttribute("data-public")==="true";
   return data;
 }
 $("loadFile").onchange=e=>{
@@ -716,6 +731,7 @@ $("clear").onclick=()=>{
   if(!confirm("Clear this portfolio? Everything in the form will be erased and this can't be undone."))return;
   localStorage.removeItem("unitPostDraft");
   ["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).value="");
+  $("publicView").checked=false;
   state.cover=null;renderCover();
   state.fileMgmt=[];renderFileMgmt();
   setRubric([]);
@@ -736,6 +752,7 @@ function loadData(d){
   $("grade").value=d.meta?.grade||"";
   $("unit").value=d.meta?.unit||"";
   $("reflection").value=d.reflection||"";
+  $("publicView").checked=!!d.publicView;
   state.cover=d.cover||null;renderCover();
   state.fileMgmt=(d.fileMgmt||[]).map(i=>({name:i.name||"",caption:i.caption||"",dataUrl:i.dataUrl}));
   renderFileMgmt();
@@ -756,6 +773,7 @@ function autosave(){
   },600);
 }
 ["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
+$("publicView").addEventListener("change",()=>{autosave();schedulePreview();});
 // ---- self grade rubric (students check the criteria they meet; level is computed) ----
 // Cumulative per the unit rubric: Level 4 = every Level 3 AND every Level 4 box.
 const RUBRIC=[
