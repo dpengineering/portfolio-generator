@@ -70,8 +70,14 @@
   .starter-text{flex:1;min-width:0;text-align:left;background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;border-radius:999px;padding:.22rem .6rem;font:inherit;font-size:.78rem;cursor:pointer;transition:opacity .5s ease}
   .starter-text:hover{background:#ffedd5}
   .starter-next{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:.22rem .5rem;font-size:.78rem;line-height:1;cursor:pointer}
-  .rubric-row{border:1px solid var(--border);border-radius:8px;padding:.5rem .7rem;margin-bottom:.6rem;background:var(--panel)}
-  .rub-score{padding:.4rem .5rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.85rem;background:#fff}
+  .rubric-row{border:1px solid var(--border);border-radius:8px;padding:.6rem .7rem;margin-bottom:.6rem;background:var(--panel)}
+  .rub-cathead{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.35rem}
+  .rub-cat{font-weight:700;color:var(--ink);font-size:.9rem}
+  .rub-level{flex:none;font-size:.76rem;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:.15rem .6rem;white-space:nowrap}
+  .rub-tier{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin:.5rem 0 .2rem}
+  .rub-check{display:flex;align-items:flex-start;gap:.45rem;font-size:.82rem;font-weight:400;margin:.18rem 0;cursor:pointer}
+  .rub-check input{margin-top:.15rem;flex:none}
+  .rub-comment-label{margin-top:.55rem}
   .rub-comment{min-height:56px}
   @media (max-width:820px){.wrap{grid-template-columns:1fr;height:auto}.preview{height:70vh;border-top:1px solid var(--border)}}
 </style>
@@ -157,31 +163,8 @@
 
     <fieldset>
       <legend>Self Grade Rubric</legend>
-      <p class="hint" style="margin:.2rem 0 .6rem">Grade your own work honestly against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a>. A score <strong>and</strong> a brief comment are required for each category. This renders as a collapsible “Self Grade Rubric” table at the end of your post.</p>
-      <div class="rubric-row" data-label="Project Update (Technical Writing)">
-        <label>Project Update (Technical Writing)
-          <select class="rub-score">
-            <option value="">Select a score…</option>
-            <option>Level 4</option><option>Level 3</option><option>Level 2</option><option>Level 1</option><option>No Credit</option>
-          </select></label>
-        <label>Comments<textarea class="rub-comment" placeholder="Why did you give yourself this score?"></textarea></label>
-      </div>
-      <div class="rubric-row" data-label="Connections/Synthesis">
-        <label>Connections/Synthesis
-          <select class="rub-score">
-            <option value="">Select a score…</option>
-            <option>Level 4</option><option>Level 3</option><option>Level 2</option><option>Level 1</option><option>No Credit</option>
-          </select></label>
-        <label>Comments<textarea class="rub-comment" placeholder="Why did you give yourself this score?"></textarea></label>
-      </div>
-      <div class="rubric-row" data-label="File Management">
-        <label>File Management
-          <select class="rub-score">
-            <option value="">Select a score…</option>
-            <option>Level 4</option><option>Level 3</option><option>Level 2</option><option>Level 1</option><option>No Credit</option>
-          </select></label>
-        <label>Comments<textarea class="rub-comment" placeholder="Why did you give yourself this score?"></textarea></label>
-      </div>
+      <p class="hint" style="margin:.2rem 0 .6rem">Grade your own work honestly against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a>. Check the criteria that are truly met — your level is calculated automatically (Level 4 requires every Level 3 <em>and</em> Level 4 box) — and add a brief comment for each category (required). This renders as a collapsible “Self Grade Rubric” section at the end of your post.</p>
+      <div id="rubricRows"></div>
     </fieldset>
   </div>
 
@@ -461,11 +444,7 @@ function collect(){
     }),
     reflection:val("reflection"),
     fileMgmt:state.fileMgmt.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl})),
-    rubric:[...document.querySelectorAll(".rubric-row")].map(r=>({
-      category:r.dataset.label,
-      score:r.querySelector(".rub-score").value,
-      comments:r.querySelector(".rub-comment").value.trim()
-    }))
+    rubric:getRubric()
   };
 }
 
@@ -496,10 +475,14 @@ details.filemgmt>summary::before,details.rubric>summary::before{content:"▸";co
 details.filemgmt[open]>summary,details.rubric[open]>summary{border-bottom:1px solid var(--border);margin-bottom:1rem}
 details.filemgmt[open]>summary::before,details.rubric[open]>summary::before{content:"▾"}
 details.filemgmt .gallery{margin-top:0}
-.rubric-table{width:100%;border-collapse:collapse;font-family:system-ui,sans-serif;font-size:.95rem;margin-bottom:1.25rem}
-.rubric-table th,.rubric-table td{border:1px solid var(--border);padding:.55rem .7rem;text-align:left;vertical-align:top}
-.rubric-table th{background:#fff7ed;font-weight:700;color:rgb(25,25,25)}
-.rubric-table td:nth-child(2){white-space:nowrap;font-weight:600}
+.rub-block{margin-bottom:1.75rem}
+.rub-block:last-child{margin-bottom:.5rem}
+.rub-block h3{font-family:system-ui,sans-serif;font-size:1.1rem;color:rgb(25,25,25);margin:0 0 .5rem;display:flex;flex-wrap:wrap;align-items:baseline;gap:.6rem}
+.rub-block h3 .lvl{font-size:.8rem;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:.1rem .6rem;white-space:nowrap}
+.rub-met{margin:.25rem 0 .5rem 1.3rem;font-family:system-ui,sans-serif;font-size:.95rem}
+.rub-met li{margin:.15rem 0}
+.rub-none{font-family:system-ui,sans-serif;font-size:.95rem;color:var(--muted);font-style:italic;margin:.25rem 0 .5rem}
+.rub-note{margin:.35rem 0 0;font-style:italic}
 footer{max-width:860px;margin:2rem auto 3rem;padding:1.25rem;border-top:1px solid var(--border);font-family:system-ui,sans-serif;font-size:.9rem;color:var(--muted);text-align:center}
 @media (max-width:640px){body{font-size:16px}.gallery{grid-template-columns:1fr}}
 `;
@@ -549,9 +532,15 @@ function buildHTML(d){
   const fmImgs=(d.fileMgmt||[]).filter(i=>i.dataUrl);
   const fileMgmt=fmImgs.length
     ? `<details class="filemgmt">\n<summary>File Management</summary>\n${fileGallery(fmImgs)}\n</details>`:"";
-  const rubricRows=(d.rubric||[]).filter(r=>r.score||r.comments);
-  const rubric=rubricRows.length
-    ? `<details class="rubric">\n<summary>Self Grade Rubric</summary>\n<table class="rubric-table"><thead><tr><th>Category</th><th>Score</th><th>Comments</th></tr></thead><tbody>\n${rubricRows.map(r=>`<tr><td>${esc(r.category)}</td><td>${esc(r.score)}</td><td>${esc(r.comments)}</td></tr>`).join("\n")}\n</tbody></table>\n</details>`:"";
+  const rubricCats=(d.rubric||[]).filter(r=>r.comments||(r.met&&r.met.length));
+  const rubric=rubricCats.length
+    ? `<details class="rubric">\n<summary>Self Grade Rubric</summary>\n`+rubricCats.map(r=>{
+        const lis=(r.met&&r.met.length)
+          ? `<ul class="rub-met">\n${r.met.map(m=>`<li>${esc(m)}</li>`).join("\n")}\n</ul>`
+          : `<p class="rub-none">No criteria selected.</p>`;
+        const note=r.comments?`<p class="rub-note">${esc(r.comments)}</p>`:"";
+        return `<div class="rub-block">\n<h3>${esc(r.category)} <span class="lvl">${esc(r.level)}</span></h3>\n${lis}\n${note}\n</div>`;
+      }).join("\n")+`\n</details>`:"";
   // Embedded editable state so this page can be re-opened in the generator.
   // Photos are omitted here (they're already inline above) to avoid doubling
   // the file size; they're recovered from the rendered <img> tags on load.
@@ -630,7 +619,7 @@ function validate(){
   const imgOK=g1n===UPDATE_IMAGES, capOK=all.length>0&&captioned===all.length;
   const fmN=state.fileMgmt.filter(i=>i.dataUrl).length, fmOK=fmN===FILEMGMT_IMAGES;
   const rubRows=[...document.querySelectorAll(".rubric-row")];
-  const rubDone=rubRows.filter(r=>r.querySelector(".rub-score").value&&r.querySelector(".rub-comment").value.trim()).length;
+  const rubDone=rubRows.filter(r=>r.querySelector(".rub-comment").value.trim()).length;
   const rubOK=rubRows.length>0&&rubDone===rubRows.length;
   const nameOK=!!$("firstName").value.trim() && !!$("lastName").value.trim();
   const grOK=!!$("grade").value, unOK=!!$("unit").value;
@@ -646,7 +635,7 @@ function validate(){
     row(capOK,`Add a brief caption to every image (${captioned}/${all.length} captioned)`)+
     row(okR,`Reflection/Synthesis: ${REFLECT_MIN}–${REFLECT_MAX} words (now ${wr})`)+
     row(fmOK,`Add exactly ${FILEMGMT_IMAGES} File Management screenshots (now ${fmN})`)+
-    row(rubOK,`Self Grade Rubric: score + comment for all ${rubRows.length} categories (${rubDone}/${rubRows.length})`);
+    row(rubOK,`Self Grade Rubric: add a comment for all ${rubRows.length} categories (${rubDone}/${rubRows.length})`);
   const ok=ok1&&imgOK&&capOK&&okR&&fmOK&&rubOK&&nameOK&&grOK&&unOK&&ktOK;
   $("download").disabled=!ok;
   $("download").title=ok?"":"Finish the requirements above to enable download";
@@ -767,19 +756,81 @@ function autosave(){
   },600);
 }
 ["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
-// ---- self grade rubric ----
-function setRubric(arr){
-  arr=arr||[];
-  document.querySelectorAll(".rubric-row").forEach(r=>{
-    const found=arr.find(x=>x.category===r.dataset.label)||{};
-    r.querySelector(".rub-score").value=found.score||"";
-    r.querySelector(".rub-comment").value=found.comments||"";
+// ---- self grade rubric (students check the criteria they meet; level is computed) ----
+// Cumulative per the unit rubric: Level 4 = every Level 3 AND every Level 4 box.
+const RUBRIC=[
+  {key:"update",label:"Project Update (Technical Writing)",compute:"cumulative",
+    l3:["At least 5 key terms used in context","Appropriate summary and technical analysis","Mostly technical writing","Good quality, topical images","Images are referred to in the writing"],
+    l4:["Key terms show deep understanding of concepts","Concise summary with highly relevant technical analysis","Almost exclusively technical writing","High quality, highly relevant images"]},
+  {key:"synthesis",label:"Reflection/Synthesis",compute:"cumulative",
+    l3:["Explains what you learned or how you grew this unit — not just what you did","Connects this work to a specific earlier experience or class","Grounded in real personal detail — an actual moment, decision, or feeling"],
+    l4:["Names a specific way your thinking or approach changed","Draws a transferable lesson and says how you'll apply it going forward","Reflects honestly on a struggle, mistake, or uncertainty"]},
+  {key:"filemgmt",label:"File Management",compute:"binary",
+    l3:[],
+    l4:["Two file-management screenshots, named and organized correctly","Images are properly named and organized"]},
+];
+// File Management only defines Level 4 / Level 1 in the sheet -> binary.
+function computeLevel(cat,cL3,cL4){
+  if(cat.compute==="binary")return (cat.l4.length&&cL4===cat.l4.length)?"Level 4":"Level 1";
+  const l3all=cat.l3.length&&cL3===cat.l3.length, l4all=cat.l4.length&&cL4===cat.l4.length;
+  if(l3all&&l4all)return "Level 4";
+  if(l3all)return "Level 3";
+  if(cL3>0)return "Level 2";
+  return "Level 1";
+}
+function buildRubric(){
+  const box=$("rubricRows");box.innerHTML="";
+  RUBRIC.forEach(cat=>{
+    const row=document.createElement("div");
+    row.className="rubric-row";row.dataset.key=cat.key;row.dataset.label=cat.label;
+    const tier=(name,items,heading)=>items.length?`<div class="rub-tier">${heading}</div>`+items.map(t=>
+      `<label class="rub-check"><input type="checkbox" class="rub-box" data-tier="${name}" value="${esc(t)}"> ${esc(t)}</label>`).join(""):"";
+    row.innerHTML=
+      `<div class="rub-cathead"><span class="rub-cat">${esc(cat.label)}</span><span class="rub-level" data-level="Level 1">Level 1</span></div>`+
+      `<div class="rub-crit">`+tier("l3",cat.l3,"Level 3 criteria")+
+        tier("l4",cat.l4,cat.l3.length?"Level 4 criteria (in addition to Level 3)":"Level 4 criteria")+`</div>`+
+      `<label class="rub-comment-label">Comments<textarea class="rub-comment" placeholder="Explain your self-assessment for this category…"></textarea></label>`;
+    box.appendChild(row);
+    row.querySelectorAll(".rub-box").forEach(b=>b.addEventListener("change",()=>{updateRubricLevels();autosave();schedulePreview();validate();}));
+    row.querySelector(".rub-comment").addEventListener("input",()=>{autosave();schedulePreview();validate();});
+  });
+  updateRubricLevels();
+}
+function rubCounts(row,cat){
+  const boxes=[...row.querySelectorAll(".rub-box")];
+  return {
+    cL3:boxes.filter(b=>b.dataset.tier==="l3"&&b.checked).length,
+    cL4:boxes.filter(b=>b.dataset.tier==="l4"&&b.checked).length,
+    met:boxes.filter(b=>b.checked).map(b=>b.value)
+  };
+}
+function updateRubricLevels(){
+  RUBRIC.forEach(cat=>{
+    const row=document.querySelector(`.rubric-row[data-key="${cat.key}"]`);if(!row)return;
+    const {cL3,cL4}=rubCounts(row,cat), lvl=computeLevel(cat,cL3,cL4);
+    const el=row.querySelector(".rub-level");el.textContent=lvl;el.dataset.level=lvl;
   });
 }
-document.querySelectorAll(".rub-score,.rub-comment").forEach(el=>{
-  el.addEventListener("input",()=>{autosave();schedulePreview();validate();});
-  el.addEventListener("change",()=>{autosave();schedulePreview();validate();});
-});
+function getRubric(){
+  return RUBRIC.map(cat=>{
+    const row=document.querySelector(`.rubric-row[data-key="${cat.key}"]`);
+    if(!row)return {key:cat.key,category:cat.label,level:"Level 1",met:[],comments:""};
+    const {cL3,cL4,met}=rubCounts(row,cat);
+    return {key:cat.key,category:cat.label,level:computeLevel(cat,cL3,cL4),met,comments:row.querySelector(".rub-comment").value.trim()};
+  });
+}
+function setRubric(arr){
+  arr=arr||[];
+  RUBRIC.forEach(cat=>{
+    const row=document.querySelector(`.rubric-row[data-key="${cat.key}"]`);if(!row)return;
+    const saved=arr.find(x=>x.key===cat.key)||arr.find(x=>x.category===cat.label)||{};
+    const met=saved.met||[];
+    row.querySelectorAll(".rub-box").forEach(b=>{b.checked=met.includes(b.value);});
+    row.querySelector(".rub-comment").value=saved.comments||"";
+  });
+  updateRubricLevels();
+}
+buildRubric();
 wireStarter($("reflection"),$("reflection-starter"),STARTERS.reflection,Math.floor(Math.random()*STARTERS.reflection.length));
 
 // ---- boot ----
