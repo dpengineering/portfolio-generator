@@ -70,7 +70,8 @@
   .starter-label{color:var(--muted);font-weight:600;white-space:nowrap}
   .starter-text{flex:1;min-width:0;text-align:left;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:999px;padding:.22rem .6rem;font:inherit;font-size:.78rem;cursor:pointer;transition:opacity .5s ease}
   .starter-text:hover{background:#dbeafe}
-  .starter-next{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:.22rem .5rem;font-size:.78rem;line-height:1;cursor:pointer}
+  .starter-nav{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:.15rem .45rem;font-size:.85rem;line-height:1.2;cursor:pointer;min-width:1.7rem;text-align:center}
+  .starter-nav:hover{background:#fff;color:var(--ink)}
   .modetoggle{display:flex;align-items:flex-start;gap:.45rem;font-size:.82rem;font-weight:600;color:var(--ink);margin:.2rem 0 .7rem;cursor:pointer}
   .modetoggle input{margin-top:.15rem;flex:none}
   @media (max-width:820px){.wrap{grid-template-columns:1fr;height:auto}.preview{height:70vh;border-top:1px solid var(--border)}}
@@ -217,7 +218,8 @@ function showStarter(bar,fade){
   if(fade){el.style.opacity="0";setTimeout(()=>{el.textContent=txt;el.style.opacity="1";},FADE_MS);}
   else{el.textContent=txt;el.style.opacity="1";}
 }
-function advanceStarter(bar){bar.dataset.idx=((+bar.dataset.idx)+1)%bar._list.length;showStarter(bar,true);}
+function advanceStarter(bar,dir){const n=bar._list.length;bar.dataset.idx=((+bar.dataset.idx)+(dir||1)+n)%n;showStarter(bar,true);}
+function randomStarter(bar){const n=bar._list.length;if(n>1){let j;do{j=Math.floor(Math.random()*n);}while(j===(+bar.dataset.idx));bar.dataset.idx=j;}showStarter(bar,true);}
 function insertAtCaret(ta,text){
   const s=ta.selectionStart??ta.value.length, e=ta.selectionEnd??ta.value.length;
   ta.value=ta.value.slice(0,s)+text+ta.value.slice(e);
@@ -228,13 +230,17 @@ function wireStarter(ta,bar,list,seed){
   if(!ta||!bar||!list||!list.length)return;
   bar.innerHTML='<span class="starter-label">💡 Try:</span>'+
     '<button type="button" class="starter-text" title="Click to insert this starter"></button>'+
-    '<button type="button" class="starter-next" title="Show another">↻</button>';
+    '<button type="button" class="starter-nav starter-prev" title="Previous suggestion" aria-label="Previous suggestion">‹</button>'+
+    '<button type="button" class="starter-nav starter-next" title="Next suggestion" aria-label="Next suggestion">›</button>'+
+    '<button type="button" class="starter-nav starter-rand" title="Random suggestion" aria-label="Random suggestion">🎲</button>';
   bar._ta=ta;bar._list=list;
   bar.dataset.phase=(_starterCount++)%STAGGER_SLOTS;   // stagger so bars don't rotate in unison
   bar.dataset.idx=((seed%list.length)+list.length)%list.length;
   showStarter(bar,false);
   bar.querySelector(".starter-text").onclick=()=>insertAtCaret(ta,list[+bar.dataset.idx]);
-  bar.querySelector(".starter-next").onclick=()=>advanceStarter(bar);
+  bar.querySelector(".starter-prev").onclick=()=>advanceStarter(bar,-1);
+  bar.querySelector(".starter-next").onclick=()=>advanceStarter(bar,1);
+  bar.querySelector(".starter-rand").onclick=()=>randomStarter(bar);
 }
 // Rotate suggestions on a slow tick, staggered so the boxes change at different
 // times (one per tick), and never change a box being edited.
@@ -243,6 +249,7 @@ setInterval(()=>{
   _starterTick++;
   document.querySelectorAll(".starter").forEach(bar=>{
     if((+bar.dataset.phase)!==(_starterTick%STAGGER_SLOTS))return;
+    if(bar.matches(":hover"))return;              // hold still while the mouse is over the starter
     if(bar._ta!==document.activeElement)advanceStarter(bar);
   });
 },ROTATE_MS/STAGGER_SLOTS);
