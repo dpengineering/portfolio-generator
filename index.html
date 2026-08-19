@@ -116,22 +116,24 @@
       </div>
       <label>Project name<input type="text" id="project" placeholder="Proj"></label>
       <div id="schoolFields">
-      <label>Classroom
-        <select id="classroom">
-          <option value="">Select a classroom...</option>
-          <option value="Art">Art</option>
-          <option value="Physics">Physics</option>
-          <option value="Computer Lab">Computer Lab</option>
-          <option value="Machine Shop">Machine Shop</option>
+      <label>Grade
+        <select id="grade">
+          <option value="">Select...</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
         </select>
       </label>
+      <div id="clsUnitFields">
       <div class="row">
-        <div><label>Grade
-          <select id="grade">
-            <option value="">Select...</option>
-            <option value="9">9</option>
-            <option value="10">10</option>
-            <option value="11">11</option>
+        <div><label>Classroom
+          <select id="classroom">
+            <option value="">Select a classroom...</option>
+            <option value="Art">Art</option>
+            <option value="Physics">Physics</option>
+            <option value="Computer Lab">Computer Lab</option>
+            <option value="Machine Shop">Machine Shop</option>
           </select></label></div>
         <div><label>Unit
           <select id="unit">
@@ -145,6 +147,7 @@
             <option value="7">7</option>
             <option value="8">8</option>
           </select></label></div>
+      </div>
       </div>
       </div>
       <label>Cover image <span class="hint">(optional — a strong banner photo)</span></label>
@@ -489,8 +492,10 @@ function buildHTML(d){
   const title=`${name} — ${monthYear} Portfolio Post`;
   const gradeTxt=d.meta.grade?`Grade ${d.meta.grade}`:"";
   const unitTxt=d.meta.unit?`Unit ${d.meta.unit}`:"";
-  // Personal posts show only the project name; school metadata is omitted.
-  const sub=(d.meta.personal?[d.meta.project]:[d.meta.project, d.meta.classroom, gradeTxt, unitTxt]).filter(Boolean).map(esc).join(" · ");
+  // Personal posts show only the project; 12th grade shows project + grade (no
+  // classroom/unit); grades 9-11 show the full school metadata.
+  const g12=d.meta.grade==="12";
+  const sub=(d.meta.personal?[d.meta.project]:g12?[d.meta.project, gradeTxt]:[d.meta.project, d.meta.classroom, gradeTxt, unitTxt]).filter(Boolean).map(esc).join(" · ");
   const cover=d.cover
     ? `<img src="${d.cover}" alt="Cover image">`
     : `<div class="banner"></div>`;
@@ -588,6 +593,7 @@ function validate(){
   const g1OK=g1n>=1, g2OK=g2n>=1, capOK=all.length>0&&captioned===all.length;
   const nameOK=!!$("firstName").value.trim() && !!$("lastName").value.trim();
   const personal=$("personalMode").checked;
+  const g12=$("grade").value==="12";
   const clsOK=!!$("classroom").value, grOK=!!$("grade").value, unOK=!!$("unit").value;
   const projectOK=!!$("project").value.trim();
   const focusOK=!!(wk&&wk.querySelector(".w-title").value.trim());
@@ -597,7 +603,9 @@ function validate(){
     row(nameOK,`Enter your first and last name`)+
     (personal
       ? row(projectOK,`Enter a project name`)+row(focusOK,`Enter this week's focus`)
-      : row(clsOK,`Choose your classroom`)+row(grOK,`Choose your grade`)+row(unOK,`Choose your unit`))+
+      : row(grOK,`Choose your grade`)+(g12
+          ? row(projectOK,`Enter a project name`)+row(focusOK,`Enter this week's focus`)
+          : row(clsOK,`Choose your classroom`)+row(unOK,`Choose your unit`)))+
     row(ok1,`Learning Moment 1: 50–75 words (now ${w1})`)+
     row(ok2,`Learning Moment 2: 50–75 words (now ${w2})`)+
     row(okR,`Reflection/Synthesis: 50–75 words (now ${wr})`)+
@@ -605,7 +613,7 @@ function validate(){
     row(g2OK,`Add at least one image to Moment 2 (now ${g2n})`)+
     row(capOK,`Caption every image (${captioned}/${all.length} captioned)`)+
     row(ktOK,`Highlight at least ${MIN_KEYTERMS} key terms with *asterisks* (now ${kt})`);
-  const metaOK=personal?(projectOK&&focusOK):(clsOK&&grOK&&unOK);
+  const metaOK=personal?(projectOK&&focusOK):(grOK&&(g12?(projectOK&&focusOK):(clsOK&&unOK)));
   const ok=ok1&&ok2&&okR&&g1OK&&g2OK&&capOK&&nameOK&&metaOK&&ktOK;
   $("download").disabled=!ok;
   $("download").title=ok?"":"Finish the requirements above to enable download";
@@ -645,7 +653,7 @@ function postFileName(){
   const ln=alnum(m.last).slice(0,4);
   const lnCased=ln?ln[0].toUpperCase()+ln.slice(1).toLowerCase():"";
   const who=(fi+lnCased)||"XX";
-  if(m.personal){
+  if(m.personal||m.grade==="12"){   // 12th graders use the personal naming convention
     const proj=camelLetters(m.project)||"Project";
     const focus=camelLetters(theWeek()?theWeek().querySelector(".w-title").value:"")||"Focus";
     return `${who}_${proj}_${focus}.html`;
@@ -695,7 +703,7 @@ $("clear").onclick=()=>{
   if(!confirm("Clear this portfolio? Everything in the form will be erased and this can't be undone."))return;
   localStorage.removeItem("portfolioDraft");
   ["firstName","lastName","project","classroom","grade","unit","reflection"].forEach(id=>$(id).value="");
-  $("personalMode").checked=false;applyPersonalMode();
+  $("personalMode").checked=false;applyFieldVisibility();
   state.cover=null;renderCover();
   $("weeks").innerHTML="";state.images={};
   addWeek();
@@ -715,7 +723,7 @@ function loadData(d){
   $("grade").value=d.meta?.grade||"";
   $("unit").value=d.meta?.unit||"";
   $("personalMode").checked=!!(d.meta&&d.meta.personal);
-  applyPersonalMode();
+  applyFieldVisibility();
   $("reflection").value=d.reflection||"";
   state.cover=d.cover||null;renderCover();
   $("weeks").innerHTML="";state.images={};
@@ -735,8 +743,13 @@ function autosave(){
 }
 ["firstName","lastName","project","classroom","grade","unit","reflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
 // ---- personal-project mode: hides the school fields (classroom/grade/unit) ----
-function applyPersonalMode(){$("schoolFields").style.display=$("personalMode").checked?"none":"";}
-$("personalMode").addEventListener("change",()=>{applyPersonalMode();autosave();schedulePreview();validate();});
+function applyFieldVisibility(){
+  const personal=$("personalMode").checked, g12=$("grade").value==="12";
+  $("schoolFields").style.display=personal?"none":"";            // toggle hides grade + classroom + unit
+  $("clsUnitFields").style.display=(personal||g12)?"none":"";    // 12th grade also drops classroom + unit
+}
+$("personalMode").addEventListener("change",()=>{applyFieldVisibility();autosave();schedulePreview();validate();});
+$("grade").addEventListener("change",()=>{applyFieldVisibility();autosave();schedulePreview();validate();});
 wireStarter($("reflection"),$("reflection-starter"),STARTERS.reflection,Math.floor(Math.random()*STARTERS.reflection.length));
 
 // ---- boot ----
