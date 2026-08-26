@@ -149,3 +149,33 @@ setInterval(()=>{
     if(bar._ta!==document.activeElement)advanceStarter(bar);
   });
 },ROTATE_MS/STAGGER_SLOTS);
+
+// ---- downloaded-post stylesheet (shared base + per-page theme) ----
+// t = {accent, gradFrom, gradTo, overlay}; extra = optional page-specific CSS
+// (e.g. the unit generator's rubric / file-management rules) inserted before
+// the footer. This string is inlined into every self-contained post.
+function postCSS(t, extra){
+  return `
+:root{--accent:${t.accent};--ink:#1e293b;--muted:#64748b;--bg:#fff;--border:#e2e8f0}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,"Times New Roman",serif;font-size:18px;line-height:1.65}
+.cover{position:relative;margin-bottom:2.5rem}
+.cover .banner{height:300px;background:linear-gradient(120deg,${t.gradFrom},${t.gradTo})}
+.cover img{display:block;width:100%;max-height:460px;object-fit:cover}
+.cover-text{position:absolute;left:0;bottom:0;width:100%;padding:2rem 1.5rem 1.25rem;background:linear-gradient(to top,${t.overlay},transparent);color:#fff;font-family:system-ui,sans-serif}
+.cover-text h1{font-size:clamp(1.8rem,5vw,3rem);margin:0}
+.subtitle{margin:.3rem 0 0;font-size:1.05rem;opacity:.92}
+main{max-width:860px;margin:0 auto;padding:0 1.25rem}
+section{margin-bottom:3.5rem}
+h2{font-family:system-ui,sans-serif;font-size:1.5rem;color:rgb(25,25,25);border-bottom:2px solid var(--border);padding-bottom:.4rem;margin-bottom:1rem}
+p{margin:0 0 1.25rem}
+.key{color:rgb(0,67,250);font-weight:600}
+.gallery{display:grid;gap:1rem;margin:1.5rem 0;grid-template-columns:repeat(2,1fr)}
+figure{margin:0}
+figure img{display:block;width:100%;height:auto;border-radius:10px;border:1px solid var(--border)}
+figcaption{font-family:system-ui,sans-serif;font-size:.85rem;color:var(--muted);margin-top:.5rem;font-style:italic}
+pre{background:#0f172a;color:#e2e8f0;padding:1.1rem 1.25rem;border-radius:10px;overflow-x:auto;font-size:.9rem;line-height:1.5}
+code{font-family:"SF Mono",Consolas,monospace}
+${extra||""}footer{max-width:860px;margin:2rem auto 3rem;padding:1.25rem;border-top:1px solid var(--border);font-family:system-ui,sans-serif;font-size:.9rem;color:var(--muted);text-align:center}
+@media (max-width:640px){body{font-size:16px}.gallery{grid-template-columns:1fr}}
+`;
+}
