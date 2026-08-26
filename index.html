@@ -588,15 +588,33 @@ function validate(){
   const g1n=im.g1.filter(i=>i.dataUrl).length, g2n=im.g2.filter(i=>i.dataUrl).length;
   const all=[...im.g1,...im.g2].filter(i=>i.dataUrl);
   const captioned=all.filter(i=>i.caption&&i.caption.trim()).length;
-  const g1OK=g1n>=1, g2OK=g2n>=1, capOK=all.length>0&&captioned===all.length;
+  const capOK=all.length>0&&captioned===all.length;
   const nameOK=!!$("firstName").value.trim() && !!$("lastName").value.trim();
   const personal=$("personalMode").checked;
   const g12=$("grade").value==="12";
+  const relaxed=personal||g12;   // 12th grade & personal projects: any 2 of the 3 written sections
   const clsOK=!!$("classroom").value, grOK=!!$("grade").value, unOK=!!$("unit").value;
   const projectOK=!!$("project").value.trim();
   const focusOK=!!(wk&&wk.querySelector(".w-title").value.trim());
   const kt=keyTermCount(), ktOK=kt>=MIN_KEYTERMS;
   const row=(ok,label)=>`<div class="req ${ok?'ok':'no'}"><span class="mark">${ok?'✓':'○'}</span>${label}</div>`;
+  // Written sections + their images. Standard (grades 9-11): all three sections required and both moments need an image.
+  // Relaxed (12th grade / personal): any 2 of the 3 at 50-75 words (leave others empty); an image only for a moment that has text.
+  const has1=w1>0, has2=w2>0, hasR=wr>0;
+  let writtenOK, imgsOK, writtenRows, imageRows;
+  if(relaxed){
+    const done=(ok1?1:0)+(ok2?1:0)+(okR?1:0);
+    const secValid=(!has1||ok1)&&(!has2||ok2)&&(!hasR||okR);   // any started section must be in range
+    writtenOK=secValid&&done>=2;
+    imgsOK=(!has1||g1n>=1)&&(!has2||g2n>=1);
+    writtenRows=row(writtenOK,`Complete at least 2 of 3 written sections at 50–75 words — leave the others empty (now ${done}/3)`);
+    imageRows=row(imgsOK,`Add an image to each Learning Moment you write`);
+  }else{
+    writtenOK=ok1&&ok2&&okR;
+    imgsOK=g1n>=1&&g2n>=1;
+    writtenRows=row(ok1,`Learning Moment 1: 50–75 words (now ${w1})`)+row(ok2,`Learning Moment 2: 50–75 words (now ${w2})`)+row(okR,`Reflection/Synthesis: 50–75 words (now ${wr})`);
+    imageRows=row(g1n>=1,`Add at least one image to Moment 1 (now ${g1n})`)+row(g2n>=1,`Add at least one image to Moment 2 (now ${g2n})`);
+  }
   $("gate").innerHTML='<div class="ghead">To download, finish these:</div>'+
     row(nameOK,`Enter your first and last name`)+
     (personal
@@ -604,15 +622,12 @@ function validate(){
       : row(grOK,`Choose your grade`)+(g12
           ? row(projectOK,`Enter a project name`)+row(focusOK,`Enter this week's focus`)
           : row(clsOK,`Choose your classroom`)+row(unOK,`Choose your unit`)))+
-    row(ok1,`Learning Moment 1: 50–75 words (now ${w1})`)+
-    row(ok2,`Learning Moment 2: 50–75 words (now ${w2})`)+
-    row(okR,`Reflection/Synthesis: 50–75 words (now ${wr})`)+
-    row(g1OK,`Add at least one image to Moment 1 (now ${g1n})`)+
-    row(g2OK,`Add at least one image to Moment 2 (now ${g2n})`)+
+    writtenRows+
+    imageRows+
     row(capOK,`Caption every image (${captioned}/${all.length} captioned)`)+
     row(ktOK,`Highlight at least ${MIN_KEYTERMS} key terms with *asterisks* (now ${kt})`);
   const metaOK=personal?(projectOK&&focusOK):(grOK&&(g12?(projectOK&&focusOK):(clsOK&&unOK)));
-  const ok=ok1&&ok2&&okR&&g1OK&&g2OK&&capOK&&nameOK&&metaOK&&ktOK;
+  const ok=writtenOK&&imgsOK&&capOK&&nameOK&&metaOK&&ktOK;
   $("download").disabled=!ok;
   $("download").title=ok?"":"Finish the requirements above to enable download";
   return ok;
