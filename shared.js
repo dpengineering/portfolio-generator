@@ -102,3 +102,50 @@ function wireDrop(el,onFiles){
   el.addEventListener("drop",e=>{e.preventDefault();el.classList.remove("over");
     run([...e.dataTransfer.files].filter(f=>f.type.startsWith("image/")||isHeic(f)));});
 }
+
+// ---- sentence-starter engine (the STARTERS phrase lists stay per-page) ----
+// Rotation timing (tweak freely): FADE_MS = crossfade length; ROTATE_MS = how long
+// each suggestion stays before changing; boxes are spread across STAGGER_SLOTS ticks
+// so the boxes never change at the same moment.
+const FADE_MS=500, ROTATE_MS=12000, STAGGER_SLOTS=3;
+let _starterCount=0;   // assigns each starter bar a distinct stagger phase
+function showStarter(bar,fade){
+  const el=bar.querySelector(".starter-text"), txt=bar._list[+bar.dataset.idx];
+  if(fade){el.style.opacity="0";setTimeout(()=>{el.textContent=txt;el.style.opacity="1";},FADE_MS);}
+  else{el.textContent=txt;el.style.opacity="1";}
+}
+function advanceStarter(bar,dir){const n=bar._list.length;bar.dataset.idx=((+bar.dataset.idx)+(dir||1)+n)%n;showStarter(bar,true);}
+function randomStarter(bar){const n=bar._list.length;if(n>1){let j;do{j=Math.floor(Math.random()*n);}while(j===(+bar.dataset.idx));bar.dataset.idx=j;}showStarter(bar,true);}
+function insertAtCaret(ta,text){
+  const s=ta.selectionStart??ta.value.length, e=ta.selectionEnd??ta.value.length;
+  ta.value=ta.value.slice(0,s)+text+ta.value.slice(e);
+  ta.selectionStart=ta.selectionEnd=s+text.length;
+  ta.focus();ta.dispatchEvent(new Event("input",{bubbles:true}));
+}
+function wireStarter(ta,bar,list,seed){
+  if(!ta||!bar||!list||!list.length)return;
+  bar.innerHTML='<span class="starter-label">💡 Try:</span>'+
+    '<button type="button" class="starter-text" title="Click to insert this starter"></button>'+
+    '<button type="button" class="starter-nav starter-prev" title="Previous suggestion" aria-label="Previous suggestion">‹</button>'+
+    '<button type="button" class="starter-nav starter-next" title="Next suggestion" aria-label="Next suggestion">›</button>'+
+    '<button type="button" class="starter-nav starter-rand" title="Random suggestion" aria-label="Random suggestion">🎲</button>';
+  bar._ta=ta;bar._list=list;
+  bar.dataset.phase=(_starterCount++)%STAGGER_SLOTS;   // stagger so bars don't rotate in unison
+  bar.dataset.idx=((seed%list.length)+list.length)%list.length;
+  showStarter(bar,false);
+  bar.querySelector(".starter-text").onclick=()=>insertAtCaret(ta,list[+bar.dataset.idx]);
+  bar.querySelector(".starter-prev").onclick=()=>advanceStarter(bar,-1);
+  bar.querySelector(".starter-next").onclick=()=>advanceStarter(bar,1);
+  bar.querySelector(".starter-rand").onclick=()=>randomStarter(bar);
+}
+// Rotate suggestions on a slow tick, staggered so the boxes change at different
+// times (one per tick), and never change a box being edited or hovered.
+let _starterTick=0;
+setInterval(()=>{
+  _starterTick++;
+  document.querySelectorAll(".starter").forEach(bar=>{
+    if((+bar.dataset.phase)!==(_starterTick%STAGGER_SLOTS))return;
+    if(bar.matches(":hover"))return;              // hold still while the mouse is over the starter
+    if(bar._ta!==document.activeElement)advanceStarter(bar);
+  });
+},ROTATE_MS/STAGGER_SLOTS);
