@@ -170,9 +170,10 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=3"></script>
+<script src="shared.js?v=4"></script>
 <script>
 const state={images:{},cover:null};
+const DRAFT_KEY="portfolioDraft";
 
 // ===== Sentence starters — EDIT THESE LISTS FREELY ===================
 // "moment" shows under Learning Moment 1 & 2; "reflection" shows under the
@@ -494,12 +495,7 @@ function updatePreview(){
 }
 
 // ---- download / draft ----
-function downloadBlob(filename,content,type){
-  const blob=new Blob([content],{type});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1500);
-}
+// downloadBlob() now lives in shared.js
 function slug(){const m=collect().meta;return ((m.student||"portfolio")+"-"+(m.month||"")).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"portfolio";}
 // Organizable filename. School posts: <first-initial><last-name-first-4>_<classroom>_Grade<N>_Unit<N>.html
 // e.g. Ada Lovelace, Computer Lab, Grade 10, Unit 4 -> ALove_COMP_Grade10_Unit4.html
@@ -563,7 +559,7 @@ $("loadFile").onchange=e=>{
 $("refresh").onclick=updatePreview;
 $("clear").onclick=()=>{
   if(!confirm("Clear this portfolio? Everything in the form will be erased and this can't be undone."))return;
-  localStorage.removeItem("portfolioDraft");
+  localStorage.removeItem(DRAFT_KEY);
   ["firstName","lastName","project","classroom","grade","unit","reflection"].forEach(id=>$(id).value="");
   $("personalMode").checked=false;applyFieldVisibility();
   state.cover=null;renderCover();
@@ -593,16 +589,7 @@ function loadData(d){
   updatePreview();
 }
 
-// ---- autosave to this browser (so work isn't lost mid-session) ----
-let autoTimer=null;
-function autosave(){
-  clearTimeout(autoTimer);
-  autoTimer=setTimeout(()=>{
-    try{localStorage.setItem("portfolioDraft",JSON.stringify(collect()));
-      $("autonote").textContent="✓ saved in this browser";
-      setTimeout(()=>$("autonote").textContent="",1500);}catch(e){}
-  },600);
-}
+// autosave() now lives in shared.js (persists collect() under DRAFT_KEY)
 ["firstName","lastName","project","classroom","grade","unit","reflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
 // ---- personal-project mode: hides the school fields (classroom/grade/unit) ----
 function applyFieldVisibility(){
@@ -616,7 +603,7 @@ wireStarter($("reflection"),$("reflection-starter"),STARTERS.reflection,Math.flo
 
 // ---- boot ----
 (function init(){
-  const saved=localStorage.getItem("portfolioDraft");
+  const saved=localStorage.getItem(DRAFT_KEY);
   if(saved){try{loadData(JSON.parse(saved));return;}catch(e){}}
   addWeek();
   updatePreview();

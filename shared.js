@@ -179,3 +179,22 @@ ${extra||""}footer{max-width:860px;margin:2rem auto 3rem;padding:1.25rem;border-
 @media (max-width:640px){body{font-size:16px}.gallery{grid-template-columns:1fr}}
 `;
 }
+
+// ---- draft persistence ----
+// downloadBlob triggers a file download. autosave persists collect() to
+// localStorage; each page sets its own DRAFT_KEY and provides collect().
+function downloadBlob(filename,content,type){
+  const blob=new Blob([content],{type});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+let autoTimer=null;
+function autosave(){
+  clearTimeout(autoTimer);
+  autoTimer=setTimeout(()=>{
+    try{localStorage.setItem(DRAFT_KEY,JSON.stringify(collect()));
+      $("autonote").textContent="✓ saved in this browser";
+      setTimeout(()=>$("autonote").textContent="",1500);}catch(e){}
+  },600);
+}
