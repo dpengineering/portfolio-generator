@@ -186,7 +186,7 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=4"></script>
+<script src="shared.js?v=5"></script>
 <script>
 const state={images:{},cover:null,fileMgmt:[]};
 const DRAFT_KEY="unitPostDraft";
@@ -388,9 +388,6 @@ function buildHTML(d){
   const gradeTxt=d.meta.grade?`Grade ${d.meta.grade}`:"";
   const unitTxt=d.meta.unit?`Unit ${d.meta.unit}`:"";
   const sub=[d.meta.project, gradeTxt, unitTxt].filter(Boolean).map(esc).join(" · ");
-  const cover=d.cover
-    ? `<img src="${d.cover}" alt="Cover image">`
-    : `<div class="banner"></div>`;
   const figCtr={n:0};  // figure numbers run across the whole post
   const sections=d.weeks.map((w,i)=>{
     const imgs1=w.images1||[];
@@ -433,13 +430,7 @@ function buildHTML(d){
 </head>
 <!-- PUBLISHING: change data-public="false" to "true" below to hide your Self Grade Rubric and File Management before posting this publicly. -->
 <body data-public="${d.publicView?'true':'false'}">
-<header class="cover">
-${cover}
-<div class="cover-text">
-<h1>${esc(name)}</h1>
-<p class="subtitle">${sub}</p>
-</div>
-</header>
+${coverHeader(d,name,sub)}
 <main>
 ${sections||"<p>Fill in your project update to see your portfolio here.</p>"}
 ${reflection}

@@ -170,7 +170,7 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=4"></script>
+<script src="shared.js?v=5"></script>
 <script>
 const state={images:{},cover:null};
 const DRAFT_KEY="portfolioDraft";
@@ -347,9 +347,6 @@ function buildHTML(d){
   // classroom/unit); grades 9-11 show the full school metadata.
   const g12=d.meta.grade==="12";
   const sub=(d.meta.personal?[d.meta.project]:g12?[d.meta.project, gradeTxt]:[d.meta.project, d.meta.classroom, gradeTxt, unitTxt]).filter(Boolean).map(esc).join(" · ");
-  const cover=d.cover
-    ? `<img src="${d.cover}" alt="Cover image">`
-    : `<div class="banner"></div>`;
   const figCtr={n:0};  // figure numbers run across the whole post
   const sections=d.weeks.map((w,i)=>{
     const imgs1=w.images1||[], imgs2=w.images2||[];
@@ -384,13 +381,7 @@ function buildHTML(d){
 <style>${PORTFOLIO_CSS}</style>
 </head>
 <body>
-<header class="cover">
-${cover}
-<div class="cover-text">
-<h1>${esc(name)}</h1>
-<p class="subtitle">${sub}</p>
-</div>
-</header>
+${coverHeader(d,name,sub)}
 <main>
 ${sections||"<p>Fill in this week's entry to see your portfolio here.</p>"}
 ${reflection}
