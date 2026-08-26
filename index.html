@@ -599,16 +599,14 @@ function validate(){
   const kt=keyTermCount(), ktOK=kt>=MIN_KEYTERMS;
   const row=(ok,label)=>`<div class="req ${ok?'ok':'no'}"><span class="mark">${ok?'✓':'○'}</span>${label}</div>`;
   // Written sections + their images. Standard (grades 9-11): all three sections required and both moments need an image.
-  // Relaxed (12th grade / personal): any 2 of the 3 at 50-75 words (leave others empty); an image only for a moment that has text.
-  const has1=w1>0, has2=w2>0, hasR=wr>0;
+  // Relaxed (12th grade / personal): any 2 of the 3 at 50-75 words; a partial third is fine and never blocks. An image is required only for a moment you complete.
   let writtenOK, imgsOK, writtenRows, imageRows;
   if(relaxed){
     const done=(ok1?1:0)+(ok2?1:0)+(okR?1:0);
-    const secValid=(!has1||ok1)&&(!has2||ok2)&&(!hasR||okR);   // any started section must be in range
-    writtenOK=secValid&&done>=2;
-    imgsOK=(!has1||g1n>=1)&&(!has2||g2n>=1);
-    writtenRows=row(writtenOK,`Complete at least 2 of 3 written sections at 50–75 words — leave the others empty (now ${done}/3)`);
-    imageRows=row(imgsOK,`Add an image to each Learning Moment you write`);
+    writtenOK=done>=2;
+    imgsOK=(!ok1||g1n>=1)&&(!ok2||g2n>=1);
+    writtenRows=row(writtenOK,`Complete at least 2 of 3 written sections at 50–75 words (now ${done}/3)`);
+    imageRows=row(imgsOK,`Add an image to each Learning Moment you complete`);
   }else{
     writtenOK=ok1&&ok2&&okR;
     imgsOK=g1n>=1&&g2n>=1;
