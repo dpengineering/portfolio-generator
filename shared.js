@@ -189,7 +189,7 @@ ${extra||""}footer{max-width:860px;margin:2rem auto 3rem;padding:1.25rem;border-
 // The logo sits centered on the gradient ("hero") or as a small corner badge over
 // an uploaded cover ("badge"). It is omitted entirely for personal projects.
 function coverHeader(d, name, sub){
-  const cover=d.cover?`<img src="${d.cover}" alt="Cover image">`:`<div class="banner"></div>`;
+  const cover=d.cover?`<img src="${d.cover}" alt="Cover image">`:`<div class="banner"${d.gradient?` style="background:${gradCss(d.gradient)}"`:""}></div>`;
   const logo=(d.meta&&d.meta.personal)?"":`<img class="cover-logo ${d.cover?"badge":"hero"}" src="${DPEA_LOGO}" alt="DPEA logo">`;
   return `<header class="cover">
 ${cover}${logo?"\n"+logo:""}
@@ -198,6 +198,37 @@ ${cover}${logo?"\n"+logo:""}
 <p class="subtitle">${sub}</p>
 </div>
 </header>`;
+}
+
+// ---- cover gradient picker (banner color used when there is no cover photo) ----
+const COVER_GRADIENTS={
+  blue:{from:"#0ea5e9",to:"#1e293b"},
+  orange:{from:"#f97316",to:"#7c2d12"},
+  green:{from:"#22c55e",to:"#14532d"},
+  red:{from:"#ef4444",to:"#450a0a"},
+  gray:{from:"#94a3b8",to:"#1e293b"},
+};
+const gradCss=g=>`linear-gradient(120deg,${g.from},${g.to})`;
+let coverGradient=null;                 // {from,to} currently selected
+function currentGrad(){return coverGradient;}
+function markGrad(key){document.querySelectorAll("#gradPick .grad-sw").forEach(b=>b.classList.toggle("sel",b.dataset.grad===key));}
+function selectPreset(key,onChange){coverGradient={...COVER_GRADIENTS[key]};markGrad(key);$("gradCustom").hidden=true;if(onChange)onChange();}
+function selectCustom(onChange){coverGradient={from:$("gradFrom").value,to:$("gradTo").value};markGrad("custom");$("gradCustom").hidden=false;if(onChange)onChange();}
+// Builds the swatch row into #gradPick and wires #gradFrom/#gradTo/#gradCustom.
+function initGradPicker(defaultKey,onChange){
+  const pick=$("gradPick");if(!pick)return;
+  pick.innerHTML=Object.keys(COVER_GRADIENTS).map(k=>`<button type="button" class="grad-sw" data-grad="${k}" title="${k}" style="background:${gradCss(COVER_GRADIENTS[k])}"></button>`).join("")+
+    `<button type="button" class="grad-sw grad-custom" data-grad="custom" title="Custom colors">🎨</button>`;
+  pick.querySelectorAll(".grad-sw").forEach(b=>b.onclick=()=>b.dataset.grad==="custom"?selectCustom(onChange):selectPreset(b.dataset.grad,onChange));
+  $("gradFrom").oninput=$("gradTo").oninput=()=>selectCustom(onChange);
+  selectPreset(defaultKey);             // default selection (no onChange on init)
+}
+// Restore a saved selection: match a preset, else treat as custom.
+function setGrad(g){
+  if(!g)return;
+  const key=Object.keys(COVER_GRADIENTS).find(k=>COVER_GRADIENTS[k].from===g.from&&COVER_GRADIENTS[k].to===g.to);
+  if(key){selectPreset(key);}
+  else{$("gradFrom").value=g.from;$("gradTo").value=g.to;selectCustom();}
 }
 
 // ---- draft persistence ----

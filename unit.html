@@ -72,6 +72,14 @@
   .starter-text:hover{background:#ffedd5}
   .starter-nav{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:.15rem .45rem;font-size:.85rem;line-height:1.2;cursor:pointer;min-width:1.7rem;text-align:center}
   .starter-nav:hover{background:#fff;color:var(--ink)}
+  .gradpick{display:flex;gap:.4rem;flex-wrap:wrap;margin:.2rem 0 .5rem}
+  .grad-sw{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);padding:0;cursor:pointer;font-size:.8rem;line-height:1}
+  .grad-sw.sel{border-color:var(--ink);box-shadow:0 0 0 2px var(--accent)}
+  .grad-custom{background:#fff}
+  .grad-custom-inputs{display:flex;gap:.9rem;align-items:center;margin:0 0 .5rem}
+  .grad-custom-inputs label{display:flex;align-items:center;gap:.35rem;margin:0;font-weight:400}
+  .grad-custom-inputs input[type=color]{width:34px;height:26px;padding:0;border:1px solid var(--border);border-radius:6px;cursor:pointer}
+  .grad-custom-inputs[hidden]{display:none}
   .rubric-row{border:1px solid var(--border);border-radius:8px;padding:.6rem .7rem;margin-bottom:.6rem;background:var(--panel)}
   .rub-cathead{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.35rem}
   .rub-cat{font-weight:700;color:var(--ink);font-size:.9rem}
@@ -149,6 +157,12 @@
             <option value="8">8</option>
           </select></label></div>
       </div>
+      <label>Cover color <span class="hint">(used when no photo is added)</span></label>
+      <div class="gradpick" id="gradPick"></div>
+      <div class="grad-custom-inputs" id="gradCustom" hidden>
+        <label class="hint">Start <input type="color" id="gradFrom" value="#f97316"></label>
+        <label class="hint">End <input type="color" id="gradTo" value="#7c2d12"></label>
+      </div>
       <label>Cover image <span class="hint">(optional — a strong banner photo)</span></label>
       <div class="drop" id="coverDrop">Drag a cover image here, or click to choose</div>
       <div class="thumbs" id="coverThumb"></div>
@@ -186,10 +200,11 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=5"></script>
+<script src="shared.js?v=6"></script>
 <script>
 const state={images:{},cover:null,fileMgmt:[]};
 const DRAFT_KEY="unitPostDraft";
+const DEFAULT_GRAD="orange";
 
 // ===== Sentence starters — EDIT THESE LISTS FREELY ===================
 // "update" shows under the Project Update box; "reflection" shows under the
@@ -336,7 +351,8 @@ function collect(){
     reflection:val("reflection"),
     fileMgmt:state.fileMgmt.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl})),
     rubric:getRubric(),
-    publicView:$("publicView").checked
+    publicView:$("publicView").checked,
+    gradient:currentGrad()
   };
 }
 
@@ -418,7 +434,7 @@ function buildHTML(d){
   const editData={v:2,meta:d.meta,reflection:d.reflection,weeks:d.weeks.map(w=>({
     text1:w.text1,
     images1:(w.images1||[]).map(i=>({name:i.name,caption:i.caption}))
-  })),fileMgmt:(d.fileMgmt||[]).map(i=>({name:i.name,caption:i.caption})),rubric:d.rubric||[],publicView:!!d.publicView};
+  })),fileMgmt:(d.fileMgmt||[]).map(i=>({name:i.name,caption:i.caption})),rubric:d.rubric||[],publicView:!!d.publicView,gradient:d.gradient};
   const dataJson=JSON.stringify(editData).replace(/</g,"\\u003c");
   return `<!doctype html>
 <html lang="en">
@@ -581,6 +597,7 @@ $("clear").onclick=()=>{
   ["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).value="");
   $("publicView").checked=false;
   state.cover=null;renderCover();
+  setGrad(COVER_GRADIENTS[DEFAULT_GRAD]);
   state.fileMgmt=[];renderFileMgmt();
   setRubric([]);
   $("weeks").innerHTML="";state.images={};
@@ -602,6 +619,7 @@ function loadData(d){
   $("reflection").value=d.reflection||"";
   $("publicView").checked=!!d.publicView;
   state.cover=d.cover||null;renderCover();
+  setGrad(d.gradient);
   state.fileMgmt=(d.fileMgmt||[]).map(i=>({name:i.name||"",caption:i.caption||"",dataUrl:i.dataUrl}));
   renderFileMgmt();
   setRubric(d.rubric);
@@ -688,6 +706,7 @@ function setRubric(arr){
   updateRubricLevels();
 }
 buildRubric();
+initGradPicker(DEFAULT_GRAD,()=>{autosave();schedulePreview();});
 wireStarter($("reflection"),$("reflection-starter"),STARTERS.reflection,Math.floor(Math.random()*STARTERS.reflection.length));
 
 // ---- boot ----

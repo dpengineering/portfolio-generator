@@ -72,6 +72,14 @@
   .starter-text:hover{background:#dbeafe}
   .starter-nav{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:.15rem .45rem;font-size:.85rem;line-height:1.2;cursor:pointer;min-width:1.7rem;text-align:center}
   .starter-nav:hover{background:#fff;color:var(--ink)}
+  .gradpick{display:flex;gap:.4rem;flex-wrap:wrap;margin:.2rem 0 .5rem}
+  .grad-sw{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);padding:0;cursor:pointer;font-size:.8rem;line-height:1}
+  .grad-sw.sel{border-color:var(--ink);box-shadow:0 0 0 2px var(--accent)}
+  .grad-custom{background:#fff}
+  .grad-custom-inputs{display:flex;gap:.9rem;align-items:center;margin:0 0 .5rem}
+  .grad-custom-inputs label{display:flex;align-items:center;gap:.35rem;margin:0;font-weight:400}
+  .grad-custom-inputs input[type=color]{width:34px;height:26px;padding:0;border:1px solid var(--border);border-radius:6px;cursor:pointer}
+  .grad-custom-inputs[hidden]{display:none}
   .modetoggle{display:flex;align-items:flex-start;gap:.45rem;font-size:.82rem;font-weight:600;color:var(--ink);margin:.2rem 0 .7rem;cursor:pointer}
   .modetoggle input{margin-top:.15rem;flex:none}
   @media (max-width:820px){.wrap{grid-template-columns:1fr;height:auto}.preview{height:70vh;border-top:1px solid var(--border)}}
@@ -148,6 +156,12 @@
       </div>
       </div>
       </div>
+      <label>Cover color <span class="hint">(used when no photo is added)</span></label>
+      <div class="gradpick" id="gradPick"></div>
+      <div class="grad-custom-inputs" id="gradCustom" hidden>
+        <label class="hint">Start <input type="color" id="gradFrom" value="#0ea5e9"></label>
+        <label class="hint">End <input type="color" id="gradTo" value="#1e293b"></label>
+      </div>
       <label>Cover image <span class="hint">(optional — a strong banner photo)</span></label>
       <div class="drop" id="coverDrop">Drag a cover image here, or click to choose</div>
       <div class="thumbs" id="coverThumb"></div>
@@ -170,10 +184,11 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=5"></script>
+<script src="shared.js?v=6"></script>
 <script>
 const state={images:{},cover:null};
 const DRAFT_KEY="portfolioDraft";
+const DEFAULT_GRAD="blue";
 
 // ===== Sentence starters — EDIT THESE LISTS FREELY ===================
 // "moment" shows under Learning Moment 1 & 2; "reflection" shows under the
@@ -319,7 +334,8 @@ function collect(){
         images2:m(im.g2)
       };
     }),
-    reflection:val("reflection")
+    reflection:val("reflection"),
+    gradient:currentGrad()
   };
 }
 
@@ -370,7 +386,7 @@ function buildHTML(d){
     title:w.title,text1:w.text1,text2:w.text2,
     images1:(w.images1||[]).map(i=>({name:i.name,caption:i.caption})),
     images2:(w.images2||[]).map(i=>({name:i.name,caption:i.caption}))
-  }))};
+  })),gradient:d.gradient};
   const dataJson=JSON.stringify(editData).replace(/</g,"\\u003c");
   return `<!doctype html>
 <html lang="en">
@@ -554,6 +570,7 @@ $("clear").onclick=()=>{
   ["firstName","lastName","project","classroom","grade","unit","reflection"].forEach(id=>$(id).value="");
   $("personalMode").checked=false;applyFieldVisibility();
   state.cover=null;renderCover();
+  setGrad(COVER_GRADIENTS[DEFAULT_GRAD]);
   $("weeks").innerHTML="";state.images={};
   addWeek();
   updatePreview();
@@ -575,6 +592,7 @@ function loadData(d){
   applyFieldVisibility();
   $("reflection").value=d.reflection||"";
   state.cover=d.cover||null;renderCover();
+  setGrad(d.gradient);
   $("weeks").innerHTML="";state.images={};
   addWeek((d.weeks&&d.weeks[0])||{});
   updatePreview();
@@ -590,6 +608,7 @@ function applyFieldVisibility(){
 }
 $("personalMode").addEventListener("change",()=>{applyFieldVisibility();autosave();schedulePreview();validate();});
 $("grade").addEventListener("change",()=>{applyFieldVisibility();autosave();schedulePreview();validate();});
+initGradPicker(DEFAULT_GRAD,()=>{autosave();schedulePreview();});
 wireStarter($("reflection"),$("reflection-starter"),STARTERS.reflection,Math.floor(Math.random()*STARTERS.reflection.length));
 
 // ---- boot ----
