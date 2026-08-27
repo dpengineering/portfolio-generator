@@ -451,7 +451,14 @@ function validate(){
   const nameOK=!!$("firstName").value.trim() && !!$("lastName").value.trim();
   const personal=$("personalMode").checked;
   const g12=$("grade").value==="12";
-  const relaxed=personal||g12;   // 12th grade & personal projects: any 2 of the 3 written sections
+  // Written-section requirements per track. "relaxed" = any 2 of 3; otherwise all
+  // three sections + both Moment images are required.
+  //   personal projects -> relaxed
+  //   12th grade         -> standard for now; flip G12_RELAXED (or add custom
+  //                         grade-12 logic) to give seniors different rules later.
+  //   grades 9-11        -> standard
+  const G12_RELAXED=false;
+  const relaxed=personal||(g12&&G12_RELAXED);
   const clsOK=!!$("classroom").value, grOK=!!$("grade").value, unOK=!!$("unit").value;
   const projectOK=!!$("project").value.trim();
   const focusOK=!!(wk&&wk.querySelector(".w-title").value.trim());
