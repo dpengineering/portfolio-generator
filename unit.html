@@ -66,6 +66,8 @@
   .btn.danger{background:#fff;color:#b91c1c;border:1px solid #fecaca}
   .tip{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:.6rem .75rem;font-size:.8rem;color:#9a3412;margin:.6rem 0 .25rem}
   .tip a{color:#c2410c;font-weight:600}
+  .tip.green{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+  .tip.green a{color:#15803d}
   .starter{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin:.4rem 0 0;font-size:.78rem}
   .starter-label{color:var(--muted);font-weight:600;white-space:nowrap}
   .starter-text{flex:1;min-width:0;text-align:left;background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;border-radius:999px;padding:.22rem .6rem;font:inherit;font-size:.78rem;cursor:pointer;transition:opacity .5s ease}
@@ -300,7 +302,8 @@ function addWeek(data={}){
     <label>Images for this update <span class="hint">(exactly 4, each with a brief caption)</span></label>
     <div class="drop wdrop" data-group="g1">Drag images here, or click to choose</div>
     <div class="thumbs wthumbs" data-group="g1"></div>
-    <div class="tip">💻 <strong>Want to show code?</strong> Use <a href="https://ray.so/#padding=32&amp;language=cpp&amp;theme=candy&amp;background=true&amp;darkMode=true&amp;lineNumbers=true" target="_blank" rel="noopener">ray.so</a> for generating images of code, then upload that image above (and caption it).</div>`;
+    <div class="tip">💻 <strong>Want to show code?</strong> Use <a href="https://ray.so/#padding=32&amp;language=cpp&amp;theme=candy&amp;background=true&amp;darkMode=true&amp;lineNumbers=true" target="_blank" rel="noopener">ray.so</a> for generating images of code, then upload that image above (and caption it).</div>
+    <div class="tip green">🎬 <strong>Have a video?</strong> Convert it to a GIF with <a href="https://hapaz.net/video2gif/" target="_blank" rel="noopener">video2gif</a>, then upload the GIF above — animated GIFs stay animated.</div>`;
   $("weeks").appendChild(fs);
   fs.querySelector('.w-text[data-lm="1"]').value=data.text1||data.text||"";
   wireDrop(fs.querySelector('.wdrop[data-group="g1"]'),async files=>{
