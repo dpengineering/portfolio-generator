@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Video → GIF</title>
+<style>
+  :root{
+    --bg:#0f1216; --panel:#181c22; --panel-2:#20252d; --line:#2b313a;
+    --text:#e8ecf1; --muted:#9aa4b1; --accent:#5b8cff; --accent-2:#39d98a;
+    --danger:#ff6b6b; --radius:16px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f4f6f9; --panel:#ffffff; --panel-2:#f0f3f7; --line:#e2e7ee;
+      --text:#1a1f27; --muted:#5c6675; --accent:#2f6bff; --accent-2:#12a260;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text);
+    min-height:100dvh; padding:env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; align-items:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%; max-width:640px}
+  header{text-align:center; margin:28px 0 20px}
+  header h1{font-size:1.5rem; margin:0 0 6px; letter-spacing:-.02em}
+  header p{margin:0; color:var(--muted); font-size:.95rem}
+  .badge{display:inline-block; margin-top:10px; font-size:.72rem; color:var(--muted);
+    border:1px solid var(--line); border-radius:999px; padding:4px 10px}
+
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:18px; margin-bottom:16px}
+
+  /* Drop zone */
+  #drop{
+    border:2px dashed var(--line); border-radius:var(--radius);
+    padding:38px 20px; text-align:center; cursor:pointer;
+    transition:border-color .15s, background .15s; background:var(--panel);
+  }
+  #drop.drag{border-color:var(--accent); background:var(--panel-2)}
+  #drop .big{font-size:2.4rem; line-height:1; margin-bottom:12px}
+  #drop .hint{color:var(--muted); font-size:.9rem; margin-top:6px}
+  #drop strong{color:var(--text)}
+  input[type=file]{display:none}
+
+  .btn{
+    appearance:none; border:0; border-radius:12px; padding:14px 18px; width:100%;
+    font-size:1rem; font-weight:600; cursor:pointer; color:#fff; background:var(--accent);
+    transition:filter .15s, opacity .15s;
+  }
+  .btn:hover{filter:brightness(1.06)}
+  .btn:disabled{opacity:.5; cursor:not-allowed}
+  .btn.secondary{background:var(--panel-2); color:var(--text); border:1px solid var(--line)}
+  .btn.success{background:var(--accent-2)}
+
+  .row{display:flex; gap:10px; align-items:center}
+  .row.between{justify-content:space-between}
+
+  video, img.result{width:100%; border-radius:12px; background:#000; display:block}
+  .meta{font-size:.85rem; color:var(--muted); margin-top:10px; word-break:break-word}
+
+  .specs{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+  .spec{font-size:.78rem; color:var(--muted); background:var(--panel-2);
+    border:1px solid var(--line); border-radius:8px; padding:5px 9px}
+  .spec b{color:var(--text); font-weight:600}
+
+  /* progress */
+  .bar{height:10px; background:var(--panel-2); border-radius:999px; overflow:hidden; border:1px solid var(--line)}
+  .bar > i{display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); transition:width .2s}
+  .status{font-size:.9rem; color:var(--muted); margin:12px 0 8px; text-align:center; min-height:1.2em}
+  .spin{display:inline-block; width:14px; height:14px; border:2px solid var(--line);
+    border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; vertical-align:-2px; margin-right:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  details{margin-top:12px}
+  summary{cursor:pointer; color:var(--muted); font-size:.8rem}
+  pre.log{max-height:150px; overflow:auto; background:#000; color:#7fdca4;
+    font-size:.72rem; padding:10px; border-radius:8px; margin-top:8px; white-space:pre-wrap}
+  .hidden{display:none !important}
+  .err{color:var(--danger); font-size:.9rem}
+  footer{color:var(--muted); font-size:.78rem; text-align:center; margin-top:8px; line-height:1.5}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Video → GIF</h1>
+    <p>Drop a video, get a clean, uniform GIF for your portfolio.</p>
+    <span class="badge">100% in your browser · nothing is uploaded</span>
+  </header>
+
+  <!-- STEP 1: pick a file -->
+  <div class="card" id="pickCard">
+    <div id="drop">
+      <div class="big">🎬</div>
+      <div><strong>Tap to choose a video</strong> or drag &amp; drop</div>
+      <div class="hint">Works with iPhone/iPad videos (.mov, .mp4, and more)</div>
+    </div>
+    <input type="file" id="file" accept="video/*">
+    <div class="specs">
+      <span class="spec">Width <b>480&nbsp;px</b></span>
+      <span class="spec">Frame rate <b>12&nbsp;fps</b></span>
+      <span class="spec">Loops <b>forever</b></span>
+      <span class="spec">Optimized palette <b>on</b></span>
+    </div>
+  </div>
+
+  <!-- STEP 2: source preview + convert -->
+  <div class="card hidden" id="sourceCard">
+    <video id="preview" controls playsinline muted></video>
+    <div class="meta" id="srcMeta"></div>
+    <div class="row" style="margin-top:14px; gap:10px">
+      <button class="btn secondary" id="changeBtn" style="flex:0 0 auto; width:auto; padding:14px 16px">Change</button>
+      <button class="btn" id="convertBtn">Convert to GIF</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: progress -->
+  <div class="card hidden" id="progressCard">
+    <div class="status" id="status"><span class="spin"></span>Preparing…</div>
+    <div class="bar"><i id="barFill"></i></div>
+    <details>
+      <summary>Show technical log</summary>
+      <pre class="log" id="log"></pre>
+    </details>
+  </div>
+
+  <!-- STEP 4: result -->
+  <div class="card hidden" id="resultCard">
+    <img class="result" id="resultImg" alt="Your GIF">
+    <div class="meta" id="resultMeta"></div>
+    <div class="row" style="margin-top:14px; gap:10px">
+      <button class="btn secondary" id="againBtn" style="flex:0 0 auto; width:auto; padding:14px 16px">New video</button>
+      <a class="btn success" id="downloadBtn" style="text-align:center; text-decoration:none; line-height:1.2">Download GIF</a>
+    </div>
+    <div class="meta" id="saveHint" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card err hidden" id="errCard"></div>
+
+  <footer>
+    Runs entirely on your device with FFmpeg (WebAssembly).<br>
+    First conversion loads the engine (~32&nbsp;MB) — after that it's cached.
+  </footer>
+</div>
+
+<script src="vendor/ffmpeg.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  // Minimal replacements for @ffmpeg/util (its UMD build is not browser-ready).
+  async function fetchFile(input){
+    let buf;
+    if (typeof input === 'string' || input instanceof URL){
+      buf = await (await fetch(input)).arrayBuffer();
+    } else if (input instanceof File || input instanceof Blob){
+      buf = await input.arrayBuffer();
+    } else {
+      return new Uint8Array();
+    }
+    return new Uint8Array(buf);
+  }
+  async function toBlobURL(url, mime){
+    const buf = await (await fetch(url)).arrayBuffer();
+    return URL.createObjectURL(new Blob([buf], { type: mime }));
+  }
+
+  // ---- Locked output preset --------------------------------------------
+  const PRESET = {
+    width: 480,   // max width; smaller videos are not upscaled
+    fps: 12,
+  };
+  // Two-pass palette for high-quality, uniform GIFs. Never upscale beyond source width.
+  const VF = `fps=${PRESET.fps},scale=w='min(${PRESET.width},iw)':h=-2:flags=lanczos,` +
+             `split[s0][s1];[s0]palettegen=stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3`;
+
+  // ---- Elements ---------------------------------------------------------
+  const $ = (id) => document.getElementById(id);
+  const drop = $('drop'), fileInput = $('file');
+  const pickCard = $('pickCard'), sourceCard = $('sourceCard'),
+        progressCard = $('progressCard'), resultCard = $('resultCard'), errCard = $('errCard');
+  const preview = $('preview'), srcMeta = $('srcMeta');
+  const convertBtn = $('convertBtn'), changeBtn = $('changeBtn'), againBtn = $('againBtn');
+  const statusEl = $('status'), barFill = $('barFill'), logEl = $('log');
+  const resultImg = $('resultImg'), resultMeta = $('resultMeta'),
+        downloadBtn = $('downloadBtn'), saveHint = $('saveHint');
+
+  let ffmpeg = null, currentFile = null, srcObjUrl = null, gifObjUrl = null;
+
+  // ---- Helpers ----------------------------------------------------------
+  function fmtSize(bytes){
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(0) + ' KB';
+    return (bytes/1024/1024).toFixed(1) + ' MB';
+  }
+  function show(el){ el.classList.remove('hidden'); }
+  function hide(el){ el.classList.add('hidden'); }
+  function setStatus(txt, spinning){
+    statusEl.innerHTML = (spinning ? '<span class="spin"></span>' : '') + txt;
+  }
+  function setBar(p){ barFill.style.width = Math.max(0, Math.min(100, p)) + '%'; }
+  function logLine(msg){
+    logEl.textContent += msg + '\n';
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function showError(msg){
+    show(errCard);
+    errCard.textContent = '⚠️ ' + msg;
+  }
+  function safeName(name){
+    const base = (name || 'video').replace(/\.[^.]+$/, '');
+    return (base.replace(/[^\w\-]+/g,'_').slice(0,60) || 'video') + '.gif';
+  }
+  function ext(name){
+    const m = /\.([a-z0-9]+)$/i.exec(name || '');
+    return m ? m[1].toLowerCase() : 'mov';
+  }
+
+  // ---- File selection ---------------------------------------------------
+  function pickFile(file){
+    if (!file) return;
+    if (!file.type.startsWith('video/') && !/\.(mov|mp4|m4v|webm|avi|mkv|3gp|ogv)$/i.test(file.name)){
+      showError('That doesn\'t look like a video file.');
+      return;
+    }
+    hide(errCard); hide(resultCard); hide(progressCard);
+    currentFile = file;
+    if (srcObjUrl) URL.revokeObjectURL(srcObjUrl);
+    srcObjUrl = URL.createObjectURL(file);
+    preview.src = srcObjUrl;
+    srcMeta.textContent = `${file.name} · ${fmtSize(file.size)}`;
+    hide(pickCard); show(sourceCard);
+  }
+
+  drop.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => pickFile(e.target.files[0]));
+  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, (e)=>{
+    e.preventDefault(); drop.classList.add('drag');
+  }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, (e)=>{
+    e.preventDefault(); drop.classList.remove('drag');
+  }));
+  drop.addEventListener('drop', (e)=>{
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) pickFile(e.dataTransfer.files[0]);
+  });
+
+  function resetToPick(){
+    hide(sourceCard); hide(progressCard); hide(resultCard); hide(errCard);
+    show(pickCard);
+    fileInput.value = '';
+    currentFile = null;
+  }
+  changeBtn.addEventListener('click', resetToPick);
+  againBtn.addEventListener('click', resetToPick);
+
+  // ---- Engine load ------------------------------------------------------
+  async function loadEngine(){
+    if (ffmpeg) return ffmpeg;
+    if (typeof WebAssembly !== 'object') throw new Error('This browser does not support WebAssembly.');
+    const { FFmpeg } = FFmpegWASM;
+    const f = new FFmpeg();
+    f.on('log', ({ message }) => logLine(message));
+    f.on('progress', ({ progress }) => {
+      const pct = Math.round(progress * 100);
+      if (pct >= 0 && pct <= 100){ setBar(pct); setStatus(`Encoding GIF… ${pct}%`, true); }
+    });
+    setStatus('Loading conversion engine (one-time, ~32&nbsp;MB)…', true);
+    setBar(0);
+    await f.load({
+      coreURL: await toBlobURL('vendor/ffmpeg-core.js', 'text/javascript'),
+      wasmURL: await toBlobURL('vendor/ffmpeg-core.wasm', 'application/wasm'),
+    });
+    ffmpeg = f;
+    return f;
+  }
+
+  // ---- Convert ----------------------------------------------------------
+  convertBtn.addEventListener('click', convert);
+
+  async function convert(){
+    if (!currentFile) return;
+    hide(sourceCard); hide(resultCard); hide(errCard);
+    show(progressCard);
+    logEl.textContent = '';
+    convertBtn.disabled = true;
+
+    const inName = 'input.' + ext(currentFile.name);
+    const outName = 'output.gif';
+
+    try {
+      const f = await loadEngine();
+
+      setStatus('Reading video…', true); setBar(2);
+      await f.writeFile(inName, await fetchFile(currentFile));
+
+      setStatus('Encoding GIF… 0%', true); setBar(0);
+      await f.exec(['-i', inName, '-vf', VF, '-loop', '0', outName]);
+
+      setStatus('Finishing up…', true); setBar(100);
+      const data = await f.readFile(outName);
+      const blob = new Blob([data.buffer], { type: 'image/gif' });
+
+      // cleanup FS
+      try { await f.deleteFile(inName); await f.deleteFile(outName); } catch(_){}
+
+      if (gifObjUrl) URL.revokeObjectURL(gifObjUrl);
+      gifObjUrl = URL.createObjectURL(blob);
+      resultImg.src = gifObjUrl;
+      const dl = safeName(currentFile.name);
+      downloadBtn.href = gifObjUrl;
+      downloadBtn.download = dl;
+      resultMeta.textContent = `${dl} · ${fmtSize(blob.size)} · ${PRESET.width}px wide · ${PRESET.fps} fps`;
+      saveHint.textContent = isTouch()
+        ? 'On iPad/iPhone: press and hold the GIF above, then “Save to Photos” or “Add to Files”.'
+        : '';
+
+      hide(progressCard); show(resultCard);
+    } catch (err){
+      console.error(err);
+      hide(progressCard); show(sourceCard);
+      showError('Conversion failed: ' + (err && err.message ? err.message : err) +
+                '. Try a shorter clip, or reload the page.');
+    } finally {
+      convertBtn.disabled = false;
+    }
+  }
+
+  function isTouch(){
+    return ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  }
+})();
+</script>
+</body>
+</html>
