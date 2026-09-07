@@ -64,6 +64,7 @@
   .counter.hi{color:#b45309}
   .counter.ok{color:var(--ok)}
   .btn.danger{background:#fff;color:#b91c1c;border:1px solid #fecaca}
+  .btn.danger.armed{background:#b91c1c;color:#fff;border-color:#b91c1c}
   .tip{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:.6rem .75rem;font-size:.8rem;color:#9a3412;margin:.6rem 0 .25rem}
   .tip a{color:#c2410c;font-weight:600}
   .tip.green{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
@@ -122,6 +123,8 @@
       <button class="btn danger" id="clear">🗑 Clear</button>
       <span class="savednote" id="autonote"></span>
     </div>
+
+    <div class="tip">⚠️ <strong>Your work isn't saved automatically here.</strong> Tap <strong>💾 Save draft</strong> before you close this page, and <strong>📂 Load draft</strong> to pick up where you left off.</div>
 
     <div class="gate" id="gate"></div>
 
@@ -202,7 +205,7 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=6"></script>
+<script src="shared.js?v=7"></script>
 <script>
 const state={images:{},cover:null,fileMgmt:[]};
 const DRAFT_KEY="unitPostDraft";
@@ -588,14 +591,25 @@ $("loadFile").onchange=e=>{
       if(!data)throw new Error("no embedded data");
       loadData(data);
     }catch(err){
-      alert("Couldn't open that file. Choose a portfolio page (index.html) made by this tool, or a saved .json draft.");
+      notify("Couldn't open that file. Choose a portfolio page (.html) made by this tool, or a saved .json draft.","error");
     }
   };
   fr.readAsText(f);e.target.value="";
 };
 $("refresh").onclick=updatePreview;
+// Clear uses an inline two-click confirm instead of confirm(): native modals are
+// suppressed inside a sandboxed iframe (e.g. the Google Sites embed), so confirm()
+// silently returned false and the button did nothing. Two clicks also guard
+// against an accidental wipe now that drafts don't auto-persist across sessions.
+let clearArm=null;
+function disarmClear(){clearTimeout(clearArm);clearArm=null;const b=$("clear");b.textContent="🗑 Clear";b.classList.remove("armed");}
 $("clear").onclick=()=>{
-  if(!confirm("Clear this portfolio? Everything in the form will be erased and this can't be undone."))return;
+  if(!clearArm){                                   // first click: arm, then wait for a confirming second click
+    $("clear").textContent="🗑 Click again to clear";$("clear").classList.add("armed");
+    clearArm=setTimeout(disarmClear,4000);
+    return;
+  }
+  disarmClear();
   localStorage.removeItem(DRAFT_KEY);
   ["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).value="");
   $("publicView").checked=false;

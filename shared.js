@@ -28,6 +28,34 @@ function uid(){weekCount++;return "w"+weekCount+"_"+(performance.now()|0);}
 
 function countWords(t){const m=(t||"").trim().match(/[A-Za-z0-9][A-Za-z0-9'-]*/g);return m?m.length:0;}
 
+// ---- inline, non-modal notifications --------------------------------------
+// Native alert()/confirm() are silently suppressed inside a sandboxed iframe
+// (e.g. the Google Sites embed used on the district network), so surface every
+// message in-page instead. type: "error" | "warn" | "info". Styles are injected
+// once so this stays self-contained (both generators + the standalone build).
+function notify(msg,type){
+  let host=$("app-toasts");
+  if(!host){
+    const st=document.createElement("style");
+    st.textContent=
+`#app-toasts{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:.5rem;width:min(92%,440px)}
+#app-toasts .toast{font:600 .85rem/1.45 system-ui,-apple-system,sans-serif;padding:.6rem .8rem;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.18);display:flex;gap:.5rem;align-items:flex-start;animation:toastin .2s ease}
+#app-toasts .toast .x{margin-left:auto;flex:none;cursor:pointer;opacity:.6;font-weight:700;line-height:1}
+#app-toasts .toast.error{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c}
+#app-toasts .toast.warn{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412}
+#app-toasts .toast.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8}
+@keyframes toastin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}`;
+    document.head.appendChild(st);
+    host=document.createElement("div");host.id="app-toasts";document.body.appendChild(host);
+  }
+  const t=document.createElement("div");t.className="toast "+(type||"info");
+  t.innerHTML=`<span>${esc(msg)}</span><span class="x" title="Dismiss">×</span>`;
+  const kill=()=>{t.style.opacity="0";setTimeout(()=>t.remove(),200);};
+  t.querySelector(".x").onclick=kill;
+  host.appendChild(t);
+  setTimeout(kill,type==="error"?9000:7000);
+}
+
 // ---- image handling (downscale to keep file sizes sane; convert HEIC) ----
 const HEIC_RE=/\.(heic|heif)$/i;
 function isHeic(file){
@@ -56,15 +84,18 @@ async function toRenderable(file){
   return file;
 }
 const GIF_WARN_MB=5;
-// Returns an image object, or null if the student declines a large GIF.
+// Returns an image object (throws on decode failure; the caller shows a message).
 async function readImage(file){
   const blob=await toRenderable(file);      // may throw → caller shows a message
   // Animated GIFs must skip the canvas re-encode (it keeps only the first
   // frame). Embed the original bytes so the animation survives in the page.
   if(isGif(file)&&isAnimatedGif(await blob.arrayBuffer())){
     const mb=blob.size/1048576;
-    if(mb>GIF_WARN_MB&&!confirm(`That animated GIF is ${mb.toFixed(1)} MB and gets embedded at full size, which makes your portfolio large and slow to open. Add it anyway?`))
-      return null;
+    // A native confirm() is suppressed in the sandboxed embed, so rather than
+    // silently drop a big GIF we keep it and warn — the student can remove it
+    // from the thumbnails if the file gets too large.
+    if(mb>GIF_WARN_MB)
+      notify(`Added a ${mb.toFixed(1)} MB animated GIF — it's embedded at full size, so your portfolio will be large and slow to open. Remove it and use a smaller GIF if you can.`,"warn");
     return {name:file.name,caption:"",dataUrl:await blobToDataURL(blob)};
   }
   return await new Promise((res,rej)=>{
@@ -85,7 +116,7 @@ async function readImage(file){
 }
 function imgError(file){
   const n=file&&file.name?` "${file.name}"`:"";
-  alert(`Sorry, that image${n} couldn't be added.\n\nIf it's an iPhone/iPad HEIC photo it should convert automatically — try once more. Otherwise, export it as a JPG or PNG and re-upload.`);
+  notify(`Sorry, that image${n} couldn't be added. If it's an iPhone/iPad HEIC photo, try once more — otherwise export it as a JPG or PNG and re-upload.`,"error");
 }
 
 function wireDrop(el,onFiles){
