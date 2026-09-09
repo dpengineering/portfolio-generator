@@ -194,7 +194,7 @@ function postCSS(t, extra){
 .cover{position:relative;margin-bottom:2.5rem}
 .cover .banner{height:300px;background:linear-gradient(120deg,${t.gradFrom},${t.gradTo})}
 .cover img{display:block;width:100%;max-height:460px;object-fit:cover}
-.cover-text{position:absolute;left:0;bottom:0;width:100%;padding:2rem 1.5rem 1.25rem;background:linear-gradient(to top,${t.overlay},transparent);color:#fff;font-family:system-ui,sans-serif}
+.cover-text{position:absolute;left:0;bottom:0;width:100%;z-index:3;padding:2rem 1.5rem 1.25rem;background:linear-gradient(to top,${t.overlay},transparent);color:#fff;font-family:system-ui,sans-serif}
 .cover-text h1{font-size:clamp(1.8rem,5vw,3rem);margin:0}
 .subtitle{margin:.3rem 0 0;font-size:1.05rem;opacity:.92}
 .cover-logo{position:absolute;z-index:2;display:block;height:auto}
