@@ -92,6 +92,16 @@
   .rub-check input{margin-top:.15rem;flex:none}
   .rub-comment-label{margin-top:.55rem}
   .rub-comment{min-height:56px}
+  /* peer review (Grade 12): a reviewer annotates a classmate's post */
+  .peertoggle{align-items:flex-start;gap:.45rem;font-size:.85rem;font-weight:700;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:.55rem .7rem;margin:0 0 .7rem;cursor:pointer}
+  .peertoggle:not([hidden]){display:flex}
+  .peertoggle input{margin-top:.15rem;flex:none}
+  #peerNameWrap{margin:0 0 .8rem}
+  .suggest-wrap{margin:.55rem 0 0}
+  .suggest-label{display:block;font-size:.82rem;font-weight:700;color:#1d4ed8}
+  .suggest-wrap textarea{min-height:70px;border-color:#bfdbfe;margin-top:.25rem}
+  textarea.locked{background:#f1f5f9;color:#64748b;cursor:not-allowed}
+  .locknote{font-size:.72rem;font-weight:700;color:#64748b;margin:.1rem 0 .35rem}
   .pubtoggle{display:flex;align-items:flex-start;gap:.45rem;font-size:.82rem;font-weight:600;color:var(--ink);margin:0 0 .9rem;cursor:pointer}
   .pubtoggle input{margin-top:.15rem;flex:none}
   /* Publish-ready toggle is hidden for now — students only need it at year-end.
@@ -178,9 +188,14 @@
 
     <fieldset>
       <legend>Personal Reflection/Synthesis</legend>
+      <div class="locknote" hidden>🔒 Locked — the author's text. Add your suggestion below.</div>
       <textarea id="reflection" style="min-height:160px" placeholder="Text here..."></textarea>
       <div class="starter" id="reflection-starter"></div>
       <div class="counter" id="reflection-count"></div>
+      <div class="suggest-wrap" hidden>
+        <label class="suggest-label">✏️ Reviewer suggestion for the Reflection <span class="hint">(required)</span>
+        <textarea id="suggestReflection" placeholder="Suggest an edit or improvement for this section…"></textarea></label>
+      </div>
     </fieldset>
 
     <fieldset>
@@ -191,8 +206,11 @@
     </fieldset>
 
     <fieldset>
-      <legend>Self Grade Rubric</legend>
-      <p class="hint" style="margin:.2rem 0 .6rem">Grade your own work honestly against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a>. Check the criteria that are truly met — your level is calculated automatically (Level 4 requires every Level 3 <em>and</em> Level 4 box) — and add a brief comment for each category (required). This renders as a collapsible “Self Grade Rubric” section at the end of your post.</p>
+      <legend id="rubricLegend">Self Grade Rubric</legend>
+      <label class="peertoggle" id="peerToggleWrap" hidden><input type="checkbox" id="peer"> 🔍 Peer Review — I'm reviewing a classmate's post</label>
+      <div id="peerNameWrap" hidden><label>Reviewer's name<input type="text" id="peerName" placeholder="Your name (the reviewer)"></label></div>
+      <p class="hint" id="selfHint" style="margin:.2rem 0 .6rem">Grade your own work honestly against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a>. Check the criteria that are truly met — your level is calculated automatically (Level 4 requires every Level 3 <em>and</em> Level 4 box) — and add a brief comment for each category (required). This renders as a collapsible “Self Grade Rubric” section at the end of your post.</p>
+      <p class="hint" id="peerHint" hidden style="margin:.2rem 0 .6rem">You're reviewing a classmate's post. Grade <em>their</em> work against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a>, check the criteria they truly met, and leave a brief comment for each category (required). Your feedback renders as a collapsible “Peer Review” section at the end of their post.</p>
       <div id="rubricRows"></div>
     </fieldset>
 
@@ -226,6 +244,27 @@ function applyGradeMode(){
   // Keep the current selection if it's still valid; otherwise default Grade 12 to
   // the current month (a convenience the student can still change), else leave blank.
   sel.value=opts.includes(prev)?prev:(monthly?MONTHS[new Date().getMonth()]:"");
+  // Peer review is a Grade 12 feature: show its toggle only then, and force it off otherwise.
+  const pt=$("peerToggleWrap");
+  if(pt){
+    pt.hidden=!monthly;
+    if(!monthly&&$("peer").checked){$("peer").checked=false;applyPeerMode();}
+  }
+}
+
+// Peer review turns the post into a review of a classmate's work: the author's
+// writing locks, a suggestion box opens under each locked section, the rubric
+// becomes peer feedback, and a reviewer-name field appears. Toggling it off keeps
+// everything (name/suggestions stay in the data) — it just stops rendering.
+function applyPeerMode(){
+  const on=$("peer").checked;
+  $("peerNameWrap").hidden=!on;
+  document.querySelectorAll(".suggest-wrap").forEach(el=>el.hidden=!on);
+  document.querySelectorAll(".locknote").forEach(el=>el.hidden=!on);
+  [...document.querySelectorAll(".w-text"),$("reflection")].forEach(t=>{if(t){t.readOnly=on;t.classList.toggle("locked",on);}});
+  $("rubricLegend").textContent=on?"Peer Review":"Self Grade Rubric";
+  $("selfHint").hidden=on;
+  $("peerHint").hidden=!on;
 }
 
 // ===== Sentence starters — EDIT THESE LISTS FREELY ===================
@@ -315,10 +354,15 @@ function addWeek(data={}){
   fs.className="week";fs.dataset.id=id;
   fs.innerHTML=`
     <legend>Project Update</legend>
+    <div class="locknote" hidden>🔒 Locked — the author's text. Add your suggestion below.</div>
     <label>Your progress this unit <span class="hint">(300–400 words)</span>
       <textarea class="w-text" data-lm="1" placeholder="Text here..."></textarea></label>
     <div class="starter" data-lm="1"></div>
     <div class="counter w-count" data-for="1"></div>
+    <div class="suggest-wrap" hidden>
+      <label class="suggest-label">✏️ Reviewer suggestion for the Project Update <span class="hint">(required)</span>
+      <textarea class="w-suggest" placeholder="Suggest an edit or improvement for this section…"></textarea></label>
+    </div>
     <label>Images for this update <span class="hint">(exactly 4, each with a brief caption)</span></label>
     <div class="drop wdrop" data-group="g1">Drag images here, or click to choose</div>
     <div class="thumbs wthumbs" data-group="g1"></div>
@@ -374,6 +418,7 @@ function collect(){
     reflection:val("reflection"),
     fileMgmt:state.fileMgmt.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl})),
     rubric:getRubric(),
+    peer:(()=>{const w=document.querySelector(".w-suggest");return {on:$("peer").checked,reviewer:val("peerName"),sUpdate:w?w.value:"",sReflection:val("suggestReflection")};})(),
     publicView:$("publicView").checked,
     gradient:currentGrad()
   };
@@ -397,6 +442,10 @@ body[data-public="true"] details.filemgmt,body[data-public="true"] details.rubri
 .rub-met li{margin:.15rem 0}
 .rub-none{font-family:system-ui,sans-serif;font-size:.95rem;color:var(--muted);font-style:italic;margin:.25rem 0 .5rem}
 .rub-note{margin:.35rem 0 0;font-style:italic}
+.peer-banner{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-family:system-ui,sans-serif;font-weight:700;border-radius:10px;padding:.6rem .95rem;margin:0 0 2rem;display:flex;align-items:center;gap:.5rem}
+.peer-note{background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #3b82f6;border-radius:8px;padding:.8rem 1.1rem;margin:-1.5rem 0 3rem}
+.peer-note-h{font-family:system-ui,sans-serif;font-weight:700;color:#1d4ed8;font-size:.92rem;margin-bottom:.4rem}
+.peer-note p{margin:.4rem 0}
 `;
 const PORTFOLIO_CSS=postCSS({accent:"#ea580c",gradFrom:"#f97316",gradTo:"#7c2d12",overlay:"rgba(67,20,7,.8)"},POST_EXTRA);
 
@@ -428,6 +477,14 @@ function buildHTML(d){
   const gradeTxt=d.meta.grade?`Grade ${d.meta.grade}`:"";
   const unitTxt=d.meta.unit?(monthly?d.meta.unit:`Unit ${d.meta.unit}`):"";
   const sub=[d.meta.project, gradeTxt, unitTxt].filter(Boolean).map(esc).join(" · ");
+  // Peer review: a classmate's suggestions render as callouts after each section,
+  // the rubric becomes "Peer Review", and a banner names the reviewer.
+  const peer=d.peer||{}, peerOn=!!peer.on;
+  const peerBanner=peerOn
+    ? `<div class="peer-banner">🔍 Peer reviewed${peer.reviewer?` by ${esc(peer.reviewer)}`:""}</div>` : "";
+  const peerNote=(label,text)=>(peerOn&&text&&text.trim())
+    ? `<aside class="peer-note"><div class="peer-note-h">✏️ Reviewer suggestion${peer.reviewer?` — ${esc(peer.reviewer)}`:""} · ${esc(label)}</div>\n${paras(text)}\n</aside>` : "";
+  const rubricTitle=peerOn?"Peer Review":"Self Grade Rubric";
   const figCtr={n:0};  // figure numbers run across the whole post
   const sections=d.weeks.map((w,i)=>{
     const imgs1=w.images1||[];
@@ -445,7 +502,7 @@ function buildHTML(d){
     ? `<details class="filemgmt">\n<summary>File Management</summary>\n${fileGallery(fmImgs)}\n</details>`:"";
   const rubricCats=(d.rubric||[]).filter(r=>r.comments||(r.met&&r.met.length));
   const rubric=rubricCats.length
-    ? `<details class="rubric">\n<summary>Self Grade Rubric</summary>\n`+rubricCats.map(r=>{
+    ? `<details class="rubric">\n<summary>${esc(rubricTitle)}</summary>\n`+rubricCats.map(r=>{
         const lis=(r.met&&r.met.length)
           ? `<ul class="rub-met">\n${r.met.map(m=>`<li>${esc(m)}</li>`).join("\n")}\n</ul>`
           : `<p class="rub-none">No criteria selected.</p>`;
@@ -458,7 +515,7 @@ function buildHTML(d){
   const editData={v:2,meta:d.meta,reflection:d.reflection,weeks:d.weeks.map(w=>({
     text1:w.text1,
     images1:(w.images1||[]).map(i=>({name:i.name,caption:i.caption}))
-  })),fileMgmt:(d.fileMgmt||[]).map(i=>({name:i.name,caption:i.caption})),rubric:d.rubric||[],publicView:!!d.publicView,gradient:d.gradient};
+  })),fileMgmt:(d.fileMgmt||[]).map(i=>({name:i.name,caption:i.caption})),rubric:d.rubric||[],peer:d.peer||null,publicView:!!d.publicView,gradient:d.gradient};
   const dataJson=JSON.stringify(editData).replace(/</g,"\\u003c");
   return `<!doctype html>
 <html lang="en">
@@ -472,8 +529,11 @@ function buildHTML(d){
 <body data-public="${d.publicView?'true':'false'}">
 ${coverHeader(d,name,sub)}
 <main>
+${peerBanner}
 ${sections||"<p>Fill in your project update to see your portfolio here.</p>"}
+${peerNote("Project Update",peer.sUpdate)}
 ${reflection}
+${peerNote("Reflection",peer.sReflection)}
 ${fileMgmt}
 ${rubric}
 </main>
@@ -530,6 +590,23 @@ function validate(){
   const grOK=!!$("grade").value, unOK=!!$("unit").value;
   const kt=keyTermCount(), ktOK=kt>=MIN_KEYTERMS;
   const row=(ok,label)=>`<div class="req ${ok?'ok':'no'}"><span class="mark">${ok?'✓':'○'}</span>${label}</div>`;
+  // Peer review mode: the reviewer can't change the (locked) author content, so the
+  // checklist is their own — name, a suggestion per section, and full rubric feedback.
+  if($("peer")&&$("peer").checked){
+    const revOK=!!$("peerName").value.trim();
+    const wsug=document.querySelector(".w-suggest");
+    const suUOK=!!(wsug&&wsug.value.trim());
+    const suROK=!!$("suggestReflection").value.trim();
+    $("gate").innerHTML='<div class="ghead">To download your review, finish these:</div>'+
+      row(revOK,`Enter your name (the reviewer)`)+
+      row(suUOK,`Suggest an edit for the Project Update`)+
+      row(suROK,`Suggest an edit for the Reflection`)+
+      row(rubOK,`Peer Review: add feedback for all ${rubRows.length} categories (${rubDone}/${rubRows.length})`);
+    const okP=revOK&&suUOK&&suROK&&rubOK;
+    $("download").disabled=!okP;
+    $("download").title=okP?"":"Finish the peer-review items above to enable download";
+    return okP;
+  }
   $("gate").innerHTML='<div class="ghead">To download, finish these:</div>'+
     row(nameOK,`Enter your first and last name`)+
     row(grOK,`Choose your grade`)+
@@ -568,7 +645,7 @@ function slug(){const m=collect().meta;return ((m.student||"portfolio")+"-"+(m.m
 //     e.g. Ada Lovelace, Grade 12, September -> ALove_MonthlyPost_Grade12_September.html
 // (name, grade and unit/month are all required before download, so these are always present.)
 function postFileName(){
-  const m=collect().meta;
+  const c=collect(), m=c.meta;
   const alnum=s=>((s||"").replace(/[^A-Za-z0-9]/g,""));
   const fi=(alnum(m.first)[0]||"").toUpperCase();
   const ln=alnum(m.last).slice(0,4);
@@ -577,7 +654,9 @@ function postFileName(){
   const monthly=m.grade==="12";
   const grade=`Grade${alnum(m.grade)||"X"}`;
   const period=monthly?(alnum(m.unit)||"X"):`Unit${alnum(m.unit)||"X"}`;
-  return `${who}_${monthly?"MonthlyPost":"UnitPost"}_${grade}_${period}.html`;
+  // A peer review is the author's post plus the reviewer's marks — tag it so the two are distinguishable.
+  const rev=(c.peer&&c.peer.on&&c.peer.reviewer)?`_reviewedby_${alnum(c.peer.reviewer)||"Reviewer"}`:"";
+  return `${who}_${monthly?"MonthlyPost":"UnitPost"}_${grade}_${period}${rev}.html`;
 }
 $("download").onclick=()=>{if(!validate())return;downloadBlob(postFileName(),buildHTML(collect()),"text/html");};
 $("save").onclick=()=>downloadBlob(slug()+"-journal.json",JSON.stringify(collect()),"application/json");
@@ -640,8 +719,10 @@ $("clear").onclick=()=>{
   setGrad(COVER_GRADIENTS[DEFAULT_GRAD]);
   state.fileMgmt=[];renderFileMgmt();
   setRubric([]);
+  $("peer").checked=false;$("peerName").value="";$("suggestReflection").value="";
   $("weeks").innerHTML="";state.images={};
   addWeek();
+  applyPeerMode();
   updatePreview();
 };
 
@@ -667,12 +748,20 @@ function loadData(d){
   setRubric(d.rubric);
   $("weeks").innerHTML="";state.images={};
   addWeek((d.weeks&&d.weeks[0])||{});
+  // Peer review (Grade 12 only): restore after the week exists so the update suggestion has a home.
+  const pr=d.peer||{};
+  $("peer").checked=!!pr.on&&isMonthly();
+  $("peerName").value=pr.reviewer||"";
+  $("suggestReflection").value=pr.sReflection||"";
+  const wsug=document.querySelector(".w-suggest");if(wsug)wsug.value=pr.sUpdate||"";
+  applyPeerMode();
   updatePreview();
 }
 
 // autosave() now lives in shared.js (persists collect() under DRAFT_KEY)
-["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
+["firstName","lastName","project","grade","unit","reflection","peerName","suggestReflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
 $("grade").addEventListener("change",()=>{applyGradeMode();autosave();schedulePreview();validate();});
+$("peer").addEventListener("change",()=>{applyPeerMode();autosave();schedulePreview();validate();});
 $("publicView").addEventListener("change",()=>{autosave();schedulePreview();});
 // ---- self grade rubric (students check the criteria they meet; level is computed) ----
 // Cumulative per the unit rubric: Level 4 = every Level 3 AND every Level 4 box.
@@ -758,6 +847,7 @@ wireStarter($("reflection"),$("reflection-starter"),STARTERS.reflection,Math.flo
   if(saved){try{loadData(JSON.parse(saved));return;}catch(e){}}
   applyGradeMode();
   addWeek();
+  applyPeerMode();
   updatePreview();
 })();
 </script>
