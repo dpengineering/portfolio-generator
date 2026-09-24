@@ -223,7 +223,9 @@ function applyGradeMode(){
   const opts=monthly?MONTHS:UNITS;
   $("unitLabel").textContent=monthly?"Month":"Unit";
   sel.innerHTML='<option value="">Select...</option>'+opts.map(o=>`<option value="${o}">${o}</option>`).join("");
-  sel.value=opts.includes(prev)?prev:"";   // keep the selection only if it's still a valid option
+  // Keep the current selection if it's still valid; otherwise default Grade 12 to
+  // the current month (a convenience the student can still change), else leave blank.
+  sel.value=opts.includes(prev)?prev:(monthly?MONTHS[new Date().getMonth()]:"");
 }
 
 // ===== Sentence starters — EDIT THESE LISTS FREELY ===================
@@ -653,8 +655,9 @@ function loadData(d){
   $("lastName").value=last;
   $("project").value=d.meta?.project||"";
   $("grade").value=d.meta?.grade||"";
-  applyGradeMode();                       // set Unit/Month options to match grade before restoring the value
-  $("unit").value=d.meta?.unit||"";
+  $("unit").value="";                     // drop any leftover value so applyGradeMode starts fresh (not inherited from a prior load)
+  applyGradeMode();                       // set Unit/Month options (and any Grade 12 month default) to match grade
+  if(d.meta?.unit)$("unit").value=d.meta.unit;   // restore a saved unit/month over the default, if the draft had one
   $("reflection").value=d.reflection||"";
   $("publicView").checked=!!d.publicView;
   state.cover=d.cover||null;renderCover();
