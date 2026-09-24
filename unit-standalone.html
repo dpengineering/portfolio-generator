@@ -106,8 +106,8 @@
 <header class="app">
   <div class="app-head">
     <div>
-      <h1>📗 Unit Post Generator</h1>
-      <p>Write up your project's progress this unit, add captioned photos, and download a finished portfolio page.</p>
+      <h1>📗 Unit / Monthly Post Generator</h1>
+      <p>Write up your project's progress this unit/month, add captioned photos, and download a finished portfolio page.</p>
     </div>
   </div>
 </header>
@@ -147,8 +147,9 @@
             <option value="9">9</option>
             <option value="10">10</option>
             <option value="11">11</option>
+            <option value="12">12</option>
           </select></label></div>
-        <div><label>Unit
+        <div><label><span id="unitLabel">Unit</span>
           <select id="unit">
             <option value="">Select...</option>
             <option value="1">1</option>
@@ -496,6 +497,20 @@ const state={images:{},cover:null,fileMgmt:[]};
 const DRAFT_KEY="unitPostDraft";
 const DEFAULT_GRAD="orange";
 
+// 12th graders post monthly instead of per unit, so the "Unit" picker becomes a
+// "Month" picker when Grade 12 is chosen. The selected value (a unit number or a
+// month name) is stored the same way in meta.unit; grade tells us how to read it.
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const UNITS=["1","2","3","4","5","6","7","8"];
+const isMonthly=()=>$("grade").value==="12";
+function applyGradeMode(){
+  const sel=$("unit"), monthly=isMonthly(), prev=sel.value;
+  const opts=monthly?MONTHS:UNITS;
+  $("unitLabel").textContent=monthly?"Month":"Unit";
+  sel.innerHTML='<option value="">Select...</option>'+opts.map(o=>`<option value="${o}">${o}</option>`).join("");
+  sel.value=opts.includes(prev)?prev:"";   // keep the selection only if it's still a valid option
+}
+
 // ===== Sentence starters — EDIT THESE LISTS FREELY ===================
 // "update" shows under the Project Update box; "reflection" shows under the
 // Reflection/Synthesis box. Click a suggestion to drop it into the box.
@@ -691,9 +706,10 @@ function buildHTML(d){
   const now = new Date();
   const monthYear = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   
-  const title=`${name} — ${monthYear} Unit Post`;
+  const monthly=d.meta.grade==="12";      // 12th graders post monthly; meta.unit holds a month name
+  const title=`${name} — ${monthYear} ${monthly?"Monthly":"Unit"} Post`;
   const gradeTxt=d.meta.grade?`Grade ${d.meta.grade}`:"";
-  const unitTxt=d.meta.unit?`Unit ${d.meta.unit}`:"";
+  const unitTxt=d.meta.unit?(monthly?d.meta.unit:`Unit ${d.meta.unit}`):"";
   const sub=[d.meta.project, gradeTxt, unitTxt].filter(Boolean).map(esc).join(" · ");
   const figCtr={n:0};  // figure numbers run across the whole post
   const sections=d.weeks.map((w,i)=>{
@@ -800,7 +816,7 @@ function validate(){
   $("gate").innerHTML='<div class="ghead">To download, finish these:</div>'+
     row(nameOK,`Enter your first and last name`)+
     row(grOK,`Choose your grade`)+
-    row(unOK,`Choose your unit`)+
+    row(unOK,isMonthly()?`Choose your month`:`Choose your unit`)+
     row(ok1,`Project Update: ${UPDATE_MIN}–${UPDATE_MAX} words (now ${w1})`)+
     row(ktOK,`Highlight at least ${MIN_KEYTERMS} key terms with *asterisks* (now ${kt})`)+
     row(imgOK,`Add exactly ${UPDATE_IMAGES} images to your update (now ${g1n})`)+
@@ -828,9 +844,12 @@ function updatePreview(){
 // ---- download / draft ----
 // downloadBlob() now lives in shared.js
 function slug(){const m=collect().meta;return ((m.student||"portfolio")+"-"+(m.month||"")).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"portfolio";}
-// Organizable filename: <first-initial><last-name-first-4>_UnitPost_Grade<N>_Unit<N>.html
-// e.g. Ada Lovelace, Grade 10, Unit 4 -> ALove_UnitPost_Grade10_Unit4.html
-// (name, grade and unit are all required before download, so these are always present.)
+// Organizable filename:
+//   Grades 9–11: <first-initial><last-name-first-4>_UnitPost_Grade<N>_Unit<N>.html
+//     e.g. Ada Lovelace, Grade 10, Unit 4 -> ALove_UnitPost_Grade10_Unit4.html
+//   Grade 12 (monthly): ..._MonthlyPost_Grade12_<Month>.html
+//     e.g. Ada Lovelace, Grade 12, September -> ALove_MonthlyPost_Grade12_September.html
+// (name, grade and unit/month are all required before download, so these are always present.)
 function postFileName(){
   const m=collect().meta;
   const alnum=s=>((s||"").replace(/[^A-Za-z0-9]/g,""));
@@ -838,9 +857,10 @@ function postFileName(){
   const ln=alnum(m.last).slice(0,4);
   const lnCased=ln?ln[0].toUpperCase()+ln.slice(1).toLowerCase():"";
   const who=(fi+lnCased)||"XX";
+  const monthly=m.grade==="12";
   const grade=`Grade${alnum(m.grade)||"X"}`;
-  const unit=`Unit${alnum(m.unit)||"X"}`;
-  return `${who}_UnitPost_${grade}_${unit}.html`;
+  const period=monthly?(alnum(m.unit)||"X"):`Unit${alnum(m.unit)||"X"}`;
+  return `${who}_${monthly?"MonthlyPost":"UnitPost"}_${grade}_${period}.html`;
 }
 $("download").onclick=()=>{if(!validate())return;downloadBlob(postFileName(),buildHTML(collect()),"text/html");};
 $("save").onclick=()=>downloadBlob(slug()+"-journal.json",JSON.stringify(collect()),"application/json");
@@ -897,6 +917,7 @@ $("clear").onclick=()=>{
   disarmClear();
   localStorage.removeItem(DRAFT_KEY);
   ["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).value="");
+  applyGradeMode();                       // grade is back to blank → restore the Unit picker
   $("publicView").checked=false;
   state.cover=null;renderCover();
   setGrad(COVER_GRADIENTS[DEFAULT_GRAD]);
@@ -917,6 +938,7 @@ function loadData(d){
   $("lastName").value=last;
   $("project").value=d.meta?.project||"";
   $("grade").value=d.meta?.grade||"";
+  applyGradeMode();                       // set Unit/Month options to match grade before restoring the value
   $("unit").value=d.meta?.unit||"";
   $("reflection").value=d.reflection||"";
   $("publicView").checked=!!d.publicView;
@@ -932,6 +954,7 @@ function loadData(d){
 
 // autosave() now lives in shared.js (persists collect() under DRAFT_KEY)
 ["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
+$("grade").addEventListener("change",()=>{applyGradeMode();autosave();schedulePreview();validate();});
 $("publicView").addEventListener("change",()=>{autosave();schedulePreview();});
 // ---- self grade rubric (students check the criteria they meet; level is computed) ----
 // Cumulative per the unit rubric: Level 4 = every Level 3 AND every Level 4 box.
@@ -1015,6 +1038,7 @@ wireStarter($("reflection"),$("reflection-starter"),STARTERS.reflection,Math.flo
 (function init(){
   const saved=localStorage.getItem(DRAFT_KEY);
   if(saved){try{loadData(JSON.parse(saved));return;}catch(e){}}
+  applyGradeMode();
   addWeek();
   updatePreview();
 })();
