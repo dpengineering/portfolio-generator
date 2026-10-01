@@ -24,14 +24,20 @@
   input[type=text],select{width:100%;padding:.55rem .65rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.9rem;background:#fff;color:var(--ink)}
   .row{display:flex;gap:.6rem;flex-wrap:wrap}
   .row>div{flex:1;min-width:140px}
+  button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:.55rem .9rem;cursor:pointer}
+  .btn{background:var(--accent);color:#fff}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .next-row{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-top:1rem}
 
   .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.9rem;margin:0 0 1.25rem}
   a.tile{display:flex;flex-direction:column;gap:.3rem;text-decoration:none;color:inherit;background:#fff;
     border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:10px;padding:1rem}
   a.tile:hover{border-color:var(--accent);box-shadow:0 2px 10px rgba(14,165,233,.14)}
-  a.tile .t-top{display:flex;align-items:center;gap:.5rem}
+  /* wrap rather than overflow: a long tool name plus a cadence chip can
+     outgrow a narrow tile (and does on a phone) */
+  a.tile .t-top{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
   a.tile .t-emoji{font-size:1.35rem;line-height:1}
-  a.tile .t-name{font-weight:700;font-size:1rem}
+  a.tile .t-name{font-weight:700;font-size:1rem;min-width:0}
   a.tile .t-when{margin-left:auto;flex:none;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
     color:var(--muted);background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:.15rem .5rem}
   a.tile .t-desc{font-size:.84rem;color:var(--muted);line-height:1.45}
@@ -84,6 +90,12 @@
         <div><label>First name <span class="hint">(optional)</span><input type="text" id="firstName" placeholder="Ada"></label></div>
         <div><label>Last name <span class="hint">(optional)</span><input type="text" id="lastName" placeholder="Lovelace"></label></div>
       </div>
+      <!-- Nothing advances until this is pressed. Reacting to the fields
+           themselves would pull the form away mid-typing. -->
+      <div class="next-row">
+        <button class="btn" type="button" id="next" disabled>Next →</button>
+        <span class="hint" id="nextHint">Pick your grade to continue.</span>
+      </div>
     </fieldset>
   </div>
 
@@ -105,7 +117,7 @@
       <span class="t-desc" id="unitDesc">A bigger write-up at the end of a unit, with your self-grade rubric.</span>
     </a>
     <a class="tile senior" href="review.html" id="reviewTile" hidden>
-      <span class="t-top"><span class="t-emoji">📋</span><span class="t-name">Performance Review</span><span class="t-when">Weekly · Grade 12</span></span>
+      <span class="t-top"><span class="t-emoji">📋</span><span class="t-name">Performance Review</span><span class="t-when">Weekly</span></span>
       <span class="t-desc">Rate your week against the 12-item rubric and attach your rotation post. Seniors only.</span>
     </a>
   </div>
@@ -124,20 +136,32 @@
 // The hub is the one place a student states their grade; the tools pre-fill
 // from it (see applyProfile/trackProfile in shared.js). Tiles stay hidden until
 // a grade is known, so nobody picks the wrong tool by guessing.
+//
+// Which stage is on screen is tracked separately from what the stage says.
+// Editing a field must never move the student forward — they may still be
+// typing their name — so field handlers only ever call paint(); nothing but the
+// Next button and the Change button change `stage`.
 const FIELDS={firstName:"first",lastName:"last",grade:"grade"};
+let stage="setup";                       // "setup" | "tiles"
 
-function render(){
-  const p=getProfile(), g=p.grade, known=!!g, senior=g==="12";
+function paintStage(){
+  $("setup").hidden=stage!=="setup";
+  $("tiles").hidden=stage!=="tiles";
+  $("whoami").hidden=stage!=="tiles";
+}
 
-  $("setup").hidden=known;
-  $("tiles").hidden=!known;
-  $("whoami").hidden=!known;
+// Everything that depends on the profile but not on the stage. Safe to call on
+// every keystroke.
+function paint(){
+  const p=getProfile(), g=p.grade, senior=g==="12";
+
+  $("next").disabled=!$("grade").value;
+  $("nextHint").textContent=$("grade").value?"":"Pick your grade to continue.";
+
   $("reviewTile").hidden=!senior;
 
-  if(known){
-    const who=[p.first,p.last].filter(Boolean).join(" ");
-    $("whochip").textContent=who?`${who} · Grade ${g}`:`Grade ${g}`;
-  }
+  const who=[p.first,p.last].filter(Boolean).join(" ");
+  $("whochip").textContent=g?(who?`${who} · Grade ${g}`:`Grade ${g}`):"";
 
   // 12th graders post monthly rather than per unit — unit.html already keys
   // this off the same grade value (see isMonthly there).
@@ -153,6 +177,8 @@ function render(){
     `Showing grade ${o} because of the ?grade=${o} link. This isn't saved — open the page without it to go back to normal.`;
 }
 
+function go(next){stage=next;paintStage();paint();}
+
 // Carry an override through to the tools, so ?grade=12 on the hub still shows a
 // senior the fused/senior behaviour once they click into one.
 function wireTiles(){
@@ -163,26 +189,36 @@ function wireTiles(){
   });
 }
 
-$("grade").addEventListener("change",()=>{
-  if(!$("grade").value)return;
-  saveProfile({grade:$("grade").value});
-  render();
+// Persist on change (blur) rather than on every keystroke, and again on Next,
+// so a half-typed name is never what gets remembered.
+function saveFields(){
+  const patch={};
+  Object.keys(FIELDS).forEach(id=>{
+    const v=$(id).value.trim();
+    if(v)patch[FIELDS[id]]=v;
+  });
+  if(Object.keys(patch).length)saveProfile(patch);
+}
+
+Object.keys(FIELDS).forEach(id=>{
+  $(id).addEventListener("change",()=>{saveFields();paint();});
+  $(id).addEventListener("input",paint);
 });
-["firstName","lastName"].forEach(id=>$(id).addEventListener("input",()=>{
-  saveProfile({[FIELDS[id]]:$(id).value.trim()});
-  render();
-}));
+$("next").addEventListener("click",()=>{
+  if(!$("grade").value){$("grade").focus();return;}
+  saveFields();
+  go("tiles");
+});
 $("changeWho").addEventListener("click",()=>{
-  $("setup").hidden=false;
-  $("tiles").hidden=true;
-  $("whoami").hidden=true;
+  go("setup");
   $("grade").focus();
 });
 
 (function init(){
   applyProfile(FIELDS);
   wireTiles();
-  render();
+  // A student who has been here before (or arrived via ?grade=) skips setup.
+  go(getProfile().grade?"tiles":"setup");
 })();
 </script>
 </body>
