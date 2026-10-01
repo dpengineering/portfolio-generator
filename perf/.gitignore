@@ -1,0 +1,5 @@
+# macOS
+.DS_Store
+
+# Local editor / tooling config (not needed by the published site)
+.claude/

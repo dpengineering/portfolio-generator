@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weekly Performance Review</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+<style>
+  :root{
+    --accent:#4f46e5; --ink:#1e293b; --muted:#64748b; --border:#e2e8f0;
+    --panel:#f8fafc; --ok:#16a34a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#f1f5f9}
+  header.app{background:#1e1b4b;color:#fff;padding:1.1rem 1.25rem}
+  header.app h1{margin:0;font-size:1.25rem}
+  header.app p{margin:.25rem 0 0;color:#c7d2fe;font-size:.9rem}
+  .app-head{display:flex;justify-content:space-between;align-items:center;gap:1rem}
+  .switch-link{flex:none;background:rgba(255,255,255,.12);color:#fff;text-decoration:none;font-size:.82rem;font-weight:600;padding:.5rem .8rem;border-radius:999px;border:1px solid rgba(255,255,255,.25);white-space:nowrap}
+  .switch-link:hover{background:rgba(255,255,255,.22)}
+  .wrap{max-width:860px;margin:0 auto}
+  .form{padding:1.25rem}
+  .downloadrow{display:flex;align-items:center;gap:.75rem;margin:.5rem 0 2rem}
+  .btn.big{font-size:1rem;padding:.7rem 1.2rem}
+  fieldset{border:1px solid var(--border);border-radius:10px;margin:0 0 1rem;padding:1rem;background:#fff}
+  legend{font-weight:700;padding:0 .4rem;color:var(--accent)}
+  label{display:block;font-size:.82rem;font-weight:600;margin:.6rem 0 .25rem;color:var(--ink)}
+  .hint{font-weight:400;color:var(--muted);font-size:.78rem}
+  input[type=text],input[type=date],textarea{width:100%;padding:.55rem .65rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.9rem}
+  textarea{resize:vertical;line-height:1.5;min-height:70px}
+  .row{display:flex;gap:.6rem;flex-wrap:wrap}
+  .row>div{flex:1;min-width:140px}
+  button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:.55rem .9rem;cursor:pointer}
+  .btn{background:var(--accent);color:#fff}
+  .btn.alt{background:#fff;color:var(--ink);border:1px solid var(--border)}
+  .btn.danger{background:#fff;color:#b91c1c;border:1px solid #fecaca}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .toolbar{background:#f1f5f9;padding:.5rem 0 .75rem;display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem;border-bottom:1px solid var(--border)}
+  .savednote{font-size:.78rem;color:var(--ok)}
+  .help{background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:.6rem .75rem;font-size:.82rem;color:#3730a3;margin-bottom:1rem}
+  .help a{color:#4338ca;font-weight:600}
+  .gate{border:1px solid var(--border);border-radius:8px;padding:.6rem .75rem;margin-bottom:1rem;background:#fff;font-size:.84rem}
+  .gate .ghead{font-weight:700;margin-bottom:.4rem}
+  .req{display:flex;align-items:center;gap:.45rem;padding:.15rem 0}
+  .req.ok{color:var(--ok)}
+  .req.no{color:#b91c1c}
+  .req .mark{font-weight:700}
+  /* live self-score readout */
+  .selfscore{display:flex;align-items:baseline;gap:.6rem;background:#fff;border:1px solid var(--border);border-radius:8px;padding:.5rem .75rem;margin-bottom:1rem}
+  .selfscore .num{font-size:1.5rem;font-weight:800;color:var(--accent);line-height:1}
+  .selfscore .of{color:var(--muted);font-weight:600;font-size:.85rem}
+  .selfscore .cats{margin-left:auto;font-size:.76rem;color:var(--muted);text-align:right}
+  /* portfolio attach */
+  .drop{border:2px dashed var(--border);border-radius:10px;padding:1.1rem;text-align:center;color:var(--muted);font-size:.85rem;cursor:pointer;background:var(--panel)}
+  .drop.over{border-color:var(--accent);background:#eef2ff;color:var(--accent)}
+  .attached{display:flex;align-items:flex-start;gap:.5rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:.55rem .7rem;margin-top:.6rem;font-size:.82rem;color:#166534}
+  .attached .rm{margin-left:auto;background:#fff;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:.2rem .5rem;font-size:.72rem;flex:none}
+  .attached .meta{font-weight:400}
+  .openlink{display:inline-block;margin-top:.6rem;font-size:.8rem;color:var(--accent);font-weight:600;text-decoration:none}
+  .openlink:hover{text-decoration:underline}
+  /* DELTAs */
+  .delta{border:1px solid var(--border);border-radius:8px;padding:.6rem .7rem;margin:0 0 .6rem;background:#fff}
+  .delta .drow{display:flex;gap:.5rem;align-items:center}
+  .delta input.dskill{flex:1;font-weight:600}
+  .delta .rm{flex:none;background:#fff;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:.35rem .55rem;font-size:.75rem}
+  .delta textarea{margin-top:.45rem;min-height:56px}
+  /* rubric */
+  .sec{margin:1.1rem 0 .5rem}
+  .sec h3{margin:0;font-size:.95rem;color:var(--accent)}
+  .sec.neg h3{color:#dc2626}
+  .sec .seckey{font-size:.75rem;color:var(--muted);margin-top:.15rem}
+  .item{border:1px solid var(--border);border-radius:10px;padding:.7rem .8rem;margin:0 0 .6rem;background:#fff}
+  .item.unset{border-color:#fca5a5;background:#fff5f5}
+  .item.neg .inum{background:#dc2626}
+  .ihead{display:flex;gap:.5rem;align-items:baseline}
+  .inum{flex:none;width:1.4rem;height:1.4rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.78rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+  .itext{font-weight:600;font-size:.9rem}
+  .desc{margin:.4rem 0 .55rem 1.9rem;padding:0;color:var(--muted);font-size:.78rem}
+  .desc li{margin:.1rem 0}
+  .seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .seg .opt{margin:0}
+  .seg input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+  .seg span{display:inline-block;padding:.35rem .6rem;font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer;border-right:1px solid var(--border);user-select:none}
+  .seg .opt:last-child span{border-right:0}
+  .seg input:checked+span{background:var(--accent);color:#fff}
+  .seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:-2px}
+</style>
+</head>
+<body>
+<header class="app">
+  <div class="app-head">
+    <div>
+      <h1>📋 Weekly Performance Review</h1>
+      <p>Attach your portfolio post, rate your week, then download one page to submit on Canvas. Your mentor reviews it and sets your grade.</p>
+    </div>
+    <a class="switch-link" href="https://sites.google.com/dpengineering.org/dpea-portfolios/generators/portfolio-post" target="_blank" rel="noopener">Portfolio Generator →</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="form">
+    <div class="toolbar">
+      <button class="btn" id="download">⬇ Download for Canvas</button>
+      <button class="btn alt" id="save">💾 Save draft</button>
+      <button class="btn alt" id="loadBtn">📂 Load draft or page</button>
+      <input type="file" id="loadFile" accept=".json,.html,.htm,application/json,text/html" hidden>
+      <button class="btn danger" id="clear">🗑 Clear</button>
+      <span class="savednote" id="autonote"></span>
+    </div>
+
+    <div class="gate" id="gate"></div>
+
+    <div class="help">
+      <strong>How this works:</strong> ① Make this week's post in the
+      <a href="https://sites.google.com/dpengineering.org/dpea-portfolios/generators/portfolio-post" target="_blank" rel="noopener">Portfolio Generator</a> and download it.
+      ② Attach it below, add your DELTAs, and rate all 12 items. ③ Click <em>Download for Canvas</em> and submit the file.
+      Your ratings are a <em>self-assessment mirror</em> — your mentor sets the official grade.
+    </div>
+
+    <div class="selfscore">
+      <span class="num" id="selfNum">—</span><span class="of">/ 4.00 self-score</span>
+      <span class="cats" id="selfCats"></span>
+    </div>
+
+    <fieldset>
+      <legend>Your Info</legend>
+      <div class="row">
+        <div><label>First name<input type="text" id="firstName" placeholder="Ada"></label></div>
+        <div><label>Last name<input type="text" id="lastName" placeholder="Lovelace"></label></div>
+      </div>
+      <div class="row">
+        <div><label>Week of<input type="date" id="week"></label></div>
+        <div><label>Mentor <span class="hint">(optional)</span><input type="text" id="mentor" placeholder="Mentor name"></label></div>
+      </div>
+      <label>Project <span class="hint">(optional)</span><input type="text" id="project" placeholder="Project name"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Portfolio Post</legend>
+      <p class="hint" style="margin:0 0 .6rem">Make your weekly post in the Portfolio Generator, download it, then attach the <strong>.html</strong> file here. Its content is embedded into your submission.</p>
+      <div class="drop" id="portDrop">Drag your portfolio post here, or click to choose</div>
+      <div id="portSummary"></div>
+      <a class="openlink" href="https://sites.google.com/dpengineering.org/dpea-portfolios/generators/portfolio-post" target="_blank" rel="noopener">Open Portfolio Generator →</a>
+    </fieldset>
+
+    <fieldset>
+      <legend>56 DELTAs — Skills <span class="hint">(at least 2)</span></legend>
+      <p class="hint" style="margin:0 0 .6rem">Name a DELTA skill you demonstrated this week and describe how, in a sentence or two.</p>
+      <div id="deltas"></div>
+      <button class="btn alt" id="addDelta" type="button">+ Add skill</button>
+      <datalist id="deltaSuggestions"></datalist>
+    </fieldset>
+
+    <fieldset>
+      <legend>Rubric</legend>
+      <div id="rubric"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Notes for your mentor <span class="hint">(optional)</span></legend>
+      <textarea id="notes" placeholder="Anything you want your mentor to know about this week..."></textarea>
+    </fieldset>
+
+    <div class="downloadrow">
+      <button class="btn big" id="download2">⬇ Download for Canvas</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const val=id=>($(id).value||"").trim();
+const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+// *word* becomes a highlighted key term (matches the portfolio-generator rule).
+const keyTerms=h=>h.replace(/\*(\S(?:[^*\n]*\S)?)\*/g,'<span class="key">$1</span>');
+const paras=t=>keyTerms(esc(t)).trim().split(/\n\s*\n/).filter(Boolean).map(p=>"<p>"+p.replace(/\n/g,"<br>")+"</p>").join("\n");
+
+const state={portfolio:null};   // parsed portfolio-generator data (with image dataUrls)
+
+// ===== Rubric definition (single source of truth) ====================
+// Numbered 1-12 in display order: Performance Review leads (next to the
+// portfolio content it assesses), then Productive, then Counterproductive.
+const ITEMS=[
+  {n:1,cat:"perf",text:"Appropriate progress toward project completion",desc:["Makes up work (when absent or tardy) as decided with your mentor","Growth mindset / learning from mistakes","Measurable progress toward goals"]},
+  {n:2,cat:"perf",text:"Professional communication with teachers, staff, and students",desc:["Communicates about absences and tardies","Speaks respectfully with others","Advocates for self","Asks for timely guidance from mentor","Reads and responds to DPEngineering emails"]},
+  {n:3,cat:"perf",text:"Generates portfolio content on a weekly basis",desc:["Content — two or more (successes/failures, modifications/iterations, collaborations, questions/concerns, next steps)","Visuals — one or more (component images, action images, code/CAM/CAD screenshots)","56 DELTAs — two or more skills, each with a bulleted description"]},
+  {n:4,cat:"prod",text:"Maintains focus and productivity for the duration of the class period",desc:["Starts quickly after attendance","Continues to work until clean-up time","Arrives on time","Leaves when the bell rings"]},
+  {n:5,cat:"prod",text:"Strives to produce high-quality work product",desc:["Applies the iterative process","Uses appropriate machining techniques","Uses appropriate SolidWorks techniques","Writes software using appropriate standards"]},
+  {n:6,cat:"prod",text:"Is resourceful and proactive, including when encountering difficulties or setbacks",desc:["Works on another part of the project","Seeks mentor advice","Asks for support when necessary","Does research","Demonstrates curiosity"]},
+  {n:7,cat:"prod",text:"Is aware of needs beyond self and strives to improve the organization",desc:["Helps move the vision of the Entrepreneurial Enterprise forward","Helps with DPEA organizational needs","Engages with visitors"]},
+  {n:8,cat:"prod",text:"Demonstrates integrity and honesty",desc:["Honest","Integrity"]},
+  {n:9,cat:"prod",text:"Professional Work Area",desc:["Daily clean up of machines & work area","Daily proper storage of files","Wears appropriate clothing"]},
+  {n:10,cat:"prod",text:"Successfully executes the weekly maintenance task",desc:["Utilizes all of the clean-up time","Received mentor sign-off for completed task","Submit before and after photo"]},
+  {n:11,cat:"counter",text:"Wanders around the facility and/or distracts others",desc:[]},
+  {n:12,cat:"counter",text:"Engages in unnecessary web/social media or phone/texting",desc:["Adheres to district/campus guidelines"]}
+];
+// ===== Per-item scoring weights — EDIT HERE ==========================
+// Each rubric item is scored by its code (a/m/s/n); higher = better, negatives
+// penalize. The weekly score sums the 12 item weights and normalizes so a
+// best-possible week = 4.00, then floors at 0 (students never get a negative
+// grade). To retune an item, edit its row — the 0.00–4.00 ceiling re-derives
+// itself from these numbers, so nothing else needs to change.
+// Items 11 & 12 are counterproductive, so their BEST value is "n" (never).
+// ⚠ Keep this block IDENTICAL in grade.html (the mentor tool) so the student's
+//   self-score and the mentor's score use the same model.
+const WEIGHTS={
+  1:{a:8,m:2,s:-8,n:-12},    // Appropriate progress toward project completion   [critical]
+  2:{a:8,m:4,s:2,n:0},       // Professional communication
+  3:{a:4,m:2,s:-8,n:-16},    // Generates portfolio content weekly               [critical]
+  4:{a:8,m:2,s:-8,n:-12},    // Maintains focus and productivity                 [critical]
+  5:{a:8,m:4,s:1,n:0},       // Strives to produce high-quality work
+  6:{a:4,m:3,s:2,n:1},       // Is resourceful and proactive
+  7:{a:4,m:3,s:2,n:1},       // Is aware of needs beyond self
+  8:{a:4,m:1,s:-8,n:-16},    // Demonstrates integrity and honesty               [critical]
+  9:{a:8,m:4,s:1,n:0},       // Professional / clean work area
+  10:{a:8,m:4,s:1,n:0},      // Successfully executes weekly maintenance task
+  11:{a:0,m:0,s:2,n:4},      // Wanders / distracts others          [counterproductive: n best]
+  12:{a:-12,m:-8,s:-4,n:8}   // Unnecessary web / social / phone    [counterproductive: n best]
+};
+const SECTIONS=[
+  {at:1,cat:"perf",title:"Performance Review",key:"a = always · m = mostly · s = somewhat · n = not at all"},
+  {at:4,cat:"prod",title:"Productive Behavior",key:"a = always · m = mostly · s = sometimes · n = never"},
+  {at:11,cat:"counter",title:"Counterproductive Behavior",key:"Reversed — “never” is best · counts against the score",neg:true}
+];
+const CODE_LABELS={std:{a:"Always",m:"Mostly",s:"Sometimes",n:"Never"},perf:{a:"Always",m:"Mostly",s:"Somewhat",n:"Not at all"}};
+function labelSet(cat){return cat==="perf"?CODE_LABELS.perf:CODE_LABELS.std;}
+// DELTA skill suggestions (edit freely; a subset of the DPEngineering 56 DELTAs).
+const DELTA_SUGGESTIONS=["Ability to Learn","Adaptability","Breaking Orthodoxies","Coaching","Collaboration","Computational and Algorithmic Thinking","Creativity and Imagination","Digital Collaboration","Digital Learning","Driving Change and Innovation","Self-development","Self Motivation and Wellness","Storytelling and Public Speaking","Time Management and Prioritization"];
+// =====================================================================
+
+// ---- scoring engine (drives the live self-score in this app) --------
+function computeScore(codes){
+  var raw=0,sub={prod:0,counter:0,perf:0},max={prod:0,counter:0,perf:0},answered=0;
+  ITEMS.forEach(function(it){
+    var w=WEIGHTS[it.n];
+    max[it.cat]+=Math.max(w.a,w.m,w.s,w.n);   // best attainable for this item
+    var c=codes[it.n];
+    if(c){answered++;raw+=w[c];sub[it.cat]+=w[c];}
+  });
+  var maxRaw=max.prod+max.counter+max.perf;   // best-possible total → auto-derives the scale
+  return {raw:raw,answered:answered,total:ITEMS.length,sub:sub,max:max,maxRaw:maxRaw,
+    overall:Math.max(raw/(maxRaw/4),0),pct:Math.max(raw/maxRaw*100,0)};   // floored at 0
+}
+
+// ---- shared HTML builders -------------------------------------------
+function segHTML(name,selected,cat,disabled){
+  var L=labelSet(cat);
+  // Counterproductive chips run best-first (Never→Always) to match the reversed
+  // Canvas rubric; the value/code is unchanged, so scoring is unaffected.
+  var order=cat==="counter"?["n","s","m","a"]:["a","m","s","n"];
+  return '<div class="seg">'+order.map(function(c){
+    return '<label class="opt"><input type="radio" name="'+name+'" value="'+c+'"'+
+      (selected===c?" checked":"")+(disabled?" disabled":"")+'><span>'+L[c]+'</span></label>';
+  }).join("")+'</div>';
+}
+function sectionHeadHTML(n){
+  var s=SECTIONS.find(function(x){return x.at===n;});
+  return s?'<div class="sec'+(s.neg?" neg":"")+'"><h3>'+s.title+'</h3><div class="seckey">'+s.key+'</div></div>':"";
+}
+function descHTML(it){
+  return it.desc.length?'<ul class="desc">'+it.desc.map(function(d){return "<li>"+d+"</li>";}).join("")+"</ul>":"";
+}
+
+// ---- render the form rubric -----------------------------------------
+(function renderForm(){
+  $("rubric").innerHTML=ITEMS.map(function(it){
+    return sectionHeadHTML(it.n)+
+      '<div class="item'+(it.cat==="counter"?" neg":"")+'" data-n="'+it.n+'"><div class="ihead"><span class="inum">'+it.n+'</span>'+
+      '<span class="itext">'+it.text+'</span></div>'+descHTML(it)+segHTML("s_"+it.n,null,it.cat,false)+'</div>';
+  }).join("");
+  $("deltaSuggestions").innerHTML=DELTA_SUGGESTIONS.map(function(s){return '<option value="'+esc(s)+'">';}).join("");
+})();
+
+// ---- DELTAs (skills) -------------------------------------------------
+function addDelta(data){
+  data=data||{};
+  var row=document.createElement("div");
+  row.className="delta";
+  row.innerHTML='<div class="drow"><input type="text" class="dskill" list="deltaSuggestions" placeholder="Skill name (e.g. Collaboration)">'+
+    '<button type="button" class="rm">Remove</button></div>'+
+    '<textarea class="dtext" placeholder="How you demonstrated it this week..."></textarea>';
+  row.querySelector(".dskill").value=data.skill||"";
+  row.querySelector(".dtext").value=data.text||"";
+  row.querySelector(".rm").onclick=function(){row.remove();onEdit();};
+  row.querySelectorAll("input,textarea").forEach(function(el){el.addEventListener("input",onEdit);});
+  $("deltas").appendChild(row);
+}
+function collectDeltas(){
+  return [...document.querySelectorAll("#deltas .delta")].map(function(r){
+    return {skill:r.querySelector(".dskill").value.trim(),text:r.querySelector(".dtext").value.trim()};
+  }).filter(function(d){return d.skill||d.text;});
+}
+$("addDelta").onclick=function(){addDelta();};
+
+// ---- portfolio attach (parse a portfolio-generator post) ------------
+function parsePortfolioHTML(txt){
+  var doc=new DOMParser().parseFromString(txt,"text/html");
+  var el=doc.getElementById("portfolio-data");
+  if(!el)return null;                       // not a portfolio-generator post
+  var data=JSON.parse(el.textContent);
+  var cov=doc.querySelector(".cover img");
+  data.cover=cov?cov.getAttribute("src"):null;
+  // Keep the original post's cover header verbatim (gradient/photo banner + DPEA
+  // logo + name/subtitle) so the embedded portfolio matches the real post.
+  var coverEl=doc.querySelector("header.cover");
+  data.coverHTML=coverEl?coverEl.outerHTML:null;
+  var srcs=function(g){return [...doc.querySelectorAll('.gallery[data-group="'+g+'"] figure img')].map(function(i){return i.getAttribute("src");});};
+  var g1=srcs(1),g2=srcs(2);
+  (data.weeks||[]).forEach(function(w){
+    w.images1=(w.images1||[]).map(function(im,i){return {name:im.name,caption:im.caption,dataUrl:g1[i]};});
+    w.images2=(w.images2||[]).map(function(im,i){return {name:im.name,caption:im.caption,dataUrl:g2[i]};});
+  });
+  return data;
+}
+function portfolioStats(p){
+  var moments=0,imgs=0,words=0;
+  (p&&p.weeks||[]).forEach(function(w){
+    if((w.text1||"").trim())moments++;
+    if((w.text2||"").trim())moments++;
+    imgs+=(w.images1||[]).filter(function(i){return i.dataUrl;}).length+(w.images2||[]).filter(function(i){return i.dataUrl;}).length;
+    words+=((w.text1||"")+" "+(w.text2||"")+" "+(p.reflection||"")).split(/\s+/).filter(Boolean).length;
+  });
+  return {moments:moments,imgs:imgs,words:words};
+}
+function renderPortSummary(){
+  var box=$("portSummary");
+  if(!state.portfolio){box.innerHTML="";return;}
+  var p=state.portfolio, st=portfolioStats(p), who=esc((p.meta&&p.meta.student)||"post");
+  box.innerHTML='<div class="attached"><div><strong>Attached ✓</strong> <span class="meta">'+who+
+    ' — '+st.moments+' entr'+(st.moments===1?"y":"ies")+', '+st.imgs+' image'+(st.imgs===1?"":"s")+'</span></div>'+
+    '<button type="button" class="rm" id="rmPort">Remove</button></div>';
+  $("rmPort").onclick=function(){state.portfolio=null;renderPortSummary();onEdit();};
+}
+// Re-encode an embedded photo smaller so the combined submission stays light —
+// students embed full portfolio galleries, and large data-URLs bloat the file.
+const IMG_MAXDIM=1000, IMG_QUALITY=0.7;
+function recompressDataUrl(dataUrl){
+  return new Promise(function(res){
+    if(!dataUrl||dataUrl.indexOf("data:image")!==0){res(dataUrl);return;}
+    // GIFs are often animated; a canvas re-encode flattens them to a single
+    // (sometimes blank) JPEG frame, so they appear not to render. Leave as-is.
+    if(dataUrl.indexOf("data:image/gif")===0){res(dataUrl);return;}
+    var img=new Image();
+    img.onload=function(){
+      try{
+        var w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+        var s=Math.min(1,IMG_MAXDIM/Math.max(w,h)), nw=Math.round(w*s), nh=Math.round(h*s);
+        var c=document.createElement("canvas");c.width=nw;c.height=nh;
+        c.getContext("2d").drawImage(img,0,0,nw,nh);
+        var out=c.toDataURL("image/jpeg",IMG_QUALITY);
+        res(out.length<dataUrl.length?out:dataUrl);   // keep whichever is smaller
+      }catch(e){res(dataUrl);}
+    };
+    img.onerror=function(){res(dataUrl);};
+    img.src=dataUrl;
+  });
+}
+async function recompressPortfolio(data){
+  var weeks=data.weeks||[];
+  for(var i=0;i<weeks.length;i++){
+    var w=weeks[i];
+    var groups=["images1","images2"];
+    for(var gi=0;gi<groups.length;gi++){
+      var arr=w[groups[gi]]||[];
+      for(var j=0;j<arr.length;j++){ if(arr[j]&&arr[j].dataUrl) arr[j].dataUrl=await recompressDataUrl(arr[j].dataUrl); }
+    }
+  }
+  if(data.cover) data.cover=await recompressDataUrl(data.cover);
+  return data;
+}
+function attachPortfolio(txt){
+  var data;
+  try{data=/^\s*[{[]/.test(txt)?JSON.parse(txt):parsePortfolioHTML(txt);}catch(e){data=null;}
+  if(!data||!data.weeks){alert("That doesn't look like a Portfolio Generator post. Make your post at the Portfolio Generator, download it, and attach that .html file.");return;}
+  $("portSummary").innerHTML='<div class="attached"><div>Optimizing photos…</div></div>';
+  recompressPortfolio(data).then(function(d){state.portfolio=d;renderPortSummary();onEdit();});
+}
+(function wirePortDrop(){
+  var el=$("portDrop");
+  var pick=function(){var i=document.createElement("input");i.type="file";i.accept=".html,.htm,.json";i.onchange=function(){readPort(i.files[0]);};i.click();};
+  var readPort=function(f){if(!f)return;var fr=new FileReader();fr.onload=function(){attachPortfolio(fr.result);};fr.readAsText(f);};
+  el.addEventListener("click",pick);
+  el.addEventListener("dragover",function(e){e.preventDefault();el.classList.add("over");});
+  el.addEventListener("dragleave",function(){el.classList.remove("over");});
+  el.addEventListener("drop",function(e){e.preventDefault();el.classList.remove("over");if(e.dataTransfer.files[0])readPort(e.dataTransfer.files[0]);});
+})();
+
+// ---- collect / restore ----------------------------------------------
+function collect(){
+  var codes={};
+  ITEMS.forEach(function(it){var el=document.querySelector('input[name="s_'+it.n+'"]:checked');if(el)codes[it.n]=el.value;});
+  return {meta:{first:val("firstName"),last:val("lastName"),
+    student:(val("firstName")+" "+val("lastName")).trim(),
+    project:val("project"),mentor:val("mentor"),week:$("week").value},
+    codes:codes,notes:val("notes"),deltas:collectDeltas(),portfolio:state.portfolio||null};
+}
+function loadData(d){
+  var m=d.meta||{};
+  $("firstName").value=m.first||"";
+  $("lastName").value=m.last||"";
+  $("project").value=m.project||"";
+  $("mentor").value=m.mentor||"";
+  $("week").value=m.week||"";
+  $("notes").value=d.notes||"";
+  ITEMS.forEach(function(it){
+    var c=d.codes&&d.codes[it.n];
+    var el=c&&document.querySelector('input[name="s_'+it.n+'"][value="'+c+'"]');
+    if(el)el.checked=true;
+  });
+  $("deltas").innerHTML="";
+  (d.deltas&&d.deltas.length?d.deltas:[{}]).forEach(addDelta);
+  state.portfolio=d.portfolio||null;renderPortSummary();
+  updateAll();
+}
+
+// ---- the exported artifact (interactive in SpeedGrader) -------------
+const ARTIFACT_CSS=`
+*{box-sizing:border-box}
+body{margin:0;background:#f8fafc;color:#1e293b;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.5}
+.sheet{max-width:820px;margin:0 auto;padding:1.25rem 1.1rem 3rem}
+.ah{margin-bottom:1rem}
+.ah h1{margin:0;font-size:1.3rem}
+.ah p{margin:.25rem 0 0;color:#64748b;font-size:.9rem}
+/* portfolio content — the portfolio-generator's own post stylesheet, scoped under
+   .portfolio so the embedded post matches the original without touching the review UI */
+.portfolio{font-family:Georgia,"Times New Roman",serif;font-size:18px;line-height:1.65;color:#1e293b}
+.portfolio .cover{position:relative;margin-bottom:2.5rem}
+.portfolio .cover .banner{height:300px;background:linear-gradient(120deg,#0ea5e9,#1e293b)}
+.portfolio .cover img{display:block;width:100%;max-height:460px;object-fit:cover}
+.portfolio .cover-text{position:absolute;left:0;bottom:0;width:100%;z-index:3;padding:2rem 1.5rem 1.25rem;background:linear-gradient(to top,rgba(15,23,42,.78),transparent);color:#fff;font-family:system-ui,sans-serif}
+.portfolio .cover-text h1{font-size:clamp(1.8rem,5vw,3rem);margin:0}
+.portfolio .subtitle{margin:.3rem 0 0;font-size:1.05rem;opacity:.92}
+.portfolio .cover-logo{position:absolute;z-index:2;display:block;height:auto}
+.portfolio .cover-logo.hero{top:46%;left:50%;transform:translate(-50%,-50%);width:168px}
+.portfolio .cover-logo.badge{top:1rem;right:1rem;width:78px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.55))}
+.portfolio main{max-width:860px;margin:0 auto;padding:0 1.25rem}
+.portfolio section{margin-bottom:3.5rem}
+.portfolio h2{font-family:system-ui,sans-serif;font-size:1.5rem;color:rgb(25,25,25);border-bottom:2px solid #e2e8f0;padding-bottom:.4rem;margin:0 0 1rem}
+.portfolio p{margin:0 0 1.25rem}
+.portfolio .key{color:rgb(0,67,250);font-weight:600}
+.portfolio .gallery{display:grid;gap:1rem;margin:1.5rem 0;grid-template-columns:repeat(2,1fr)}
+.portfolio figure{margin:0}
+.portfolio figure img{display:block;width:100%;height:auto;border-radius:10px;border:1px solid #e2e8f0}
+.portfolio figcaption{font-family:system-ui,sans-serif;font-size:.85rem;color:#64748b;margin-top:.5rem;font-style:italic}
+.portfolio pre{background:#0f172a;color:#e2e8f0;padding:1.1rem 1.25rem;border-radius:10px;overflow-x:auto;font-size:.9rem;line-height:1.5}
+.portfolio code{font-family:"SF Mono",Consolas,monospace}
+@media (max-width:640px){.portfolio{font-size:16px}.portfolio .gallery{grid-template-columns:1fr}.portfolio .cover-logo.hero{width:132px}.portfolio .cover-logo.badge{width:62px}}
+.deltas{margin:0 0 1.5rem}
+.deltas h2{font-family:system-ui,sans-serif;font-size:1.2rem;color:#111;border-bottom:2px solid #e2e8f0;padding-bottom:.35rem;margin:0 0 .8rem}
+.delta{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:.6rem .8rem;margin:0 0 .5rem}
+.delta .dskill{font-weight:700;color:#4f46e5}
+.delta .dtext{margin:.2rem 0 0;color:#334155}
+.divider{border:0;border-top:2px solid #e2e8f0;margin:2rem 0 1.25rem}
+.revhead{font-size:1.15rem;margin:0 0 .25rem}
+.scoreband{display:flex;gap:.75rem;margin:1rem 0 .35rem}
+.sb{flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:.7rem .9rem;text-align:center}
+.sb.primary{border-color:#4f46e5;box-shadow:0 0 0 1px #4f46e5 inset}
+.sbnum{font-size:2rem;font-weight:800;color:#4f46e5;line-height:1}
+.sblab{font-size:.76rem;color:#64748b;font-weight:600;margin-top:.2rem}
+.cats{text-align:center;font-size:.8rem;color:#64748b;margin-bottom:1.25rem}
+.note{background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;border-radius:8px;padding:.55rem .7rem;font-size:.82rem;margin-bottom:1rem}
+.mentorbox{margin-top:2rem;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px;padding:.85rem 1rem;font-family:system-ui,sans-serif}
+.mentorbox .mb-h{font-weight:700;font-size:.9rem;color:#334155;margin-bottom:.25rem}
+.mentorbox .mb-p{margin:0 0 .55rem;font-size:.8rem;color:#64748b;line-height:1.45}
+.mentorbox .mb-url{display:block;font-family:"SF Mono",Consolas,monospace;font-size:.78rem;color:#4f46e5;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:.5rem .6rem;word-break:break-all;line-height:1.4;user-select:all;-webkit-user-select:all}
+.mentorbox .mb-codelabel{font-size:.78rem;font-weight:700;color:#334155;margin:.7rem 0 .25rem}
+.sec{margin:1.4rem 0 .55rem}
+.sec h3{margin:0;font-size:1rem;color:#4f46e5}
+.sec.neg h3{color:#dc2626}
+.sec .seckey{font-size:.76rem;color:#64748b;margin-top:.15rem}
+.item{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:.75rem .85rem;margin:0 0 .6rem}
+.item.neg .inum{background:#dc2626}
+.ihead{display:flex;gap:.5rem;align-items:baseline}
+.inum{flex:none;width:1.5rem;height:1.5rem;border-radius:999px;background:#4f46e5;color:#fff;font-size:.8rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.itext{font-weight:600}
+.desc{margin:.4rem 0 .55rem 2rem;padding:0;color:#64748b;font-size:.8rem}
+.desc li{margin:.12rem 0}
+.selfrate{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;margin:.5rem 0 .15rem 2rem}
+.selfrate-lab{font-size:.74rem;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:.03em}
+.selfrate-none{font-size:.78rem;font-style:italic;color:#94a3b8}
+/* read-only segmented control: chosen option highlighted via :checked+span (no JS) */
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden}
+.seg .opt{margin:0}
+.seg input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+.seg span{display:inline-block;padding:.32rem .58rem;font-size:.78rem;font-weight:600;color:#94a3b8;border-right:1px solid #cbd5e1;user-select:none}
+.seg .opt:last-child span{border-right:0}
+.seg input:checked+span{background:#4f46e5;color:#fff}
+@media (max-width:560px){.scoreband{flex-direction:column}.portfolio .gallery{grid-template-columns:1fr}.desc,.selfrate{margin-left:0}}
+`;
+
+function gallery(images,ctr,group){
+  var figs=images.filter(function(i){return i.dataUrl;}).map(function(i){
+    var num=++ctr.n;
+    var cap=i.caption?("Figure "+num+": "+esc(i.caption)):("Figure "+num);
+    return '<figure><img src="'+i.dataUrl+'" alt="'+esc(i.caption||("Figure "+num))+'"><figcaption>'+cap+'</figcaption></figure>';
+  }).join("");
+  return figs?'<div class="gallery" data-group="'+group+'">'+figs+'</div>':"";
+}
+function renderPortfolio(p){
+  if(!p)return "";
+  var ctr={n:0};
+  // Verbatim original cover header when available; fall back to a bare cover photo.
+  var cover=p.coverHTML||(p.cover?'<header class="cover"><img src="'+p.cover+'" alt="Cover image"></header>':"");
+  var sections=(p.weeks||[]).map(function(w){
+    var imgs1=w.images1||[],imgs2=w.images2||[];
+    var hasImg=imgs1.some(function(x){return x.dataUrl;})||imgs2.some(function(x){return x.dataUrl;});
+    if(!w.title&&!w.text1&&!w.text2&&!hasImg)return "";
+    var h='<section><h2>'+(esc(w.title)||"This Week")+'</h2>';
+    if(w.text1)h+=paras(w.text1);
+    if(imgs1.length)h+=gallery(imgs1,ctr,1);
+    if(w.text2)h+=paras(w.text2);
+    if(imgs2.length)h+=gallery(imgs2,ctr,2);
+    return h+"</section>";
+  }).filter(Boolean).join("");
+  var refl=p.reflection?'<section><h2>Looking Back</h2>'+paras(p.reflection)+'</section>':"";
+  return '<div class="portfolio">'+cover+'<main>'+sections+refl+'</main></div>';
+}
+function renderDeltas(deltas){
+  var rows=(deltas||[]).filter(function(d){return d.skill||d.text;}).map(function(d){
+    return '<div class="delta"><div class="dskill">'+esc(d.skill||"Skill")+'</div><div class="dtext">'+esc(d.text)+'</div></div>';
+  }).join("");
+  return rows?'<div class="deltas"><h2>56 DELTAs — Skills</h2>'+rows+'</div>':"";
+}
+
+// Static, read-only self-rating summary embedded in the submission. No
+// controls and no script — it renders as plain HTML in SpeedGrader's
+// sandboxed preview, giving the mentor the student's self-assessment as
+// context while they grade with the Canvas rubric.
+function artifactSectionsHTML(codes){
+  return SECTIONS.map(function(sec){
+    var head='<div class="sec'+(sec.neg?" neg":"")+'"><h3>'+sec.title+'</h3><div class="seckey">'+sec.key+'</div></div>';
+    var rows=ITEMS.filter(function(it){return it.cat===sec.cat;}).map(function(it){
+      var c=codes[it.n];
+      // Reuse the segmented control, read-only, with the student's choice
+      // highlighted — a scannable self-rating for the mentor. Pure CSS
+      // (:checked+span), so it renders in SpeedGrader's script-less preview.
+      var unrated=c?"":'<span class="selfrate-none">not rated</span>';
+      return '<div class="item'+(it.cat==="counter"?" neg":"")+'"><div class="ihead"><span class="inum">'+it.n+'</span>'+
+        '<span class="itext">'+it.text+'</span></div>'+descHTML(it)+
+        '<div class="selfrate"><span class="selfrate-lab">Self-rating</span>'+
+        segHTML("self_"+it.n,c||null,it.cat,true)+unrated+'</div></div>';
+    }).join("");
+    return head+rows;
+  }).join("");
+}
+
+// ---- mentor grading code ---------------------------------------------
+// GitHub is reachable at school again, so the grading tool is served top-level
+// from GitHub Pages and the submission links straight to it with the student's
+// ratings encoded in the URL *fragment* (never sent to a server). The mentor
+// copies the link into a tab and grade.html reads the fragment and pre-fills —
+// no separate code to paste.
+const GRADE_URL="https://dpengineering.github.io/performance-review/grade";
+function b64url(bin){return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}
+function encodePayload(obj){return b64url(unescape(encodeURIComponent(JSON.stringify(obj))));}
+function gradeLink(d){
+  var codes=ITEMS.map(function(it){return d.codes[it.n]||"-";}).join("");
+  var payload={n:d.meta.student||"",w:d.meta.week||"",m:d.meta.mentor||"",p:d.meta.project||"",c:codes};
+  return GRADE_URL+"#d="+encodePayload(payload);
+}
+
+function buildArtifact(d){
+  var name=esc(d.meta.student||"DPEngineering Student");
+  var sub=[d.meta.week?("Week of "+d.meta.week):"",d.meta.mentor?("Mentor: "+d.meta.mentor):"",d.meta.project]
+    .filter(Boolean).map(esc).join(" · ");
+  var self=computeScore(d.codes);
+  var selfNum=self.answered===self.total?self.overall.toFixed(2):"—";
+  var selfCats=self.answered?
+    ("Productive "+self.sub.prod+"/"+self.max.prod+" · Counterproductive "+self.sub.counter+"/"+self.max.counter+" · Performance "+self.sub.perf+"/"+self.max.perf):"";
+  var notesBlock=d.notes?'<div class="note"><strong>Student note:</strong> '+esc(d.notes)+'</div>':"";
+  var glink=gradeLink(d);
+  // Embedded state for re-opening (image dataUrls omitted; recovered from the rendered galleries).
+  var portMeta=d.portfolio?{meta:d.portfolio.meta,reflection:d.portfolio.reflection,
+    weeks:(d.portfolio.weeks||[]).map(function(w){return {title:w.title,text1:w.text1,text2:w.text2,
+      images1:(w.images1||[]).map(function(i){return {name:i.name,caption:i.caption};}),
+      images2:(w.images2||[]).map(function(i){return {name:i.name,caption:i.caption};})};})}:null;
+  var dataJson=JSON.stringify({v:2,meta:d.meta,codes:d.codes,notes:d.notes,deltas:d.deltas,portfolio:portMeta}).replace(/</g,"\\u003c");
+  return "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"+
+    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"+
+    "<title>"+name+" — Weekly Submission</title>\n<style>"+ARTIFACT_CSS+"</style>\n</head>\n<body>\n"+
+    '<div class="sheet">\n'+
+    '<header class="ah"><h1>'+name+'</h1><p>'+(sub||"Weekly submission")+'</p></header>\n'+
+    renderPortfolio(d.portfolio)+"\n"+
+    renderDeltas(d.deltas)+"\n"+
+    '<hr class="divider">\n'+
+    '<h2 class="revhead">Weekly Performance Review</h2>\n'+
+    '<div class="scoreband">'+
+      '<div class="sb primary"><div class="sbnum">'+selfNum+'</div><div class="sblab">Student self-score</div></div>'+
+    '</div>\n'+
+    '<div class="cats">'+selfCats+'</div>\n'+
+    notesBlock+
+    '<div class="note">These ratings are the student’s own self-assessment. The official grade is set by the mentor.</div>\n'+
+    '<div id="mentor">'+artifactSectionsHTML(d.codes)+'</div>\n'+
+    '<div class="mentorbox">\n'+
+      '<div class="mb-h">🔗 For mentors — grade this submission</div>\n'+
+      '<p class="mb-p">Copy this link into a new browser tab. It opens the grading tool pre-filled with this student’s self-assessment — adjust any ratings, then copy the generated comment into Canvas along with the score.</p>\n'+
+      '<div class="mb-codelabel">Grading link (click to select, then copy into a new tab):</div>\n'+
+      '<span class="mb-url">'+esc(glink)+'</span>\n'+
+    '</div>\n'+
+    '</div>\n'+
+    '<script type="application/json" id="pr-data">'+dataJson+'<\/script>\n'+
+    '</body>\n</html>';
+}
+
+// ---- validation / gate ----------------------------------------------
+function validate(){
+  var d=collect();
+  var nameOK=!!d.meta.first&&!!d.meta.last;
+  var weekOK=!!d.meta.week;
+  var answered=Object.keys(d.codes).length;
+  var allOK=answered===ITEMS.length;
+  var portOK=!!(d.portfolio&&(d.portfolio.weeks||[]).length);
+  var deltaN=(d.deltas||[]).filter(function(x){return x.skill&&x.text;}).length;
+  var deltaOK=deltaN>=2;
+  ITEMS.forEach(function(it){
+    var el=document.querySelector('.item[data-n="'+it.n+'"]');
+    if(el)el.classList.toggle("unset",!d.codes[it.n]);
+  });
+  var row=function(ok,label){return '<div class="req '+(ok?"ok":"no")+'"><span class="mark">'+(ok?"✓":"○")+"</span>"+label+"</div>";};
+  $("gate").innerHTML='<div class="ghead">To download, finish these:</div>'+
+    row(nameOK,"Enter your first and last name")+
+    row(weekOK,"Choose the week")+
+    row(portOK,"Attach your portfolio post")+
+    row(deltaOK,"Add at least 2 DELTA skills with a description ("+deltaN+"/2)")+
+    row(allOK,"Rate all 12 rubric items ("+answered+"/"+ITEMS.length+")");
+  var ok=nameOK&&weekOK&&portOK&&deltaOK&&allOK;
+  $("download").disabled=!ok;
+  $("download").title=ok?"":"Finish the requirements above to enable download";
+  return ok;
+}
+
+// ---- live self-score + preview --------------------------------------
+function updateSelfScore(){
+  var res=computeScore(collect().codes);
+  $("selfNum").textContent=res.answered?res.overall.toFixed(2):"—";
+  $("selfCats").textContent=res.answered?
+    ("Productive "+res.sub.prod+"/"+res.max.prod+" · Counterproductive "+res.sub.counter+"/"+res.max.counter+" · Performance "+res.sub.perf+"/"+res.max.perf):
+    "Rate the items to see your score";
+}
+function updateAll(){updateSelfScore();validate();}
+// central edit hook (autosave + rescore + revalidate)
+function onEdit(){autosave();updateSelfScore();validate();}
+
+// ---- download / draft / load ----------------------------------------
+function downloadBlob(filename,content,type){
+  var blob=new Blob([content],{type});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(url);},1500);
+}
+function fileName(){
+  var m=collect().meta;
+  var alnum=function(s){return (s||"").replace(/[^A-Za-z0-9]/g,"");};
+  var fi=(alnum(m.first)[0]||"").toUpperCase();
+  var ln=alnum(m.last).slice(0,4);
+  var lnCased=ln?ln[0].toUpperCase()+ln.slice(1).toLowerCase():"";
+  var who=(fi+lnCased)||"XX";
+  return who+"_PerfReview_"+(m.week||"draft")+".html";
+}
+function draftSlug(){
+  var m=collect().meta;
+  return ((m.student||"review")+"-"+(m.week||"")).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"review";
+}
+function doDownload(){if(!validate())return;downloadBlob(fileName(),buildArtifact(collect()),"text/html");}
+$("download").onclick=doDownload;
+$("download2").onclick=doDownload;
+$("save").onclick=function(){downloadBlob(draftSlug()+"-review.json",JSON.stringify(collect()),"application/json");};
+$("loadBtn").onclick=function(){$("loadFile").click();};
+function parseArtifact(txt){
+  var doc=new DOMParser().parseFromString(txt,"text/html");
+  var el=doc.getElementById("pr-data");
+  if(!el)return null;
+  var data=JSON.parse(el.textContent);
+  // recover portfolio image dataUrls from the rendered galleries
+  if(data.portfolio){
+    var srcs=function(g){return [...doc.querySelectorAll('.portfolio .gallery[data-group="'+g+'"] figure img')].map(function(i){return i.getAttribute("src");});};
+    var g1=srcs(1),g2=srcs(2);
+    (data.portfolio.weeks||[]).forEach(function(w){
+      w.images1=(w.images1||[]).map(function(im,i){return {name:im.name,caption:im.caption,dataUrl:g1[i]};});
+      w.images2=(w.images2||[]).map(function(im,i){return {name:im.name,caption:im.caption,dataUrl:g2[i]};});
+    });
+  }
+  return data;
+}
+$("loadFile").onchange=function(e){
+  var f=e.target.files[0];if(!f)return;
+  var fr=new FileReader();
+  fr.onload=function(){
+    try{
+      var txt=fr.result;
+      var data=/^\s*[{[]/.test(txt)?JSON.parse(txt):parseArtifact(txt);
+      if(!data)throw new Error("no embedded data");
+      loadData(data);
+    }catch(err){
+      alert("Couldn't open that file. Choose a performance-review page or a saved .json draft made by this tool.");
+    }
+  };
+  fr.readAsText(f);e.target.value="";
+};
+$("clear").onclick=function(){
+  if(!confirm("Clear this review? Everything in the form will be erased and this can't be undone."))return;
+  localStorage.removeItem("perfReviewDraft");
+  ["firstName","lastName","project","mentor","week","notes"].forEach(function(id){$(id).value="";});
+  document.querySelectorAll('#rubric input[type="radio"]').forEach(function(r){r.checked=false;});
+  state.portfolio=null;renderPortSummary();
+  $("deltas").innerHTML="";addDelta();addDelta();
+  setDefaultWeek();
+  updateAll();
+};
+
+// ---- autosave (review fields only; portfolio images stay in memory) -
+let autoTimer=null;
+function autosave(){
+  clearTimeout(autoTimer);
+  autoTimer=setTimeout(function(){
+    try{
+      var c=collect();
+      localStorage.setItem("perfReviewDraft",JSON.stringify({meta:c.meta,codes:c.codes,notes:c.notes,deltas:c.deltas}));
+      $("autonote").textContent="✓ saved in this browser";
+      setTimeout(function(){$("autonote").textContent="";},1500);
+    }catch(e){}
+  },600);
+}
+
+// ---- wiring ---------------------------------------------------------
+["firstName","lastName","project","mentor","week","notes"].forEach(function(id){
+  $(id).addEventListener("input",onEdit);
+});
+$("week").addEventListener("change",onEdit);
+$("rubric").addEventListener("change",onEdit);
+
+function setDefaultWeek(){
+  if($("week").value)return;
+  try{$("week").value=new Date().toISOString().slice(0,10);}catch(e){}
+}
+
+// ---- boot -----------------------------------------------------------
+(function init(){
+  var saved=localStorage.getItem("perfReviewDraft");
+  if(saved){try{loadData(JSON.parse(saved));setDefaultWeek();updateAll();return;}catch(e){}}
+  addDelta();addDelta();
+  setDefaultWeek();
+  updateAll();
+})();
+</script>
+</body>
+</html>

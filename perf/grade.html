@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grade — Weekly Performance Review</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+<style>
+  :root{--accent:#4f46e5;--ink:#1e293b;--muted:#64748b;--border:#e2e8f0;--panel:#f8fafc;--dev:#d97706}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#f1f5f9;font-size:15px}
+  header.app{background:#1e1b4b;color:#fff;padding:1.1rem 1.25rem}
+  header.app h1{margin:0;font-size:1.25rem}
+  header.app p{margin:.25rem 0 0;color:#c7d2fe;font-size:.9rem}
+  .wrap{max-width:820px;margin:0 auto;padding:1.25rem 1.1rem 3rem}
+  .who{margin:0 0 1rem}
+  .who h2{margin:0;font-size:1.2rem}
+  .who p{margin:.2rem 0 0;color:var(--muted);font-size:.9rem}
+  /* paste fallback */
+  .paste{background:#fff;border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1rem}
+  .paste label{display:block;font-weight:600;font-size:.85rem;margin-bottom:.4rem}
+  .paste input{width:100%;padding:.55rem .65rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.85rem;margin-bottom:.6rem}
+  .btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:.55rem .9rem;font:inherit;font-weight:600;cursor:pointer}
+  .btn.alt{background:#fff;color:var(--ink);border:1px solid var(--border)}
+  /* score band */
+  .scoreband{display:flex;gap:.75rem;margin:0 0 1.25rem}
+  .sb{flex:1;background:#fff;border:1px solid var(--border);border-radius:10px;padding:.8rem .9rem;text-align:center}
+  .sb.primary{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+  .sbnum{font-size:2rem;font-weight:800;color:var(--accent);line-height:1}
+  .sb.self .sbnum{color:var(--muted)}
+  .sblab{font-size:.76rem;color:var(--muted);font-weight:600;margin-top:.2rem}
+  .sbcopy{margin-top:.4rem}
+  .sbcopy button{font-size:.72rem;padding:.25rem .5rem;border:1px solid var(--border);background:#fff;color:var(--accent);border-radius:6px;font-weight:600;cursor:pointer}
+  .cats{text-align:center;font-size:.8rem;color:var(--muted);margin:-.75rem 0 1.25rem}
+  .hint{background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;border-radius:8px;padding:.55rem .7rem;font-size:.82rem;margin-bottom:1rem}
+  /* rubric */
+  .sec{margin:1.4rem 0 .55rem}
+  .sec h3{margin:0;font-size:1rem;color:var(--accent)}
+  .sec.neg h3{color:#dc2626}
+  .sec .seckey{font-size:.76rem;color:var(--muted);margin-top:.15rem}
+  .item{background:#fff;border:1px solid var(--border);border-radius:10px;padding:.75rem .85rem;margin:0 0 .6rem}
+  .item.neg .inum{background:#dc2626}
+  .item.dev{border-color:var(--dev);box-shadow:0 0 0 1px var(--dev) inset}
+  .ihead{display:flex;gap:.5rem;align-items:baseline}
+  .inum{flex:none;width:1.5rem;height:1.5rem;border-radius:999px;background:var(--accent);color:#fff;font-size:.8rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+  .itext{font-weight:600}
+  .desc{margin:.4rem 0 .55rem 2rem;padding:0;color:var(--muted);font-size:.8rem}
+  .desc li{margin:.12rem 0}
+  .rateline{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin:.5rem 0 0 2rem}
+  .itemcomment{margin:.5rem 0 0 2rem}
+  .itemcomment textarea{width:100%;max-width:560px;padding:.45rem .55rem;border:1px solid var(--dev);border-radius:8px;font:inherit;font-size:.85rem;line-height:1.4;resize:vertical;min-height:44px;background:#fffbeb}
+  .selfnote{font-size:.76rem;color:var(--muted)}
+  .selfnote .badge{display:none;color:var(--dev);font-weight:700}
+  .item.dev .selfnote .badge{display:inline}
+  .item.dev .selfnote .same{display:none}
+  /* segmented control */
+  .seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .seg .opt{margin:0}
+  .seg input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+  .seg span{display:inline-block;padding:.35rem .6rem;font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer;border-right:1px solid var(--border);user-select:none}
+  .seg .opt:last-child span{border-right:0}
+  .seg input:checked+span{background:var(--accent);color:#fff}
+  .item{outline:none}
+  .item:focus-within{outline:2px solid var(--accent);outline-offset:2px}   /* shows which item takes a/m/s/n */
+  /* output */
+  .out{background:#fff;border:1px solid var(--border);border-radius:10px;padding:1rem;margin-top:1.5rem}
+  .out h3{margin:0 0 .2rem;font-size:1rem}
+  .out .subtle{color:var(--muted);font-size:.82rem;margin:0 0 .8rem}
+  .out label{display:block;font-size:.78rem;font-weight:700;color:#475569;margin:.2rem 0 .3rem}
+  .out textarea{width:100%;padding:.55rem .65rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.9rem;line-height:1.5;resize:vertical}
+  .commentbox{white-space:pre-wrap;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:.65rem .7rem;font-size:.88rem;line-height:1.5;min-height:3rem;overflow-wrap:anywhere}
+  .cprow{display:flex;gap:.5rem;align-items:center;margin-top:.5rem}
+  .cprow button{flex:none}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header class="app">
+  <h1>✅ Weekly Performance Review — Grading</h1>
+  <p>Adjust the student's self-assessment as needed, then copy the score and comment into Canvas.</p>
+</header>
+
+<div class="wrap">
+  <div class="paste" id="pasteUI" hidden>
+    <label for="pasteIn">Paste the student's grading code</label>
+    <input type="text" id="pasteIn" placeholder="Copy the grading code from the bottom of the student's submission in Canvas, then paste it here">
+    <button class="btn" id="pasteGo">Load</button>
+  </div>
+
+  <div id="grader" hidden>
+    <div class="who">
+      <h2 id="whoName">Student</h2>
+      <p id="whoMeta"></p>
+    </div>
+
+    <div class="scoreband">
+      <div class="sb self"><div class="sbnum" id="selfNum">—</div><div class="sblab">Student self-score</div></div>
+      <div class="sb primary">
+        <div class="sbnum" id="mentorNum">—</div><div class="sblab">Mentor score</div>
+        <div class="sbcopy"><button id="copyScore">Copy score</button></div>
+      </div>
+    </div>
+    <div class="cats" id="cats"></div>
+
+    <div class="hint">Every item starts at the student's self-rating. Change only where you disagree — changed items are highlighted, and each change is listed in the comment. <strong>Keyboard:</strong> click anywhere on an item (or Tab to it), type <kbd>a</kbd>/<kbd>m</kbd>/<kbd>s</kbd>/<kbd>n</kbd>, then <kbd>Enter</kbd> for the next item.</div>
+
+    <div id="rubric"></div>
+
+    <div class="out">
+      <h3>For Canvas</h3>
+      <p class="subtle">Type the score into the points box, then paste the comment.</p>
+      <label for="notes">Notes / feedback (optional)</label>
+      <textarea id="notes" rows="3" placeholder="Anything you want the student to know…"></textarea>
+      <label style="margin-top:.8rem">Comment</label>
+      <div class="commentbox" id="commentOut"></div>
+      <div class="cprow"><button class="btn" id="copyComment">Copy comment</button><span class="selfnote" id="copyMsg"></span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+
+// ===== Rubric definition (mirror of the authoring app) ================
+const ITEMS=[
+  {n:1,cat:"perf",text:"Appropriate progress toward project completion",desc:["Makes up work (when absent or tardy) as decided with your mentor","Growth mindset / learning from mistakes","Measurable progress toward goals"]},
+  {n:2,cat:"perf",text:"Professional communication with teachers, staff, and students",desc:["Communicates about absences and tardies","Speaks respectfully with others","Advocates for self","Asks for timely guidance from mentor","Reads and responds to DPEngineering emails"]},
+  {n:3,cat:"perf",text:"Generates portfolio content on a weekly basis",desc:["Content — two or more (successes/failures, modifications/iterations, collaborations, questions/concerns, next steps)","Visuals — one or more (component images, action images, code/CAM/CAD screenshots)","56 DELTAs — two or more skills, each with a bulleted description"]},
+  {n:4,cat:"prod",text:"Maintains focus and productivity for the duration of the class period",desc:["Starts quickly after attendance","Continues to work until clean-up time","Arrives on time","Leaves when the bell rings"]},
+  {n:5,cat:"prod",text:"Strives to produce high-quality work product",desc:["Applies the iterative process","Uses appropriate machining techniques","Uses appropriate SolidWorks techniques","Writes software using appropriate standards"]},
+  {n:6,cat:"prod",text:"Is resourceful and proactive, including when encountering difficulties or setbacks",desc:["Works on another part of the project","Seeks mentor advice","Asks for support when necessary","Does research","Demonstrates curiosity"]},
+  {n:7,cat:"prod",text:"Is aware of needs beyond self and strives to improve the organization",desc:["Helps move the vision of the Entrepreneurial Enterprise forward","Helps with DPEA organizational needs","Engages with visitors"]},
+  {n:8,cat:"prod",text:"Demonstrates integrity and honesty",desc:["Honest","Integrity"]},
+  {n:9,cat:"prod",text:"Professional Work Area",desc:["Daily clean up of machines & work area","Daily proper storage of files","Wears appropriate clothing"]},
+  {n:10,cat:"prod",text:"Successfully executes the weekly maintenance task",desc:["Utilizes all of the clean-up time","Received mentor sign-off for completed task","Submit before and after photo"]},
+  {n:11,cat:"counter",text:"Wanders around the facility and/or distracts others",desc:[]},
+  {n:12,cat:"counter",text:"Engages in unnecessary web/social media or phone/texting",desc:["Adheres to district/campus guidelines"]}
+];
+// ===== Per-item scoring weights — EDIT HERE ==========================
+// Each rubric item is scored by its code (a/m/s/n); higher = better, negatives
+// penalize. The weekly score sums the 12 item weights and normalizes so a
+// best-possible week = 4.00, then floors at 0 (students never get a negative
+// grade). To retune an item, edit its row — the 0.00–4.00 ceiling re-derives
+// itself from these numbers, so nothing else needs to change.
+// Items 11 & 12 are counterproductive, so their BEST value is "n" (never).
+// ⚠ Keep this block IDENTICAL in index.html (the student tool) so the student's
+//   self-score and the mentor's score use the same model.
+const WEIGHTS={
+  1:{a:8,m:2,s:-8,n:-12},    // Appropriate progress toward project completion   [critical]
+  2:{a:8,m:4,s:2,n:0},       // Professional communication
+  3:{a:4,m:2,s:-8,n:-16},    // Generates portfolio content weekly               [critical]
+  4:{a:8,m:2,s:-8,n:-12},    // Maintains focus and productivity                 [critical]
+  5:{a:8,m:4,s:1,n:0},       // Strives to produce high-quality work
+  6:{a:4,m:3,s:2,n:1},       // Is resourceful and proactive
+  7:{a:4,m:3,s:2,n:1},       // Is aware of needs beyond self
+  8:{a:4,m:1,s:-8,n:-16},    // Demonstrates integrity and honesty               [critical]
+  9:{a:8,m:4,s:1,n:0},       // Professional / clean work area
+  10:{a:8,m:4,s:1,n:0},      // Successfully executes weekly maintenance task
+  11:{a:0,m:0,s:2,n:4},      // Wanders / distracts others          [counterproductive: n best]
+  12:{a:-12,m:-8,s:-4,n:8}   // Unnecessary web / social / phone    [counterproductive: n best]
+};
+const SECTIONS=[
+  {at:1,cat:"perf",title:"Performance Review",key:"a = always · m = mostly · s = somewhat · n = not at all"},
+  {at:4,cat:"prod",title:"Productive Behavior",key:"a = always · m = mostly · s = sometimes · n = never"},
+  {at:11,cat:"counter",title:"Counterproductive Behavior",key:"Reversed — “never” is best · counts against the score",neg:true}
+];
+const CODE_LABELS={std:{a:"Always",m:"Mostly",s:"Sometimes",n:"Never"},perf:{a:"Always",m:"Mostly",s:"Somewhat",n:"Not at all"}};
+function labelSet(cat){return cat==="perf"?CODE_LABELS.perf:CODE_LABELS.std;}
+
+function computeScore(codes){
+  var raw=0,sub={prod:0,counter:0,perf:0},max={prod:0,counter:0,perf:0},answered=0;
+  ITEMS.forEach(function(it){
+    var w=WEIGHTS[it.n];
+    max[it.cat]+=Math.max(w.a,w.m,w.s,w.n);   // best attainable for this item
+    var c=codes[it.n];
+    if(c){answered++;raw+=w[c];sub[it.cat]+=w[c];}
+  });
+  var maxRaw=max.prod+max.counter+max.perf;   // best-possible total → auto-derives the scale
+  return {raw:raw,answered:answered,total:ITEMS.length,sub:sub,max:max,maxRaw:maxRaw,
+    overall:Math.max(raw/(maxRaw/4),0),pct:Math.max(raw/maxRaw*100,0)};   // floored at 0
+}
+function segHTML(name,selected,cat){
+  var L=labelSet(cat);
+  var order=cat==="counter"?["n","s","m","a"]:["a","m","s","n"];
+  // Radios are out of the tab order; the whole .item card is the focus target
+  // for keyboard entry (see renderRubric), so Tab steps item-to-item.
+  return '<div class="seg">'+order.map(function(c){
+    return '<label class="opt"><input type="radio" tabindex="-1" name="'+name+'" value="'+c+'"'+
+      (selected===c?" checked":"")+'><span>'+L[c]+'</span></label>';
+  }).join("")+'</div>';
+}
+function descHTML(it){
+  return it.desc.length?'<ul class="desc">'+it.desc.map(function(d){return "<li>"+esc(d)+"</li>";}).join("")+"</ul>":"";
+}
+
+// ===== payload decode =================================================
+function b64urlDecode(s){s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";return atob(s);}
+function decodePayload(code){return JSON.parse(decodeURIComponent(escape(b64urlDecode(code))));}
+function extractCode(input){
+  input=(input||"").trim();
+  var m=input.match(/[#&?]d=([^&\s]+)/);   // full URL or hash fragment
+  if(m)return m[1];
+  return input;                             // assume it's the raw code
+}
+
+// Default note prefilled into every grade — teachers can edit or delete it.
+// (Canvas comment replies don't hit teachers' filtered inboxes, so steer
+// questions to email.)
+const DEFAULT_NOTES="* Please email with any questions/comments. Replying here via a Canvas comment does not reach my primary inbox.";
+
+// ===== state =========================================================
+var student={};        // {n,w,m,p}
+var selfCodes={};      // student's self-ratings {itemN: code}
+var mentorCodes={};    // mentor's ratings (start = selfCodes)
+var segKeyboard=false; // true while a rating is being set via keyboard (a/m/s/n)
+
+function loadFromCode(raw){
+  var code=extractCode(raw);
+  if(!code)return false;
+  var p;
+  try{p=decodePayload(code);}catch(e){return false;}
+  if(!p||typeof p.c!=="string")return false;
+  student={n:p.n||"",w:p.w||"",m:p.m||"",p:p.p||""};
+  selfCodes={};mentorCodes={};
+  ITEMS.forEach(function(it,i){
+    var c=p.c[i];
+    if(c&&"amsn".indexOf(c)>=0){selfCodes[it.n]=c;mentorCodes[it.n]=c;}
+  });
+  return true;
+}
+
+// ===== render ========================================================
+function renderRubric(){
+  $("rubric").innerHTML=SECTIONS.map(function(sec){
+    var head='<div class="sec'+(sec.neg?" neg":"")+'"><h3>'+sec.title+'</h3><div class="seckey">'+sec.key+'</div></div>';
+    var rows=ITEMS.filter(function(it){return it.cat===sec.cat;}).map(function(it){
+      var self=selfCodes[it.n];
+      var selfLabel=self?labelSet(it.cat)[self]:"—";
+      return '<div class="item'+(it.cat==="counter"?" neg":"")+'" data-n="'+it.n+'" tabindex="0" role="group" aria-label="Rubric item '+it.n+' — type a, m, s, or n; Enter for the next item"><div class="ihead">'+
+        '<span class="inum">'+it.n+'</span><span class="itext">'+esc(it.text)+'</span></div>'+
+        descHTML(it)+
+        '<div class="rateline">'+segHTML("m_"+it.n,mentorCodes[it.n]||null,it.cat)+
+        '<span class="selfnote"><span class="same">Student: '+esc(selfLabel)+'</span>'+
+        '<span class="badge">Changed from “'+esc(selfLabel)+'”</span></span></div>'+
+        '<div class="itemcomment" hidden><textarea class="ic" data-n="'+it.n+'" placeholder="Why the change? (added to this item in the Canvas comment)"></textarea></div></div>';
+    }).join("");
+    return head+rows;
+  }).join("");
+  $("rubric").addEventListener("change",function(e){
+    if(e.target&&e.target.name&&e.target.name.indexOf("m_")===0){
+      var n=+e.target.name.slice(2);
+      mentorCodes[n]=e.target.value;
+      refresh();
+      // If a mouse click created a deviation, jump to its comment box. Skipped
+      // during keyboard entry so a/m/s/n → Enter keeps flowing through the items.
+      if(!segKeyboard && mentorCodes[n]!==selfCodes[n]){
+        var ic=$("rubric").querySelector('.ic[data-n="'+n+'"]');
+        if(ic)ic.focus();
+      }
+    }
+  });
+  // Keyboard entry: focus an item card, type a/m/s/n to choose, Enter → next item.
+  $("rubric").addEventListener("keydown",function(e){
+    if(e.target.tagName==="TEXTAREA")return;   // let the per-item comment boxes type normally
+    var item=e.target.closest?e.target.closest(".item"):null;
+    if(!item)return;
+    var k=(e.key||"").toLowerCase();
+    if(k==="a"||k==="m"||k==="s"||k==="n"){
+      var inp=item.querySelector('.seg input[value="'+k+'"]');
+      if(inp){
+        e.preventDefault();
+        segKeyboard=true;
+        inp.checked=true; inp.dispatchEvent(new Event("change",{bubbles:true}));
+        segKeyboard=false;
+      }
+    }else if(e.key==="Enter"){
+      e.preventDefault();
+      var items=[].slice.call($("rubric").querySelectorAll(".item"));
+      var i=items.indexOf(item);
+      if(i>=0&&i<items.length-1) items[i+1].focus();
+      else $("notes").focus();   // past the last item → drop into the notes box
+    }
+  });
+  // Per-item comments feed the generated Canvas comment as they're typed.
+  $("rubric").addEventListener("input",function(e){
+    if(e.target&&e.target.classList.contains("ic")) $("commentOut").textContent=formatComment();
+  });
+}
+
+function deviations(){
+  return ITEMS.filter(function(it){return mentorCodes[it.n]&&mentorCodes[it.n]!==selfCodes[it.n];})
+    .map(function(it){
+      return {n:it.n,text:it.text,from:labelSet(it.cat)[selfCodes[it.n]],to:labelSet(it.cat)[mentorCodes[it.n]]};
+    });
+}
+function formatComment(){
+  var res=computeScore(mentorCodes);
+  var devs=deviations();
+  var out="Weekly Performance Review — "+res.overall.toFixed(2)+" / 4.00\n";
+  if(devs.length){
+    out+="\nAdjustments from self-assessment:\n"+devs.map(function(d){
+      var line="• #"+d.n+" "+d.text+": "+d.from+" → "+d.to;
+      var cEl=$("rubric").querySelector('.ic[data-n="'+d.n+'"]');
+      var cTxt=cEl?(cEl.value||"").trim():"";
+      if(cTxt)line+="\n    "+cTxt;
+      return line;
+    }).join("\n")+"\n";
+  }else{
+    out+="\nRatings match the student's self-assessment.\n";
+  }
+  var notes=($("notes").value||"").trim();
+  if(notes)out+="\nNotes:\n"+notes+"\n";
+  return out.trim();
+}
+function refresh(){
+  var res=computeScore(mentorCodes);
+  $("mentorNum").textContent=res.overall.toFixed(2);
+  $("cats").textContent="Performance "+res.sub.perf+"/"+res.max.perf+
+    " · Productive "+res.sub.prod+"/"+res.max.prod+
+    " · Counterproductive "+res.sub.counter+"/"+res.max.counter;
+  // deviation highlight + reveal the per-item comment box on deviation
+  ITEMS.forEach(function(it){
+    var el=$("rubric").querySelector('.item[data-n="'+it.n+'"]');
+    if(!el)return;
+    var dev=mentorCodes[it.n]&&mentorCodes[it.n]!==selfCodes[it.n];
+    el.classList.toggle("dev",dev);
+    var ic=el.querySelector('.itemcomment');
+    if(ic)ic.hidden=!dev;
+  });
+  $("commentOut").textContent=formatComment();
+}
+
+function showGrader(){
+  $("pasteUI").hidden=true;
+  $("grader").hidden=false;
+  $("whoName").textContent=student.n||"Student";
+  $("whoMeta").textContent=[student.w?("Week of "+student.w):"",student.m?("Mentor: "+student.m):"",student.p].filter(Boolean).join(" · ");
+  var self=computeScore(selfCodes);
+  $("selfNum").textContent=self.answered===self.total?self.overall.toFixed(2):"—";
+  $("notes").value=DEFAULT_NOTES;
+  renderRubric();
+  refresh();
+}
+function showPaste(){$("grader").hidden=true;$("pasteUI").hidden=false;$("pasteIn").focus();}
+
+// ===== copy helpers ==================================================
+function copyText(text,msgEl){
+  var flash=function(m){if(msgEl){msgEl.textContent=m;setTimeout(function(){msgEl.textContent="";},1600);}};
+  var ok=false;
+  try{
+    var ta=document.createElement("textarea");
+    ta.value=text;ta.setAttribute("readonly","");
+    ta.style.cssText="position:fixed;top:0;left:-9999px;white-space:pre";
+    document.body.appendChild(ta);ta.focus();ta.select();
+    ok=document.execCommand("copy");document.body.removeChild(ta);
+  }catch(e){}
+  if(ok){flash("Copied ✓");return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){flash("Copied ✓");},function(){flash("Copy failed — select manually");});
+  }else{flash("Copy failed — select manually");}
+}
+
+// ===== wiring ========================================================
+$("notes").addEventListener("input",function(){$("commentOut").textContent=formatComment();});
+$("copyComment").addEventListener("click",function(){copyText(formatComment(),$("copyMsg"));});
+$("copyScore").addEventListener("click",function(){copyText(computeScore(mentorCodes).overall.toFixed(2),null);});
+$("pasteGo").addEventListener("click",function(){
+  if(loadFromCode($("pasteIn").value)){history.replaceState(null,"","#d="+extractCode($("pasteIn").value));showGrader();}
+  else alert("That doesn't look like a valid grading link. Copy the full link from the student's submission.");
+});
+$("pasteIn").addEventListener("keydown",function(e){if(e.key==="Enter")$("pasteGo").click();});
+
+(function init(){
+  if(loadFromCode(location.hash)) showGrader();
+  else showPaste();
+})();
+</script>
+</body>
+</html>
