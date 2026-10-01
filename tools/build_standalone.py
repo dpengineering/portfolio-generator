@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Assemble single self-contained HTML builds of the generators.
 
-Each build inlines shared.js and heic2any.min.js and drops the hub link, so the
-page runs from one file (e.g. embedded in a sandboxed Google Sites iframe). No
+Each build inlines shared.js, heic2any.min.js and (where the page uses it)
+perfreview.js, and drops the hub link, so the page runs from one file (e.g. embedded in a sandboxed Google Sites iframe). No
 logic is changed — the output is a byte-for-byte superset of the multi-file
 page's behavior.
 
@@ -21,6 +21,7 @@ import re, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 shared = (ROOT / "shared.js").read_text()
 heic = (ROOT / "heic2any.min.js").read_text()
+perfreview = (ROOT / "perfreview.js").read_text()
 
 # (source page, output filename) — the standalone build for each generator.
 BUILDS = [
@@ -56,10 +57,19 @@ def build(src, dst):
         r'<script src="shared\.js\?v=\d+"></script>', lambda m: shared_tag, html)
     assert n_shared == 1, f"{src}: expected 1 shared.js tag, replaced {n_shared}"
 
-    # Sanity: neither real external tag should remain as an actual <script src="...">.
+    # 4) Inline perfreview.js — only weekly.html loads it (grade 12), so this is
+    #    optional per page, but a page that references it MUST get it inlined or
+    #    the standalone ships a dangling <script src>.
+    pr_tag = "<script>\n" + inline_safe(perfreview) + "\n</script>"
+    html, n_pr = re.subn(
+        r'<script src="perfreview\.js\?v=\d+"></script>', lambda m: pr_tag, html)
+    assert n_pr <= 1, f"{src}: expected at most 1 perfreview.js tag, replaced {n_pr}"
+
+    # Sanity: no real external tag should remain as an actual <script src="...">.
     # (A harmless mention of `<script src="shared.js?v=N">` survives inside shared.js's
     #  own comment; that's inside an inlined block and never fetched, so it's fine.)
-    for pat in (r'<script src="heic2any\.min\.js">', r'<script src="shared\.js\?v=\d+">'):
+    for pat in (r'<script src="heic2any\.min\.js">', r'<script src="shared\.js\?v=\d+">',
+                r'<script src="perfreview\.js\?v=\d+">'):
         assert not re.search(pat, html), f"{src}: external tag still present: {pat}"
 
     out = ROOT / dst

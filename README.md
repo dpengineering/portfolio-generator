@@ -12,11 +12,12 @@ each tool runs entirely in the browser and produces a **self-contained
 | `/` (`index.html`) | Hub — asks your grade, then shows your tools | everyone | — |
 | `/weekly` (`weekly.html`) | Rotation post generator | grades 9–12 | weekly |
 | `/unit` (`unit.html`) | Unit post generator (monthly for grade 12) | grades 9–12 | per unit / month |
-| `/review` (`review.html`) | Weekly performance review | **grade 12 only** | weekly |
+| `/review` (`review.html`) | Standalone performance review — kept as a fallback, no longer linked | — | — |
 | `/grade` (`grade.html`) | Mentor grading tool | mentors | weekly |
 
-Students in grades 9–11 use the two post generators. Grade 12 additionally
-completes a weekly performance review. Canvas is the system of record for every
+Students in grades 9–11 use the two post generators. Grade 12 fills in a weekly
+performance review **inside the rotation post generator** and downloads two
+files, one per Canvas assignment. Canvas is the system of record for every
 grade; **no Canvas rubric is used for any assignment.**
 
 ### The hub
@@ -73,8 +74,24 @@ pages become links to `portfolio.dpeacl.org` and the builds can be retired.
 
 ## The performance review (grade 12)
 
-- The student attaches their weekly post, adds DELTA skills, and rates 12 rubric
-  items `a`/`m`/`s`/`n`, seeing a live self-score.
+Seniors fill this in as part of the rotation post, in the same form — see
+[`perfreview.js`](perfreview.js), which `weekly.html` loads. It appears only when
+`grade === "12"` and the personal-project toggle is off, and it is *built on
+demand* rather than hidden, so a grade 9–11 student never has those inputs in
+their DOM and the download checklist can't deadlock on fields they can't see.
+
+**Two files, two buttons.** The rotation post and the review download
+separately, and they are gated separately: an unfinished rubric never blocks the
+portfolio post, which is its own assignment. The review additionally requires the
+post, because it embeds it. The two downloads are deliberately *not* one click —
+iPad Safari drops the second of two programmatic downloads, and a silently
+missing submission is the worst failure available here.
+
+The review's copy of the photos is re-encoded smaller (≤1000px, JPEG q0.7); the
+rotation post keeps the originals.
+
+- The student rates 12 rubric items `a`/`m`/`s`/`n`, adds DELTA skills, and sees
+  a live self-score.
 - Download produces a **static, read-only** page: portfolio content, DELTAs, and
   the student's self-ratings, with no interactive controls — so it renders in
   SpeedGrader's sandboxed preview, which runs no JavaScript.
@@ -85,6 +102,12 @@ pages become links to `portfolio.dpeacl.org` and the builds can be retired.
 - The student's self-score is a reflection mirror only — never the official grade.
 
 Full rubric, weights, and scoring model: [`docs/PLAN-performance-review.md`](docs/PLAN-performance-review.md).
+The `WEIGHTS` block is duplicated in `perfreview.js` and `grade.html` — keep them
+identical, or the student's self-score and the mentor's score diverge.
+
+`review.html` is the pre-merge standalone version. It still works and still
+produces a valid submission, but nothing links to it; it's there as a safety
+valve while the fused flow is tested, and can go once that's settled.
 
 ## Running it locally
 

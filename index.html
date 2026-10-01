@@ -108,17 +108,13 @@
   <div class="override" id="overrideNote" hidden></div>
 
   <div class="tiles" id="tiles" hidden>
-    <a class="tile" href="weekly.html">
+    <a class="tile" href="weekly.html" id="weeklyTile">
       <span class="t-top"><span class="t-emoji">📘</span><span class="t-name">Rotation Post</span><span class="t-when">Weekly</span></span>
-      <span class="t-desc">Write up this week's work with photos, key terms, and a reflection.</span>
+      <span class="t-desc" id="weeklyDesc">Write up this week's work with photos, key terms, and a reflection.</span>
     </a>
     <a class="tile" href="unit.html">
       <span class="t-top"><span class="t-emoji">📗</span><span class="t-name" id="unitName">Unit Post</span><span class="t-when" id="unitWhen">Per unit</span></span>
       <span class="t-desc" id="unitDesc">A bigger write-up at the end of a unit, with your self-grade rubric.</span>
-    </a>
-    <a class="tile senior" href="review.html" id="reviewTile" hidden>
-      <span class="t-top"><span class="t-emoji">📋</span><span class="t-name">Performance Review</span><span class="t-when">Weekly</span></span>
-      <span class="t-desc">Rate your week against the 12-item rubric and attach your rotation post. Seniors only.</span>
     </a>
   </div>
 </main>
@@ -158,7 +154,12 @@ function paint(){
   $("next").disabled=!$("grade").value;
   $("nextHint").textContent=$("grade").value?"":"Pick your grade to continue.";
 
-  $("reviewTile").hidden=!senior;
+  // Seniors do the performance review inside the rotation post now — one form,
+  // two downloads — so it is not a separate tile.
+  $("weeklyTile").classList.toggle("senior",senior);
+  $("weeklyDesc").textContent=senior
+    ? "Write up this week's work, then fill in your performance review in the same form. Downloads as two files, one per Canvas assignment."
+    : "Write up this week's work with photos, key terms, and a reflection.";
 
   const who=[p.first,p.last].filter(Boolean).join(" ");
   $("whochip").textContent=g?(who?`${who} · Grade ${g}`:`Grade ${g}`):"";

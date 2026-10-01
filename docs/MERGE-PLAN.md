@@ -1,6 +1,6 @@
 # Merging the performance review into the portfolio tools
 
-Status: **phases 1a + 2 done** (this branch, `dev`). Nothing pushed.
+Status: **phases 1a, 2 and 3 done** (this branch, `dev`). Nothing pushed.
 
 ## Why merge
 
@@ -52,7 +52,7 @@ move is a consolidation, not a fix for a broken path.
 | **1a** ✅ | Reshape into the root layout; one README; point links and `GRADE_URL` at the custom domain | no — `/grade` starts resolving |
 | **2** ✅ | Hub at `/`; weekly generator moved to `/weekly`; grade asked once and remembered; review tile for grade 12 only; `?grade=` override; quota-aware autosave | yes — `/` is now the hub |
 | **1b** | Collapse the forked infra onto `shared.js`; move the review's image recompression into it; swap `alert()` for `notify()`; bump `?v=` | no |
-| **3** | Fuse the weekly post and the review into one form for seniors; emit two files; round-trip dies | yes, large |
+| **3** ✅ | `perfreview.js`: the review inside `weekly.html` for seniors, built on demand; two separately-gated downloads; round-trip dead | yes, large |
 | **4** | Flip the Google Sites pages to redirect to `portfolio.dpeacl.org`; retire the standalone builds | coordination |
 
 ## Rollout
@@ -69,11 +69,12 @@ deployment consequences and can follow phase 2 instead of blocking on it.
 
 ## Open
 
-- **Phase 3's reshape.** Once the weekly post and the review share one form, a
-  senior changing their grade mid-form reshapes it. `personalMode` already sets
-  that precedent in `weekly.html` (`applyFieldVisibility`), so follow it: build
-  the review section conditionally and let the checklist iterate over present
-  sections only.
+- **`review.html` is now unlinked** but still on disk and still working, as a
+  safety valve while the fused flow is tested. Delete it once seniors have used
+  the fused flow for a few weeks — and note that `perfreview.js` is a port of its
+  internals, so the rubric, weights and artifact CSS live in both until then.
+- **One click, two downloads** was rejected: iPad Safari drops the second
+  programmatic download. If that ever changes, the two buttons could merge.
 - **Opportunity, not scoped here:** with no Canvas rubric anywhere, mentors are
   presumably typing points by hand for the weekly and unit posts while seniors'
   reviews get a prefilled tool. `unit.html` already collects a structured
