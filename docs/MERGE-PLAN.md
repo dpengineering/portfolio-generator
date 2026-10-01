@@ -1,6 +1,6 @@
 # Merging the performance review into the portfolio tools
 
-Status: **phase 1a done** (this branch, `dev`). Nothing pushed.
+Status: **phases 1a + 2 done** (this branch, `dev`). Nothing pushed.
 
 ## Why merge
 
@@ -50,20 +50,30 @@ move is a consolidation, not a fix for a broken path.
 | Phase | Work | Visible to students? |
 |-------|------|----------------------|
 | **1a** ✅ | Reshape into the root layout; one README; point links and `GRADE_URL` at the custom domain | no — `/grade` starts resolving |
-| **1b** | Collapse the forked infra onto `shared.js`; move the review's image recompression into it; swap `alert()` for `notify()`; add `review.html` to `build_standalone.py`; bump `?v=` | no, **but** the review stops being self-contained, so its Google Sites embed must switch to the generated `review-standalone.html` |
-| **2** | Hub page + grade-first routing; review reachable only for grade 12 | yes, small |
+| **2** ✅ | Hub at `/`; weekly generator moved to `/weekly`; grade asked once and remembered; review tile for grade 12 only; `?grade=` override; quota-aware autosave | yes — `/` is now the hub |
+| **1b** | Collapse the forked infra onto `shared.js`; move the review's image recompression into it; swap `alert()` for `notify()`; bump `?v=` | no |
 | **3** | Fuse the weekly post and the review into one form for seniors; emit two files; round-trip dies | yes, large |
 | **4** | Flip the Google Sites pages to redirect to `portfolio.dpeacl.org`; retire the standalone builds | coordination |
 
+## Rollout
+
+The Google Sites pages are a **frozen fallback**: they keep the older
+single-file generators so students have a working path if the new site
+misbehaves, and Sites gains a link to `portfolio.dpeacl.org`. The committed
+`*-standalone.html` files are those frozen copies — `build_standalone.py` still
+works but regenerating them means re-pasting into Sites, so it's left alone.
+
+This also retires the constraint that drove the original fork: the review no
+longer has to be one self-contained file, which is why phase 1b is now free of
+deployment consequences and can follow phase 2 instead of blocking on it.
+
 ## Open
 
-- **Phase 1b disturbs the Sites embed.** The review is embedded today *because*
-  it's a single file. Consolidating means re-pasting a generated standalone into
-  Sites, which cuts against leaving Sites "as it currently stands" until student
-  testing is done.
-- **`build_standalone.py` asserts exactly one switch link** matching
-  `href="(unit|index).html"`. `review.html`'s switch link is absolute, so adding
-  it to `BUILDS` needs that assertion relaxed.
+- **Phase 3's reshape.** Once the weekly post and the review share one form, a
+  senior changing their grade mid-form reshapes it. `personalMode` already sets
+  that precedent in `weekly.html` (`applyFieldVisibility`), so follow it: build
+  the review section conditionally and let the checklist iterate over present
+  sections only.
 - **Opportunity, not scoped here:** with no Canvas rubric anywhere, mentors are
   presumably typing points by hand for the weekly and unit posts while seniors'
   reviews get a prefilled tool. `unit.html` already collects a structured

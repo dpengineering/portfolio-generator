@@ -271,12 +271,85 @@ function downloadBlob(filename,content,type){
   const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
-let autoTimer=null;
+// Autosave keeps as much as will fit. localStorage is ~5MB and a post full of
+// photos can blow past that, so on a quota error we fall back to a text-only
+// draft rather than losing the draft outright — and say so, once, instead of
+// silently keeping a draft the student believes includes their photos. A page
+// opts into the fallback by defining collectLight().
+let autoTimer=null, quotaWarned=false;
+function tryStore(data){
+  try{localStorage.setItem(DRAFT_KEY,JSON.stringify(data));return true;}catch(e){return false;}
+}
+function savedNote(msg){
+  const n=$("autonote");if(!n)return;
+  n.textContent=msg;
+  setTimeout(()=>{if(n.textContent===msg)n.textContent="";},1500);
+}
+function warnOnce(msg){
+  if(quotaWarned)return;
+  quotaWarned=true;
+  notify(msg,"warn");
+}
 function autosave(){
   clearTimeout(autoTimer);
   autoTimer=setTimeout(()=>{
-    try{localStorage.setItem(DRAFT_KEY,JSON.stringify(collect()));
-      $("autonote").textContent="✓ saved in this browser";
-      setTimeout(()=>$("autonote").textContent="",1500);}catch(e){}
+    if(tryStore(collect())){savedNote("✓ saved in this browser");return;}
+    const light=(typeof collectLight==="function")?collectLight():null;
+    if(light&&tryStore(light)){
+      savedNote("✓ saved — text only");
+      warnOnce("This draft is too big to keep your photos in the browser. Your writing is saved, but you'll need to re-add photos if you reload. Use 💾 Save draft to keep everything in a file.");
+      return;
+    }
+    warnOnce("Couldn't save a draft in this browser. Use 💾 Save draft to keep your work in a file.");
   },600);
+}
+
+// ---- student profile (grade + name, remembered across tools) ---------------
+// The hub asks for these once and every tool pre-fills from them, so students
+// stop retyping their name and grade every week. Grade lives here rather than
+// only in each tool's draft because it is what routes a student to — or away
+// from — the performance review.
+//
+// ?grade=12 overrides the stored value for one page load and is never
+// persisted: it's there for demos, mid-year transfers, and a senior sitting in
+// a junior's section. This is UX scoping, not access control; everything here
+// runs client-side and a student can set whatever they like.
+const PROFILE_KEY="dpea.profile.v1";
+const GRADES=["9","10","11","12"];
+function storedProfile(){
+  try{return JSON.parse(localStorage.getItem(PROFILE_KEY))||{};}catch(e){return {};}
+}
+function gradeOverride(){
+  const q=new URLSearchParams(location.search).get("grade");
+  return GRADES.includes(q)?q:null;
+}
+function getProfile(){
+  const p=storedProfile(), o=gradeOverride();
+  return o?{...p,grade:o}:p;
+}
+function saveProfile(patch){
+  const next={...storedProfile(),...patch};
+  try{localStorage.setItem(PROFILE_KEY,JSON.stringify(next));}catch(e){}
+  return next;
+}
+// Fill fields from the profile without clobbering anything already there, so a
+// loaded draft always wins over the remembered profile. map: {elementId: key}.
+function applyProfile(map){
+  const p=getProfile();
+  Object.keys(map).forEach(id=>{
+    const el=$(id), v=p[map[id]];
+    if(el&&!el.value&&v)el.value=v;
+  });
+  return p;
+}
+// Mirror a tool's own fields back into the profile as the student edits them.
+function trackProfile(map){
+  Object.keys(map).forEach(id=>{
+    const el=$(id);
+    if(!el)return;
+    const ev=el.tagName==="SELECT"?"change":"input";
+    el.addEventListener(ev,()=>{
+      if(el.value)saveProfile({[map[id]]:el.value});
+    });
+  });
 }

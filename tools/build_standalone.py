@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """Assemble single self-contained HTML builds of the generators.
 
-Each build inlines shared.js and heic2any.min.js and drops the cross-generator
-switch link, so the page runs from one file (e.g. embedded in a sandboxed
-Google Sites iframe). No logic is changed — the output is a byte-for-byte
-superset of the multi-file page's behavior.
+Each build inlines shared.js and heic2any.min.js and drops the hub link, so the
+page runs from one file (e.g. embedded in a sandboxed Google Sites iframe). No
+logic is changed — the output is a byte-for-byte superset of the multi-file
+page's behavior.
 
-  index.html -> portfolio-standalone.html   (rotation post generator)
-  unit.html  -> unit-standalone.html         (unit post generator)
+  weekly.html -> portfolio-standalone.html  (rotation post generator)
+  unit.html   -> unit-standalone.html       (unit post generator)
+
+CAUTION: the committed *-standalone.html files are FROZEN. They are the copies
+pasted into Google Sites, which students keep as a fallback while the new
+portfolio.dpeacl.org site is rolled out. Running this script overwrites them
+with the current source, which would mean re-pasting into Sites. Only run it
+when you intend to refresh that fallback.
 """
 import re, pathlib
 
@@ -18,7 +24,7 @@ heic = (ROOT / "heic2any.min.js").read_text()
 
 # (source page, output filename) — the standalone build for each generator.
 BUILDS = [
-    ("index.html", "portfolio-standalone.html"),
+    ("weekly.html", "portfolio-standalone.html"),
     ("unit.html", "unit-standalone.html"),
 ]
 
@@ -31,10 +37,10 @@ def inline_safe(js):
 def build(src, dst):
     html = (ROOT / src).read_text()
 
-    # 1) Drop the cross-generator switch link (a standalone ships one tool alone).
-    #    href is unit.html on the rotation page, index.html on the unit page.
+    # 1) Drop the hub link — a standalone ships one tool alone, with no hub to
+    #    return to. Both generators now point at index.html (the hub).
     html, n_link = re.subn(
-        r'\s*<a class="switch-link" href="(?:unit|index)\.html">.*?</a>',
+        r'\s*<a class="switch-link" href="index\.html">.*?</a>',
         "", html, flags=re.S)
     assert n_link == 1, f"{src}: expected 1 switch link, removed {n_link}"
 

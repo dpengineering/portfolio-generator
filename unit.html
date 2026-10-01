@@ -119,7 +119,7 @@
       <h1>📗 Unit / Monthly Post Generator</h1>
       <p>Write up your project's progress this unit/month, add captioned photos, and download a finished portfolio page.</p>
     </div>
-    <a class="switch-link" href="index.html">← Weekly Rotation Generator</a>
+    <a class="switch-link" href="index.html">← All tools</a>
   </div>
 </header>
 
@@ -224,7 +224,7 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=7"></script>
+<script src="shared.js?v=8"></script>
 <script>
 const state={images:{},cover:null,fileMgmt:[]};
 const DRAFT_KEY="unitPostDraft";
@@ -758,6 +758,19 @@ function loadData(d){
   updatePreview();
 }
 
+// Drafts are capped by localStorage (~5MB) and photos are what overflows it.
+// collectLight() is the fallback autosave() reaches for: everything the student
+// wrote, with the images dropped, so a too-big draft costs them their photos
+// rather than their writing. Image data lives in bare data: URLs (cover) and in
+// the gallery arrays, so both get cleared explicitly.
+function collectLight(){
+  const d=collect();
+  d.cover=null;
+  d.weeks=(d.weeks||[]).map(w=>({...w,images1:[]}));
+  d.fileMgmt=[];
+  return d;
+}
+
 // autosave() now lives in shared.js (persists collect() under DRAFT_KEY)
 ["firstName","lastName","project","grade","unit","reflection","peerName","suggestReflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
 $("grade").addEventListener("change",()=>{applyGradeMode();autosave();schedulePreview();validate();});
@@ -841,11 +854,24 @@ buildRubric();
 initGradPicker(DEFAULT_GRAD,()=>{autosave();schedulePreview();});
 wireStarter($("reflection"),$("reflection-starter"),STARTERS.reflection,Math.floor(Math.random()*STARTERS.reflection.length));
 
+// ---- student profile ----
+// Name and grade come from the hub so they aren't retyped every unit. Prefill
+// only fills blanks, so a loaded draft always wins; edits here flow back to the
+// profile for the next tool. Grade also drives applyGradeMode() (grade 12 posts
+// monthly), so re-run it after prefilling.
+const PROFILE_FIELDS={firstName:"first",lastName:"last",grade:"grade"};
+function hydrateProfile(){
+  applyProfile(PROFILE_FIELDS);
+  applyGradeMode();
+  validate();
+}
+trackProfile(PROFILE_FIELDS);
+
 // ---- boot ----
 (function init(){
   const saved=localStorage.getItem(DRAFT_KEY);
-  if(saved){try{loadData(JSON.parse(saved));return;}catch(e){}}
-  applyGradeMode();
+  if(saved){try{loadData(JSON.parse(saved));hydrateProfile();schedulePreview();return;}catch(e){}}
+  hydrateProfile();
   addWeek();
   applyPeerMode();
   updatePreview();
