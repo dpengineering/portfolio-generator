@@ -30,8 +30,8 @@ already has something in it, so a loaded draft always wins.
 
 The schedule travels with every post as `meta.rotation` / `meta.periods` plus a
 derived `meta.peerKey`, which is what peer-review matching pairs on: same
-rotation for grades 9–11, same **first picked** period for grade 12. The pick
-order is preserved rather than sorted, since the first one is the match key.
+rotation for grades 9–11, same **home period** for grade 12 — the earliest one
+they're present for, so periods are stored ascending and the lowest is the key.
 
 Append `?grade=12` to any page to override the stored grade for one page load.
 It isn't saved, and it carries through to whichever tool you click. It's there
@@ -61,7 +61,13 @@ pages become links to `portfolio.dpeacl.org` and the builds can be retired.
 ## The post generators
 
 - Fill in a title card (name, project, classroom, grade, unit), Learning Moments,
-  captioned photos, and a reflection.
+  captioned photos, and a reflection. Every section is collapsible, so students
+  can fold away the parts they aren't working on; the choice lasts the session
+  and a new visit starts fully expanded.
+- The unit post's Project Update is written in **two parts**, each with its own
+  pair of photos (four in total), so the finished post reads in chunks rather
+  than one wall of text. Each part heads its section `Project Update — pt. N`,
+  or a subtitle the student gives it instead.
 - A live checklist gates the download until every requirement is met, including
   at least three `*asterisk*` key terms highlighted across the post.
 - Download produces one self-contained `.html` named

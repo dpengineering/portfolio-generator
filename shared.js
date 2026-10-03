@@ -304,6 +304,44 @@ function autosave(){
   },600);
 }
 
+// ---- collapsible sections --------------------------------------------------
+// Every top-level section of a generator is a <details class="fold">, so a
+// student can hide the parts they aren't working on. Open/closed is remembered
+// for the SESSION only: it survives moving between tools and reloading, but a
+// new visit starts fully expanded, so nobody loses track of a section they
+// haven't filled in. Colour comes from --accent, so a page (or a nested block
+// like the purple performance review) themes its own folds for free.
+function foldStateKey(ns){return "dpea.folds."+ns;}
+function readFolds(ns){
+  try{return JSON.parse(sessionStorage.getItem(foldStateKey(ns)))||{};}catch(e){return {};}
+}
+function saveFold(ns,name,open){
+  try{
+    const f=readFolds(ns);f[name]=open;
+    sessionStorage.setItem(foldStateKey(ns),JSON.stringify(f));
+  }catch(e){}          // private mode / blocked storage: folding just stops persisting
+}
+// Call again freely — sections built later (a week card, the review) get wired
+// on the next pass and already-wired ones are left alone.
+function wireFolds(ns,root){
+  const saved=readFolds(ns);
+  (root||document).querySelectorAll("details.fold").forEach(d=>{
+    const name=d.dataset.fold;
+    if(!name)return;
+    if(name in saved)d.open=saved[name];
+    if(d.dataset.foldWired)return;
+    d.dataset.foldWired="1";
+    d.addEventListener("toggle",()=>saveFold(ns,name,d.open));
+  });
+}
+// Short status shown on a summary, so a collapsed section still says where it
+// stands. Pass "" to clear.
+function foldNote(d,text){
+  if(!d)return;
+  const n=d.querySelector(":scope > summary > .fold-note");
+  if(n)n.textContent=text||"";
+}
+
 // ---- student profile (grade + name, remembered across tools) ---------------
 // The hub asks for these once and every tool pre-fills from them, so students
 // stop retyping their name and grade every week. Grade lives here rather than
@@ -325,29 +363,37 @@ const GRADES=["9","10","11","12"];
 const ROTATIONS=["A","B","C","D"];
 const PERIODS=["1","2","3","4"];
 function isSenior(grade){return grade==="12";}
+// A senior's home period is simply the earliest one they're present for, so
+// periods are kept in ascending order and the lowest is the match key.
+function sortPeriods(list){
+  return (list||[]).slice().sort((a,b)=>(+a)-(+b));
+}
 // The single value two students must share to be eligible peer-review partners.
 // Returns "" when we don't know enough to match them.
 function peerGroupKey(p){
   if(!p||!p.grade)return "";
-  if(isSenior(p.grade))return (p.periods&&p.periods.length)?("P"+p.periods[0]):"";
+  if(isSenior(p.grade)){
+    const ps=sortPeriods(p.periods);
+    return ps.length?("P"+ps[0]):"";
+  }
   return p.rotation?("R"+p.rotation):"";
 }
 // The schedule fields a post carries in its metadata, so a bulk peer-review
 // matcher can read them straight out of the downloaded file's embedded JSON
 // without needing a roster. Grades 9-11 carry `rotation`; grade 12 carries
-// `periods` in the order they were picked. `peerKey` is the derived value two
-// students must share to be paired.
+// `periods` in ascending order. `peerKey` is the derived value two students
+// must share to be paired -- for a senior, their lowest (home) period.
 function scheduleMeta(){
   const p=getProfile();
   const m={peerKey:peerGroupKey(p)};
-  if(isSenior(p.grade)){if(p.periods&&p.periods.length)m.periods=p.periods.slice();}
+  if(isSenior(p.grade)){const ps=sortPeriods(p.periods);if(ps.length)m.periods=ps;}
   else if(p.rotation)m.rotation=p.rotation;
   return m;
 }
 // A human label for the same thing, for UI and for the post's metadata.
 function scheduleLabel(p){
   if(!p||!p.grade)return "";
-  if(isSenior(p.grade))return (p.periods&&p.periods.length)?("Period "+p.periods.join(", ")):"";
+  if(isSenior(p.grade))return (p.periods&&p.periods.length)?("Period "+sortPeriods(p.periods).join(", ")):"";
   return p.rotation?("Rotation "+p.rotation):"";
 }
 function storedProfile(){

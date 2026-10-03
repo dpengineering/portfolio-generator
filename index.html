@@ -120,7 +120,7 @@
         </label>
       </div>
       <div id="periodWrap" hidden>
-        <label>Period(s) <span class="hint">— required; pick every period you're in, starting with your main one</span></label>
+        <label>Period(s) <span class="hint">— required; pick every period you're in</span></label>
         <div class="chips" id="periodChips">
           <label class="chip-opt"><input type="checkbox" class="periodBox" value="1"><span>1</span></label>
           <label class="chip-opt"><input type="checkbox" class="periodBox" value="2"><span>2</span></label>
@@ -148,7 +148,7 @@
 
   <div class="tiles" id="tiles" hidden>
     <a class="tile t-weekly" href="weekly.html" id="weeklyTile">
-      <span class="t-top"><span class="t-emoji">📘</span><span class="t-name" id="weeklyName">Rotation Post</span><span class="t-when">Weekly</span><span class="t-perf" id="perfChip" hidden>+ Performance Review</span></span>
+      <span class="t-top"><span class="t-emoji">📘</span><span class="t-name" id="weeklyName">Rotation Post</span><span class="t-perf" id="perfChip" hidden>+ Performance Review</span><span class="t-when">Weekly</span></span>
       <span class="t-desc" id="weeklyDesc">Write up this week's work with photos, key terms, and a reflection.</span>
     </a>
     <a class="tile t-unit" href="unit.html">
@@ -188,14 +188,11 @@ function paintStage(){
 // every keystroke.
 // Grades 9-11 pick a rotation; grade 12 picks period(s). Both are required,
 // because peer review pairs students on them.
-// Order matters: peer review matches on the FIRST period a senior picks, so we
-// track the order they were checked in rather than reading them out of the DOM.
-let periodPicks=[];
-function pickedPeriods(){return periodPicks.slice();}
-function notePeriod(box){
-  const v=box.value;
-  periodPicks=periodPicks.filter(x=>x!==v);
-  if(box.checked)periodPicks.push(v);
+// A senior's home period is the earliest one they're present for, so these are
+// read in ascending order and the lowest is what peer review matches on. The
+// order they happen to tick the boxes in doesn't matter.
+function pickedPeriods(){
+  return sortPeriods([...document.querySelectorAll(".periodBox")].filter(b=>b.checked).map(b=>b.value));
 }
 function scheduleReady(){
   const g=$("grade").value;
@@ -211,7 +208,7 @@ function paint(){
   const picked=pickedPeriods();
   $("periodOrder").textContent=picked.length
     ? (picked.length>1
-        ? `Peer review will pair you within period ${picked[0]} — your first pick.`
+        ? `Peer review will pair you within period ${picked[0]} — your earliest, which we treat as your home period.`
         : `Peer review will pair you within period ${picked[0]}.`)
     : "";
 
@@ -237,7 +234,7 @@ function paint(){
   // 12th graders post monthly rather than per unit — unit.html already keys
   // this off the same grade value (see isMonthly there).
   $("unitName").textContent=senior?"Monthly Post":"Unit Post";
-  $("weeklyName").textContent=senior?"Performance Review":"Rotation Post";
+  $("weeklyName").textContent=senior?"Portfolio Post":"Rotation Post";
 
   const o=gradeOverride();
   $("overrideNote").hidden=!o;
@@ -282,7 +279,7 @@ Object.keys(FIELDS).forEach(id=>{
   $(id).addEventListener("input",paint);
 });
 $("rotation").addEventListener("change",()=>{saveFields();paint();});
-document.querySelectorAll(".periodBox").forEach(b=>b.addEventListener("change",()=>{notePeriod(b);saveFields();paint();}));
+document.querySelectorAll(".periodBox").forEach(b=>b.addEventListener("change",()=>{saveFields();paint();}));
 $("next").addEventListener("click",()=>{
   if(!$("grade").value){$("grade").focus();return;}
   if(!scheduleReady()){
@@ -301,11 +298,9 @@ $("changeWho").addEventListener("click",()=>{
 (function init(){
   const p=applyProfile(FIELDS);
   if(p.rotation)$("rotation").value=p.rotation;
-  // Restore the pick ORDER, not just the set — the first period is the one
-  // peer review matches on.
   (p.periods||[]).forEach(v=>{
     const b=document.querySelector(`.periodBox[value="${v}"]`);
-    if(b){b.checked=true;notePeriod(b);}     // replay the saved order
+    if(b)b.checked=true;
   });
   wireTiles();
   // A student who has been here before skips setup — but only if we already

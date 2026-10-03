@@ -105,6 +105,11 @@
   .rubric-row.peerlocked .rub-crit{opacity:.55}
   .rubric-row.peerlocked .rub-check{cursor:not-allowed}
   .rubric-row.peerlocked .rub-comment{background:#f1f5f9;color:#64748b;cursor:not-allowed}
+  /* the two halves of the project update, visually separated in the form */
+  .pu-part{border-top:2px solid var(--border);padding-top:.7rem;margin-top:1rem}
+  .pu-part:first-of-type{border-top:0;padding-top:0;margin-top:0}
+  .pu-head{font-weight:700;font-size:.92rem;color:var(--accent);margin-bottom:.3rem}
+  .pu-head .pu-n{font-weight:400;color:var(--muted)}
   .peer-wrap{margin-top:.55rem;border-top:1px dashed var(--border);padding-top:.5rem}
   .peer-wrap textarea{min-height:70px;border-color:#bfdbfe}
   .locknote{font-size:.72rem;font-weight:700;color:#64748b;margin:.1rem 0 .35rem}
@@ -115,6 +120,22 @@
      also carries a hand-editable data-public flag. To show the checkbox again,
      delete this one rule. */
   .pubtoggle{display:none}
+  /* ---- collapsible sections (see wireFolds in shared.js) ----
+     Colour follows --accent, so a nested block that redefines it (the purple
+     performance review) themes its own folds without extra rules. */
+  details.fold{border:1px solid var(--border);border-radius:10px;margin:0 0 1rem;background:#fff}
+  details.fold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:.5rem;
+    padding:.65rem .8rem;font-weight:700;font-size:.92rem;color:var(--accent);border-radius:10px}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary::before{content:"▸";font-size:.85em;flex:none}
+  details.fold>summary:hover{background:var(--panel)}
+  details.fold[open]>summary{border-bottom:1px solid var(--border);border-radius:10px 10px 0 0}
+  details.fold[open]>summary::before{content:"▾"}
+  details.fold>summary .fold-note{margin-left:auto;flex:none;font-weight:600;font-size:.74rem;color:var(--muted)}
+  details.fold>summary .hint{font-weight:400}
+  details.fold .fold-body{padding:.85rem}
+  details.fold fieldset{border:0;padding:0;margin:0;background:transparent}
+  details.fold legend{display:none}
   @media (max-width:820px){.wrap{grid-template-columns:1fr;height:auto}.preview{height:70vh;border-top:1px solid var(--border)}}
 </style>
 </head>
@@ -123,7 +144,7 @@
   <div class="app-head">
     <div>
       <h1>📗 Unit / Monthly Post Generator</h1>
-      <p>Write up your project's progress this unit/month, add captioned photos, and download a finished portfolio page.</p>
+      <p>Write up your project update this unit/month, add captioned photos, and download a finished portfolio page.</p>
     </div>
     <a class="switch-link" href="index.html">← All tools</a>
   </div>
@@ -147,10 +168,13 @@
     <div class="help">
       <strong>How this works:</strong> Write up your project's progress over <em>this unit</em> (300–400 words), add four captioned photos,
       then click <em>Download portfolio</em> and submit to Canvas.
-      <br><strong>Key terms:</strong> wrap a word in asterisks like *torque* to show it as a light-blue key term.
+      <br><strong><a href="https://sites.google.com/dpengineering.org/dpea-portfolios/key-terms" target="_blank">Key terms:</a></strong> wrap a word in asterisks like *torque* to show it as a light-blue key term.
     </div>
 
-    <fieldset>
+    <details class="fold" data-fold="title" open>
+      <summary>Title Card<span class="fold-note"></span></summary>
+      <div class="fold-body">
+      <fieldset>
       <legend>Title Card</legend>
       <div class="row">
         <div><label>First name<input type="text" id="firstName" placeholder="Ada"></label></div>
@@ -189,10 +213,15 @@
       <div class="drop" id="coverDrop">Drag a cover image here, or click to choose</div>
       <div class="thumbs" id="coverThumb"></div>
     </fieldset>
+      </div>
+    </details>
 
     <div id="weeks"></div>
 
-    <fieldset>
+    <details class="fold" data-fold="reflection" open>
+      <summary>Personal Reflection/Synthesis<span class="fold-note"></span></summary>
+      <div class="fold-body">
+      <fieldset>
       <legend>Personal Reflection/Synthesis</legend>
       <div class="locknote" hidden>🔒 Locked — the author's text. Add your suggestion below.</div>
       <textarea id="reflection" style="min-height:160px" placeholder="Text here..."></textarea>
@@ -203,15 +232,25 @@
         <textarea id="suggestReflection" placeholder="Suggest an edit or improvement for this section…"></textarea></label>
       </div>
     </fieldset>
+      </div>
+    </details>
 
-    <fieldset>
+    <details class="fold" data-fold="filemgmt" open>
+      <summary>File Management<span class="fold-note"></span></summary>
+      <div class="fold-body">
+      <fieldset>
       <legend>File Management</legend>
       <p class="hint" style="margin:.2rem 0 .6rem">Upload two screenshots showing your work is organized: (1) your properly named and organized <strong>HTML files</strong>, and (2) your properly named and organized <strong>images</strong>. These appear in a collapsible “File Management” section at the end of your post.</p>
       <div class="drop" id="fmDrop">Drag your two screenshots here, or click to choose</div>
       <div class="thumbs" id="fmThumbs"></div>
     </fieldset>
+      </div>
+    </details>
 
-    <fieldset>
+    <details class="fold" data-fold="rubric" open>
+      <summary>Self Grade Rubric<span class="fold-note"></span></summary>
+      <div class="fold-body">
+      <fieldset>
       <legend id="rubricLegend">Self Grade Rubric</legend>
       <label class="peertoggle" id="peerToggleWrap" hidden><input type="checkbox" id="peer"> 🔍 Peer Review — I'm reviewing a classmate's post</label>
       <div id="peerNameWrap" hidden><label>Reviewer's name<input type="text" id="peerName" placeholder="Your name (the reviewer)"></label></div>
@@ -219,6 +258,8 @@
       <p class="hint" id="peerHint" hidden style="margin:.2rem 0 .6rem">You're reviewing a classmate's post. Grade <em>their</em> work against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a>, check the criteria they truly met, and leave a brief comment for each category (required). Your feedback renders as a collapsible “Peer Review” section at the end of their post.</p>
       <div id="rubricRows"></div>
     </fieldset>
+      </div>
+    </details>
 
     <label class="pubtoggle"><input type="checkbox" id="publicView"> Publish-ready — hide Self Grade Rubric &amp; File Management in the downloaded post <span class="hint">(Leave unchecked for submitting to Canvas)</span></label>
   </div>
@@ -234,6 +275,10 @@
 <script>
 const state={images:{},cover:null,fileMgmt:[]};
 const DRAFT_KEY="unitPostDraft";
+const FOLD_NS="unit";
+// The project update is written in two parts. The old single box was 300-400
+// words with 4 images; the halves keep that total.
+const PART_MIN=150, PART_MAX=200, IMAGES_PER_PART=2;
 const DEFAULT_GRAD="orange";
 
 // 12th graders post monthly instead of per unit, so the "Unit" picker becomes a
@@ -361,38 +406,63 @@ function addWeek(data={}){
   const id=uid();
   const mapImgs=a=>(a||[]).map(i=>({name:i.name||"",caption:i.caption||"",dataUrl:i.dataUrl}));
   state.images[id]={
-    g1:mapImgs(data.images1||data.images)   // data.images = legacy single-group drafts
+    g1:mapImgs(data.images1||data.images),  // data.images = legacy single-group drafts
+    g2:mapImgs(data.images2)
   };
   const fs=document.createElement("fieldset");
   fs.className="week";fs.dataset.id=id;
+  // The update is written in two parts so the finished post reads in digestible
+  // chunks instead of one wall of text, each part carrying its own pair of
+  // photos (still four in total). Each part heads its section as
+  // "Project Update — pt. 1"; an optional subtitle replaces the "pt. N".
+  const part=n=>`
+    <div class="pu-part" data-part="${n}">
+      <div class="pu-head">Project Update <span class="pu-n">— pt. ${n}</span></div>
+      <label>Subtitle <span class="hint">(optional — replaces “pt. ${n}” as the heading in your post)</span>
+        <input type="text" class="w-sub" data-lm="${n}" placeholder="e.g. Designing the gearbox"></label>
+      <div class="locknote" hidden>🔒 Locked — the author's text. Add your suggestion below.</div>
+      <label>Your progress <span class="hint">(${PART_MIN}–${PART_MAX} words)</span>
+        <textarea class="w-text" data-lm="${n}" placeholder="Text here..."></textarea></label>
+      <div class="starter" data-lm="${n}"></div>
+      <div class="counter w-count" data-for="${n}"></div>
+      <div class="suggest-wrap" hidden>
+        <label class="suggest-label">✏️ Reviewer suggestion for Project Update pt. ${n} <span class="hint">(required)</span>
+        <textarea class="w-suggest" data-lm="${n}" placeholder="Suggest an edit or improvement for this section…"></textarea></label>
+      </div>
+      <label>Images for part ${n} <span class="hint">(exactly ${IMAGES_PER_PART}, each with a brief caption)</span></label>
+      <div class="drop wdrop" data-group="g${n}">Drag images here, or click to choose</div>
+      <div class="thumbs wthumbs" data-group="g${n}"></div>
+    </div>`;
   fs.innerHTML=`
     <legend>Project Update</legend>
-    <div class="locknote" hidden>🔒 Locked — the author's text. Add your suggestion below.</div>
-    <label>Your progress this unit <span class="hint">(300–400 words)</span>
-      <textarea class="w-text" data-lm="1" placeholder="Text here..."></textarea></label>
-    <div class="starter" data-lm="1"></div>
-    <div class="counter w-count" data-for="1"></div>
-    <div class="suggest-wrap" hidden>
-      <label class="suggest-label">✏️ Reviewer suggestion for the Project Update <span class="hint">(required)</span>
-      <textarea class="w-suggest" placeholder="Suggest an edit or improvement for this section…"></textarea></label>
-    </div>
-    <label>Images for this update <span class="hint">(exactly 4, each with a brief caption)</span></label>
-    <div class="drop wdrop" data-group="g1">Drag images here, or click to choose</div>
-    <div class="thumbs wthumbs" data-group="g1"></div>
+    ${part(1)}${part(2)}
     <div class="tip">💻 <strong>Want to show code?</strong> Use <a href="https://ray.so/#padding=32&amp;language=cpp&amp;theme=candy&amp;background=true&amp;darkMode=true&amp;lineNumbers=true" target="_blank" rel="noopener">ray.so</a> for generating images of code, then upload that image above (and caption it).</div>
     <div class="tip green">🎬 <strong>Have a video?</strong> Convert it to a GIF with <a href="https://hapaz.net/video2gif/" target="_blank" rel="noopener">video2gif</a>, then upload the GIF above — animated GIFs stay animated.</div>`;
   $("weeks").appendChild(fs);
   fs.querySelector('.w-text[data-lm="1"]').value=data.text1||data.text||"";
-  wireDrop(fs.querySelector('.wdrop[data-group="g1"]'),async files=>{
-    for(const f of files){
-      try{const r=await readImage(f);if(r)state.images[id].g1.push(r);}
-      catch(e){imgError(f);}
-    }
-    renderThumbs(id);autosave();updatePreview();validate();
+  fs.querySelector('.w-text[data-lm="2"]').value=data.text2||"";
+  fs.querySelector('.w-sub[data-lm="1"]').value=data.sub1||"";
+  fs.querySelector('.w-sub[data-lm="2"]').value=data.sub2||"";
+  ["g1","g2"].forEach(g=>{
+    wireDrop(fs.querySelector(`.wdrop[data-group="${g}"]`),async files=>{
+      for(const f of files){
+        try{const r=await readImage(f);if(r)state.images[id][g].push(r);}
+        catch(e){imgError(f);}
+      }
+      renderThumbs(id);autosave();updatePreview();validate();
+    });
   });
   fs.querySelectorAll("input,textarea").forEach(el=>el.addEventListener("input",()=>{autosave();schedulePreview();validate();}));
+  // echo a part's subtitle in its form heading, so the student sees the heading
+  // their post will actually carry
+  fs.querySelectorAll(".w-sub").forEach(el=>{
+    const n=el.dataset.lm, lab=fs.querySelector(`.pu-part[data-part="${n}"] .pu-n`);
+    const sync=()=>{lab.textContent="— "+(el.value.trim()||`pt. ${n}`);};
+    el.addEventListener("input",sync);sync();
+  });
   const _uN=STARTERS.update.length;
-  wireStarter(fs.querySelector('.w-text[data-lm="1"]'),fs.querySelector('.starter[data-lm="1"]'),STARTERS.update,Math.floor(Math.random()*_uN));
+  [1,2].forEach(n=>wireStarter(fs.querySelector(`.w-text[data-lm="${n}"]`),
+    fs.querySelector(`.starter[data-lm="${n}"]`),STARTERS.update,Math.floor(Math.random()*_uN)));
   renderThumbs(id);
   return id;
 }
@@ -400,7 +470,7 @@ function renderThumbs(id){
   const card=[...document.querySelectorAll(".week")].find(c=>c.dataset.id===id);
   if(!card)return;
   let fig=0;  // figure numbers run across the update's images, in document order
-  ["g1"].forEach(g=>{
+  ["g1","g2"].forEach(g=>{
     const box=card.querySelector(`.wthumbs[data-group="${g}"]`);
     if(!box)return;
     box.innerHTML="";
@@ -421,18 +491,23 @@ function collect(){
     meta:{first:val("firstName"),last:val("lastName"),student:(val("firstName")+" "+val("lastName")).trim(),project:val("project"),grade:val("grade"),unit:val("unit"),...scheduleMeta()},
     cover:state.cover||null,
     weeks:[...document.querySelectorAll(".week")].map(card=>{
-      const im=state.images[card.dataset.id]||{g1:[]};
+      const im=state.images[card.dataset.id]||{g1:[],g2:[]};
       const m=a=>a.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl}));
+      const sub=n=>card.querySelector(`.w-sub[data-lm="${n}"]`).value.trim();
       return {
         text1:card.querySelector('.w-text[data-lm="1"]').value,
-        images1:m(im.g1)
+        sub1:sub(1),
+        images1:m(im.g1),
+        text2:card.querySelector('.w-text[data-lm="2"]').value,
+        sub2:sub(2),
+        images2:m(im.g2)
       };
     }),
     reflection:val("reflection"),
     fileMgmt:state.fileMgmt.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl})),
     rubric:getRubric(),
     peer:(()=>{
-      const w=document.querySelector(".w-suggest");
+      const sugOf=n=>{const el=document.querySelector(`.w-suggest[data-lm="${n}"]`);return el?el.value:"";};
       // Peer feedback is kept separate from the author's own rubric comments so
       // a review never overwrites the work it is reviewing.
       const comments={};
@@ -440,7 +515,8 @@ function collect(){
         const v=r.querySelector(".peer-comment").value.trim();
         if(v)comments[r.dataset.key]=v;
       });
-      return {on:$("peer").checked,reviewer:val("peerName"),sUpdate:w?w.value:"",
+      return {on:$("peer").checked,reviewer:val("peerName"),
+        sUpdate1:sugOf(1),sUpdate2:sugOf(2),
         sReflection:val("suggestReflection"),comments};
     })(),
     publicView:$("publicView").checked,
@@ -512,15 +588,19 @@ function buildHTML(d){
   // the peer's words go in a section of their own below it.
   const rubricTitle="Self Grade Rubric";
   const figCtr={n:0};  // figure numbers run across the whole post
-  const sections=d.weeks.map((w,i)=>{
-    const imgs1=w.images1||[];
-    const hasImg=imgs1.some(x=>x.dataUrl);
-    if(!w.text1&&!hasImg)return "";
-    let html=`<section>\n<h2>Project Update</h2>\n`;
-    if(w.text1)html+=paras(w.text1)+"\n";
-    if(imgs1.length)html+=gallery(imgs1,figCtr,1)+"\n";
-    return html+"</section>";
-  }).filter(Boolean).join("\n\n");
+  // Two parts, each its own section so the post reads in chunks. The heading
+  // is "Project Update — pt. N" unless the student gave that part a subtitle.
+  const sections=d.weeks.map(w=>[1,2].map(n=>{
+    const text=w[`text${n}`], imgs=w[`images${n}`]||[], subtitle=(w[`sub${n}`]||"").trim();
+    const hasImg=imgs.some(x=>x.dataUrl);
+    if(!text&&!hasImg)return "";
+    const head=`Project Update — ${esc(subtitle)||`pt. ${n}`}`;
+    let html=`<section>\n<h2>${head}</h2>\n`;
+    if(text)html+=paras(text)+"\n";
+    if(imgs.length)html+=gallery(imgs,figCtr,n)+"\n";
+    html+="</section>";
+    return html+(peerNote(`Project Update pt. ${n}`,peer[`sUpdate${n}`])||"");
+  }).filter(Boolean).join("\n\n")).join("\n\n");
   const reflection=d.reflection
     ? `<section>\n<h2>Looking Back</h2>\n${paras(d.reflection)}\n</section>`:"";
   const fmImgs=(d.fileMgmt||[]).filter(i=>i.dataUrl);
@@ -543,9 +623,11 @@ function buildHTML(d){
   // Embedded editable state so this page can be re-opened in the generator.
   // Photos are omitted here (they're already inline above) to avoid doubling
   // the file size; they're recovered from the rendered <img> tags on load.
-  const editData={v:2,meta:d.meta,reflection:d.reflection,weeks:d.weeks.map(w=>({
-    text1:w.text1,
-    images1:(w.images1||[]).map(i=>({name:i.name,caption:i.caption}))
+  const editData={v:3,meta:d.meta,reflection:d.reflection,weeks:d.weeks.map(w=>({
+    text1:w.text1,sub1:w.sub1,
+    images1:(w.images1||[]).map(i=>({name:i.name,caption:i.caption})),
+    text2:w.text2,sub2:w.sub2,
+    images2:(w.images2||[]).map(i=>({name:i.name,caption:i.caption}))
   })),fileMgmt:(d.fileMgmt||[]).map(i=>({name:i.name,caption:i.caption})),rubric:d.rubric||[],peer:d.peer||null,publicView:!!d.publicView,gradient:d.gradient};
   const dataJson=JSON.stringify(editData).replace(/</g,"\\u003c");
   return `<!doctype html>
@@ -562,7 +644,6 @@ ${coverHeader(d,name,sub)}
 <main>
 ${peerBanner}
 ${sections||"<p>Fill in your project update to see your portfolio here.</p>"}
-${peerNote("Project Update",peer.sUpdate)}
 ${reflection}
 ${peerNote("Reflection",peer.sReflection)}
 ${fileMgmt}
@@ -576,13 +657,13 @@ ${peerRubric}
 }
 
 // ---- requirements before download ----
-const UPDATE_MIN=300, UPDATE_MAX=400, REFLECT_MIN=200, REFLECT_MAX=250, MIN_KEYTERMS=5;
-const UPDATE_IMAGES=4, FILEMGMT_IMAGES=2;
+const REFLECT_MIN=200, REFLECT_MAX=250, MIN_KEYTERMS=5;
+const FILEMGMT_IMAGES=2;
 function theWeek(){return document.querySelector(".week");}
 function lmWords(n){const t=theWeek()&&theWeek().querySelector(`.w-text[data-lm="${n}"]`);return countWords(t?t.value:"");}
 function groupImgs(){
-  const card=theWeek();if(!card)return {g1:[]};
-  return state.images[card.dataset.id]||{g1:[]};
+  const card=theWeek();if(!card)return {g1:[],g2:[]};
+  return state.images[card.dataset.id]||{g1:[],g2:[]};
 }
 // Count *asterisk* key terms across the update box and the reflection, using the
 // same match rule as the renderer (keyTerms, above) so the count matches what
@@ -591,6 +672,7 @@ function keyTermCount(){
   const re=/\*(\S(?:[^*\n]*\S)?)\*/g, wk=theWeek();
   const texts=[
     wk?wk.querySelector('.w-text[data-lm="1"]').value:"",
+    wk?wk.querySelector('.w-text[data-lm="2"]').value:"",
     $("reflection").value
   ];
   return texts.reduce((n,t)=>n+((t.match(re)||[]).length),0);
@@ -606,14 +688,15 @@ function renderCounter(el,base,words,min,max){
 }
 function validate(){
   const wk=theWeek();
-  const w1=lmWords(1), wr=countWords($("reflection").value);
-  const ok1=renderCounter(wk&&wk.querySelector('.w-count[data-for="1"]'),"counter w-count",w1,UPDATE_MIN,UPDATE_MAX);
+  const w1=lmWords(1), w2=lmWords(2), wr=countWords($("reflection").value);
+  const ok1=renderCounter(wk&&wk.querySelector('.w-count[data-for="1"]'),"counter w-count",w1,PART_MIN,PART_MAX);
+  const ok2=renderCounter(wk&&wk.querySelector('.w-count[data-for="2"]'),"counter w-count",w2,PART_MIN,PART_MAX);
   const okR=renderCounter($("reflection-count"),"counter",wr,REFLECT_MIN,REFLECT_MAX);
   const im=groupImgs();
-  const g1n=im.g1.filter(i=>i.dataUrl).length;
-  const all=[...im.g1].filter(i=>i.dataUrl);
+  const g1n=im.g1.filter(i=>i.dataUrl).length, g2n=im.g2.filter(i=>i.dataUrl).length;
+  const all=[...im.g1,...im.g2].filter(i=>i.dataUrl);
   const captioned=all.filter(i=>i.caption&&i.caption.trim()).length;
-  const imgOK=g1n===UPDATE_IMAGES, capOK=all.length>0&&captioned===all.length;
+  const imgOK=g1n===IMAGES_PER_PART&&g2n===IMAGES_PER_PART, capOK=all.length>0&&captioned===all.length;
   const fmN=state.fileMgmt.filter(i=>i.dataUrl).length, fmOK=fmN===FILEMGMT_IMAGES;
   const rubRows=[...document.querySelectorAll(".rubric-row")];
   const rubDone=rubRows.filter(r=>r.querySelector(".rub-comment").value.trim()).length;
@@ -626,12 +709,13 @@ function validate(){
   // checklist is their own — name, a suggestion per section, and full rubric feedback.
   if($("peer")&&$("peer").checked){
     const revOK=!!$("peerName").value.trim();
-    const wsug=document.querySelector(".w-suggest");
-    const suUOK=!!(wsug&&wsug.value.trim());
+    const sug=n=>{const el=document.querySelector(`.w-suggest[data-lm="${n}"]`);return !!(el&&el.value.trim());};
+    const suU1OK=sug(1), suU2OK=sug(2), suUOK=suU1OK&&suU2OK;
     const suROK=!!$("suggestReflection").value.trim();
     $("gate").innerHTML='<div class="ghead">To download your review, finish these:</div>'+
       row(revOK,`Enter your name (the reviewer)`)+
-      row(suUOK,`Suggest an edit for the Project Update`)+
+      row(suU1OK,`Suggest an edit for Project Update pt. 1`)+
+      row(suU2OK,`Suggest an edit for Project Update pt. 2`)+
       row(suROK,`Suggest an edit for the Reflection`)+
       row(rubOK,`Peer Review: add feedback for all ${rubRows.length} categories (${rubDone}/${rubRows.length})`);
     const okP=revOK&&suUOK&&suROK&&rubOK;
@@ -643,14 +727,15 @@ function validate(){
     row(nameOK,`Enter your first and last name`)+
     row(grOK,`Choose your grade`)+
     row(unOK,isMonthly()?`Choose your month`:`Choose your unit`)+
-    row(ok1,`Project Update: ${UPDATE_MIN}–${UPDATE_MAX} words (now ${w1})`)+
+    row(ok1,`Project Update pt. 1: ${PART_MIN}–${PART_MAX} words (now ${w1})`)+
+    row(ok2,`Project Update pt. 2: ${PART_MIN}–${PART_MAX} words (now ${w2})`)+
     row(ktOK,`Highlight at least ${MIN_KEYTERMS} key terms with *asterisks* (now ${kt})`)+
-    row(imgOK,`Add exactly ${UPDATE_IMAGES} images to your update (now ${g1n})`)+
+    row(imgOK,`Add exactly ${IMAGES_PER_PART} images to each part (now ${g1n} and ${g2n})`)+
     row(capOK,`Add a brief caption to every image (${captioned}/${all.length} captioned)`)+
     row(okR,`Reflection/Synthesis: ${REFLECT_MIN}–${REFLECT_MAX} words (now ${wr})`)+
     row(fmOK,`Add exactly ${FILEMGMT_IMAGES} File Management screenshots (now ${fmN})`)+
     row(rubOK,`Self Grade Rubric: add a comment for all ${rubRows.length} categories (${rubDone}/${rubRows.length})`);
-  const ok=ok1&&imgOK&&capOK&&okR&&fmOK&&rubOK&&nameOK&&grOK&&unOK&&ktOK;
+  const ok=ok1&&ok2&&imgOK&&capOK&&okR&&fmOK&&rubOK&&nameOK&&grOK&&unOK&&ktOK;
   $("download").disabled=!ok;
   $("download").title=ok?"":"Finish the requirements above to enable download";
   return ok;
@@ -700,12 +785,17 @@ function parsePortfolioHTML(txt){
   const data=JSON.parse(el.textContent);
   // Photos aren't in the embedded data (to avoid doubling file size); recover
   // them from the rendered <img> tags, matched by group and order.
-  const cov=doc.querySelector(".cover img");
+  // The DPEA logo is itself an <img> inside .cover, so an unqualified
+  // ".cover img" matches the LOGO on a post that uses a gradient banner
+  // instead of a cover photo -- reopening then showed the logo blown up
+  // full-bleed as the cover and lost the gradient.
+  const cov=doc.querySelector(".cover img:not(.cover-logo)");
   data.cover=cov?cov.getAttribute("src"):null;
   const srcs=g=>[...doc.querySelectorAll(`.gallery[data-group="${g}"] figure img`)].map(i=>i.getAttribute("src"));
-  const g1=srcs(1);                         // single project update
+  const g1=srcs(1), g2=srcs(2);            // one gallery per update part
   (data.weeks||[]).forEach(w=>{
     w.images1=(w.images1||[]).map((im,i)=>({...im,dataUrl:g1[i]}));
+    w.images2=(w.images2||[]).map((im,i)=>({...im,dataUrl:g2[i]}));
   });
   const fm=srcs("fm");                      // file-management screenshots
   data.fileMgmt=(data.fileMgmt||[]).map((im,i)=>({...im,dataUrl:fm[i]}));
@@ -786,7 +876,11 @@ function loadData(d){
   $("peer").checked=(!!pr.on||isPartnersPost(meta))&&isMonthly();
   $("peerName").value=pr.reviewer||reviewerDefault();
   $("suggestReflection").value=pr.sReflection||"";
-  const wsug=document.querySelector(".w-suggest");if(wsug)wsug.value=pr.sUpdate||"";
+  [1,2].forEach(n=>{
+    const el=document.querySelector(`.w-suggest[data-lm="${n}"]`);
+    // sUpdate is the pre-split single suggestion; fold it into part 1.
+    if(el)el.value=(n===1?(pr.sUpdate1||pr.sUpdate):pr.sUpdate2)||"";
+  });
   setPeerComments(pr.comments);
   applyPeerMode();
   if(isPartnersPost(meta)&&!pr.on){
@@ -829,7 +923,7 @@ function reviewerDefault(){
 function collectLight(){
   const d=collect();
   d.cover=null;
-  d.weeks=(d.weeks||[]).map(w=>({...w,images1:[]}));
+  d.weeks=(d.weeks||[]).map(w=>({...w,images1:[],images2:[]}));
   d.fileMgmt=[];
   return d;
 }
@@ -934,6 +1028,7 @@ wireStarter($("reflection"),$("reflection-starter"),STARTERS.reflection,Math.flo
 const PROFILE_FIELDS={firstName:"first",lastName:"last",grade:"grade"};
 function hydrateProfile(){
   applyProfile(PROFILE_FIELDS);
+  wireFolds(FOLD_NS);
   applyGradeMode();
   validate();
 }

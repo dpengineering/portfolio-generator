@@ -298,7 +298,11 @@ function parsePortfolioHTML(txt){
   var el=doc.getElementById("portfolio-data");
   if(!el)return null;                       // not a portfolio-generator post
   var data=JSON.parse(el.textContent);
-  var cov=doc.querySelector(".cover img");
+  // The DPEA logo is itself an <img> inside .cover, so an unqualified
+  // ".cover img" matches the LOGO on a post that uses a gradient banner
+  // instead of a cover photo -- reopening then showed the logo blown up
+  // full-bleed as the cover and lost the gradient.
+  var cov=doc.querySelector(".cover img:not(.cover-logo)");
   data.cover=cov?cov.getAttribute("src"):null;
   // Keep the original post's cover header verbatim (gradient/photo banner + DPEA
   // logo + name/subtitle) so the embedded portfolio matches the real post.
