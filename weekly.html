@@ -160,6 +160,7 @@
       <button class="btn alt" id="save">💾 Save draft</button>
       <button class="btn alt" id="loadBtn">📂 Load draft or post</button>
       <input type="file" id="loadFile" accept=".json,.html,.htm,application/json,text/html" hidden>
+      <button class="btn ghost" id="foldAll" type="button" title="Collapse or expand every section">⊟ Collapse all</button>
       <button class="btn danger" id="clear">🗑 Clear</button>
       <span class="savednote" id="autonote"></span>
     </div>
@@ -371,6 +372,13 @@ function addWeek(data={}){
   };
   const fs=document.createElement("fieldset");
   fs.className="week";fs.dataset.id=id;
+  // The week card is built here rather than in the markup, so it wraps its own
+  // fold; wireFolds() picks it up on the next pass (see below).
+  const fold=document.createElement("details");
+  fold.className="fold";fold.dataset.fold="learning";fold.open=true;
+  fold.innerHTML='<summary>Weekly Learning<span class="fold-note"></span></summary>';
+  const foldBody=document.createElement("div");
+  foldBody.className="fold-body";
   fs.innerHTML=`
     <legend>Weekly Learning</legend>
     <label>This week's focus
@@ -391,7 +399,9 @@ function addWeek(data={}){
     <div class="thumbs wthumbs" data-group="g2"></div>
     <div class="tip">💻 <strong>Want to show code?</strong> Use <a href="https://ray.so/#padding=32&amp;language=cpp&amp;theme=candy&amp;background=true&amp;darkMode=true&amp;lineNumbers=true" target="_blank" rel="noopener">ray.so</a> for generating images of code, then upload that image to one of the moments above (and caption it).</div>
     <div class="tip green">🎬 <strong>Have a video?</strong> Convert it to a GIF with <a href="https://hapaz.net/video2gif/" target="_blank" rel="noopener">video2gif</a>, then upload the GIF above — animated GIFs stay animated.</div>`;
-  $("weeks").appendChild(fs);
+  foldBody.appendChild(fs);fold.appendChild(foldBody);
+  $("weeks").appendChild(fold);
+  wireFolds(FOLD_NS,fold);
   fs.querySelector(".w-title").value=data.title||"";
   fs.querySelector('.w-text[data-lm="1"]').value=data.text1||data.text||"";
   fs.querySelector('.w-text[data-lm="2"]').value=data.text2||"";
@@ -831,6 +841,7 @@ function prApplyVisibility(){
   if(!on)return;
   prRenderRubric("prRubric","prDeltaSuggestions",prOnEdit);
   wireFolds(FOLD_NS);
+  wireFoldAll(FOLD_NS,"foldAll");
   if(!document.querySelector("#prDeltas .delta")){prAddDelta("prDeltas",null,prOnEdit);prAddDelta("prDeltas",null,prOnEdit);}
   if(!$("prWeek").value){try{$("prWeek").value=new Date().toISOString().slice(0,10);}catch(e){}}
   prUpdateScore();
@@ -869,6 +880,7 @@ const PROFILE_FIELDS={firstName:"first",lastName:"last",grade:"grade"};
 function hydrateProfile(){
   applyProfile(PROFILE_FIELDS);
   wireFolds(FOLD_NS);
+  wireFoldAll(FOLD_NS,"foldAll");
   applyFieldVisibility();
   validate();
 }

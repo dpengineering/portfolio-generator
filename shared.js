@@ -334,6 +334,40 @@ function wireFolds(ns,root){
     d.addEventListener("toggle",()=>saveFold(ns,name,d.open));
   });
 }
+// Open or close every visible fold at once, persisting each. Hidden folds (the
+// performance review on a non-senior's page) are left alone so toggling doesn't
+// write state for sections that aren't there.
+function foldAll(ns,open){
+  document.querySelectorAll("details.fold").forEach(d=>{
+    if(d.closest("[hidden]"))return;
+    d.open=open;
+    if(d.dataset.fold)saveFold(ns,d.dataset.fold,open);
+  });
+}
+function visibleFolds(){
+  return [...document.querySelectorAll("details.fold")].filter(d=>!d.closest("[hidden]"));
+}
+// Wires a button that collapses everything, then expands everything. Its label
+// reflects what the next press will do.
+function wireFoldAll(ns,btnId){
+  const btn=$(btnId);
+  if(!btn)return;
+  const sync=()=>{
+    const folds=visibleFolds();
+    const anyOpen=folds.some(d=>d.open);
+    btn.textContent=anyOpen?"⊟ Collapse all":"⊞ Expand all";
+    btn.disabled=!folds.length;
+  };
+  if(!btn.dataset.wired){
+    btn.dataset.wired="1";
+    btn.addEventListener("click",()=>{foldAll(ns,!visibleFolds().some(d=>d.open));sync();});
+    document.addEventListener("toggle",e=>{
+      if(e.target&&e.target.classList&&e.target.classList.contains("fold"))sync();
+    },true);   // capture: toggle doesn't bubble
+  }
+  sync();
+}
+
 // Short status shown on a summary, so a collapsed section still says where it
 // stands. Pass "" to clear.
 function foldNote(d,text){

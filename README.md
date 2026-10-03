@@ -22,11 +22,16 @@ grade; **no Canvas rubric is used for any assignment.**
 
 ### The hub
 
-`index.html` asks once for a grade, a name, and where the student sits in the
+`index.html` asks once for a name, a grade, and where the student sits in the
 schedule — a **rotation** (A–D) for grades 9–11, or one or more **periods**
 (1–4) for grade 12 — and remembers it on the device (`dpea.profile.v1`). It then
 shows only the tools that grade needs. Pre-fill never overwrites a field that
 already has something in it, so a loaded draft always wins.
+
+**Every field is required.** This is a student's first contact with the system,
+and everything downstream depends on it: a name for their posts, a grade to pick
+their tools, a rotation or period to pair them for peer review. Next stays
+disabled and names the first thing still missing.
 
 The schedule travels with every post as `meta.rotation` / `meta.periods` plus a
 derived `meta.peerKey`, which is what peer-review matching pairs on: same
@@ -62,8 +67,9 @@ pages become links to `portfolio.dpeacl.org` and the builds can be retired.
 
 - Fill in a title card (name, project, classroom, grade, unit), Learning Moments,
   captioned photos, and a reflection. Every section is collapsible, so students
-  can fold away the parts they aren't working on; the choice lasts the session
-  and a new visit starts fully expanded.
+  can fold away the parts they aren't working on, with a **Collapse all** button
+  in the toolbar; the choice lasts the session and a new visit starts fully
+  expanded.
 - The unit post's Project Update is written in **two parts**, each with its own
   pair of photos (four in total), so the finished post reads in chunks rather
   than one wall of text. Each part heads its section `Project Update — pt. N`,

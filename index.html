@@ -87,12 +87,13 @@
   <div id="setup">
     <div class="ask">
       <strong>First time here?</strong>
-      Tell us your grade so we only show the tools you need. We'll remember it on this device,
-      and each tool will fill in your name for you.
+      Fill all of this in once and we'll remember it on this device — we'll show you only the
+      tools your grade needs, fill your name into each one, and use your rotation or period to
+      pair you up for peer review.
     </div>
     <fieldset>
       <legend>About you</legend>
-      <label>Grade <span class="hint">— required</span>
+      <label>Grade
         <select id="grade">
           <option value="">Select your grade...</option>
           <option value="9">9</option>
@@ -102,14 +103,14 @@
         </select>
       </label>
       <div class="row">
-        <div><label>First name <span class="hint">(optional)</span><input type="text" id="firstName" placeholder="Ada"></label></div>
-        <div><label>Last name <span class="hint">(optional)</span><input type="text" id="lastName" placeholder="Lovelace"></label></div>
+        <div><label>First name<input type="text" id="firstName" placeholder="Ada"></label></div>
+        <div><label>Last name<input type="text" id="lastName" placeholder="Lovelace"></label></div>
       </div>
 
       <!-- Rotation (grades 9-11) or period(s) (grade 12). This is what peer
            review pairs on, so it travels with every post the student makes. -->
       <div id="rotationWrap" hidden>
-        <label>Rotation <span class="hint">— required</span>
+        <label>Rotation
           <select id="rotation">
             <option value="">Select your rotation...</option>
             <option value="A">A</option>
@@ -120,7 +121,7 @@
         </label>
       </div>
       <div id="periodWrap" hidden>
-        <label>Period(s) <span class="hint">— required; pick every period you're in</span></label>
+        <label>Period(s)</label>
         <div class="chips" id="periodChips">
           <label class="chip-opt"><input type="checkbox" class="periodBox" value="1"><span>1</span></label>
           <label class="chip-opt"><input type="checkbox" class="periodBox" value="2"><span>2</span></label>
@@ -133,7 +134,7 @@
            themselves would pull the form away mid-typing. -->
       <div class="next-row">
         <button class="btn" type="button" id="next" disabled>Next →</button>
-        <span class="hint" id="nextHint">Pick your grade to continue.</span>
+        <span class="hint" id="nextHint"></span>
       </div>
     </fieldset>
   </div>
@@ -199,6 +200,17 @@ function scheduleReady(){
   if(!g)return false;
   return g==="12" ? pickedPeriods().length>0 : !!$("rotation").value;
 }
+// Every field here is required. This is a student's first contact with the
+// system, so it asks once, plainly, and won't let them past until it has what
+// every tool downstream needs: a name for the posts, a grade to decide which
+// tools they see, and a rotation or period to pair them for peer review.
+function missingField(){
+  if(!$("firstName").value.trim())return "first name";
+  if(!$("lastName").value.trim())return "last name";
+  if(!$("grade").value)return "grade";
+  if(!scheduleReady())return $("grade").value==="12"?"period":"rotation";
+  return "";
+}
 
 function paint(){
   const p=getProfile(), g=$("grade").value||p.grade, senior=g==="12";
@@ -212,12 +224,9 @@ function paint(){
         : `Peer review will pair you within period ${picked[0]}.`)
     : "";
 
-  const ready=scheduleReady();
-  $("next").disabled=!ready;
-  $("nextHint").textContent=ready?""
-    : !g ? "Pick your grade to continue."
-    : senior ? "Pick at least one period to continue."
-    : "Pick your rotation to continue.";
+  const missing=missingField();
+  $("next").disabled=!!missing;
+  $("nextHint").textContent=missing?`Add your ${missing} to continue.`:"";
 
   // Seniors do the performance review inside the rotation post now — one form,
   // two downloads — so it is not a separate tile.
@@ -276,14 +285,15 @@ function saveFields(){
 
 Object.keys(FIELDS).forEach(id=>{
   $(id).addEventListener("change",()=>{saveFields();paint();});
-  $(id).addEventListener("input",paint);
-});
+  $(id).addEventListener("input",paint);     // paint only — a half-typed name
+});                                          // is not what we want remembered
 $("rotation").addEventListener("change",()=>{saveFields();paint();});
 document.querySelectorAll(".periodBox").forEach(b=>b.addEventListener("change",()=>{saveFields();paint();}));
 $("next").addEventListener("click",()=>{
-  if(!$("grade").value){$("grade").focus();return;}
-  if(!scheduleReady()){
-    const el=$("grade").value==="12"?document.querySelector(".periodBox"):$("rotation");
+  const missing=missingField();
+  if(missing){
+    const el={"first name":$("firstName"),"last name":$("lastName"),"grade":$("grade"),
+      "rotation":$("rotation"),"period":document.querySelector(".periodBox")}[missing];
     if(el&&el.focus)el.focus();
     return;
   }
@@ -303,9 +313,10 @@ $("changeWho").addEventListener("click",()=>{
     if(b)b.checked=true;
   });
   wireTiles();
-  // A student who has been here before skips setup — but only if we already
-  // know where they sit, since older profiles predate rotation/periods.
-  go(p.grade&&peerGroupKey(p)?"tiles":"setup");
+  // A student who has been here before skips setup — but only if we have
+  // everything, since older profiles predate the name and schedule being
+  // required. Anyone short a field comes back through this once.
+  go(missingField()?"setup":"tiles");
 })();
 </script>
 </body>
