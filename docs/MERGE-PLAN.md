@@ -2,6 +2,8 @@
 
 Status: **phases 1a, 2 and 3 done** (this branch, `dev`). Nothing pushed.
 
+Phase 4 has started: the standalone builds are retired rather than maintained.
+
 ## Why merge
 
 1. **The round-trip is pure friction.** A senior writes a weekly post, downloads
@@ -53,19 +55,47 @@ move is a consolidation, not a fix for a broken path.
 | **2** ✅ | Hub at `/`; weekly generator moved to `/weekly`; grade asked once and remembered; review tile for grade 12 only; `?grade=` override; quota-aware autosave | yes — `/` is now the hub |
 | **1b** | Collapse the forked infra onto `shared.js`; move the review's image recompression into it; swap `alert()` for `notify()`; bump `?v=` | no |
 | **3** ✅ | `perfreview.js`: the review inside `weekly.html` for seniors, built on demand; two separately-gated downloads; round-trip dead | yes, large |
-| **4** | Flip the Google Sites pages to redirect to `portfolio.dpeacl.org`; retire the standalone builds | coordination |
+| **4** | Flip the Google Sites pages to point at `portfolio.dpeacl.org`; delete `build_standalone.py` and the two frozen `*-standalone.html` files | coordination |
 
 ## Rollout
 
-The Google Sites pages are a **frozen fallback**: they keep the older
-single-file generators so students have a working path if the new site
-misbehaves, and Sites gains a link to `portfolio.dpeacl.org`. The committed
-`*-standalone.html` files are those frozen copies — `build_standalone.py` still
-works but regenerating them means re-pasting into Sites, so it's left alone.
+The new system goes live at `portfolio.dpeacl.org`. The Google Sites pages stay
+up **unchanged**, holding the older single-file generators, so students have a
+working path if the new site misbehaves, and Sites gains a link across to the
+new one.
+
+`build_standalone.py` is **deprecated — do not update or run it.** The point of
+this branch is to retire single-file builds. The committed `*-standalone.html`
+files are frozen copies of what Sites is serving; regenerating them would
+produce something Sites isn't serving and would need re-pasting. Script and
+files get deleted together once the Sites pages are switched over.
 
 This also retires the constraint that drove the original fork: the review no
 longer has to be one self-contained file, which is why phase 1b is now free of
 deployment consequences and can follow phase 2 instead of blocking on it.
+
+## Peer review and the schedule
+
+The hub asks grades 9–11 for a **rotation** (A–D) and grade 12 for one or more
+**periods** (1–4), and every post carries that in its metadata along with a
+derived `peerKey`. That's what makes bulk peer-review matching possible: pull a
+week's submissions out of Canvas, group by `peerKey`, pair at random. Seniors
+match on their **first picked** period, so the pick *order* is preserved rather
+than sorted — unchecking the first one promotes the next.
+
+Opening a classmate's post now switches `unit.html` into peer review by itself,
+rather than relying on the reviewer remembering a toggle. Two signals, cheapest
+first: `?peer=1` in the URL, then an author name that doesn't match the local
+profile. Anything ambiguous is treated as your own post, so nobody gets locked
+out of their own writing. **`?peer=1` is the hook a future handoff should set** —
+whatever it ends up being (LTI, Drive, something else), if it can open the post
+with that parameter the reviewer lands in the right mode with no instructions.
+
+In peer review the author's self-assessment is now genuinely read-only: criteria
+checkboxes disabled, comments greyed and locked, and a separate feedback box per
+category for the reviewer. The two never share a field, so a review cannot
+overwrite the work it is reviewing, and the downloaded post renders both — the
+author's "Self Grade Rubric" and the reviewer's "Peer Review".
 
 ## Open
 

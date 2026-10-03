@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Unit Post Generator</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📗</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📙</text></svg>">
 <style>
   :root{
     --accent:#ea580c; --ink:#1e293b; --muted:#64748b; --border:#e2e8f0;
@@ -101,6 +101,12 @@
   .suggest-label{display:block;font-size:.82rem;font-weight:700;color:#1d4ed8}
   .suggest-wrap textarea{min-height:70px;border-color:#bfdbfe;margin-top:.25rem}
   textarea.locked{background:#f1f5f9;color:#64748b;cursor:not-allowed}
+  /* a reviewer sees the author's self-assessment greyed out and untouchable */
+  .rubric-row.peerlocked .rub-crit{opacity:.55}
+  .rubric-row.peerlocked .rub-check{cursor:not-allowed}
+  .rubric-row.peerlocked .rub-comment{background:#f1f5f9;color:#64748b;cursor:not-allowed}
+  .peer-wrap{margin-top:.55rem;border-top:1px dashed var(--border);padding-top:.5rem}
+  .peer-wrap textarea{min-height:70px;border-color:#bfdbfe}
   .locknote{font-size:.72rem;font-weight:700;color:#64748b;margin:.1rem 0 .35rem}
   .pubtoggle{display:flex;align-items:flex-start;gap:.45rem;font-size:.82rem;font-weight:600;color:var(--ink);margin:0 0 .9rem;cursor:pointer}
   .pubtoggle input{margin-top:.15rem;flex:none}
@@ -262,6 +268,13 @@ function applyPeerMode(){
   document.querySelectorAll(".suggest-wrap").forEach(el=>el.hidden=!on);
   document.querySelectorAll(".locknote").forEach(el=>el.hidden=!on);
   [...document.querySelectorAll(".w-text"),$("reflection")].forEach(t=>{if(t){t.readOnly=on;t.classList.toggle("locked",on);}});
+  // A reviewer must not be able to rewrite the author's own self-assessment —
+  // it's the thing they're reviewing. The boxes and comments grey out and lock,
+  // and a separate feedback box opens underneath for the peer's own words.
+  document.querySelectorAll(".rub-box").forEach(b=>{b.disabled=on;});
+  document.querySelectorAll(".rub-comment").forEach(c=>{c.readOnly=on;c.classList.toggle("locked",on);});
+  document.querySelectorAll(".peer-wrap").forEach(el=>{el.hidden=!on;});
+  document.querySelectorAll(".rubric-row").forEach(r=>r.classList.toggle("peerlocked",on));
   $("rubricLegend").textContent=on?"Peer Review":"Self Grade Rubric";
   $("selfHint").hidden=on;
   $("peerHint").hidden=!on;
@@ -405,7 +418,7 @@ function renderThumbs(id){
 // ---- collect + build ----
 function collect(){
   return {
-    meta:{first:val("firstName"),last:val("lastName"),student:(val("firstName")+" "+val("lastName")).trim(),project:val("project"),grade:val("grade"),unit:val("unit")},
+    meta:{first:val("firstName"),last:val("lastName"),student:(val("firstName")+" "+val("lastName")).trim(),project:val("project"),grade:val("grade"),unit:val("unit"),...scheduleMeta()},
     cover:state.cover||null,
     weeks:[...document.querySelectorAll(".week")].map(card=>{
       const im=state.images[card.dataset.id]||{g1:[]};
@@ -418,7 +431,18 @@ function collect(){
     reflection:val("reflection"),
     fileMgmt:state.fileMgmt.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl})),
     rubric:getRubric(),
-    peer:(()=>{const w=document.querySelector(".w-suggest");return {on:$("peer").checked,reviewer:val("peerName"),sUpdate:w?w.value:"",sReflection:val("suggestReflection")};})(),
+    peer:(()=>{
+      const w=document.querySelector(".w-suggest");
+      // Peer feedback is kept separate from the author's own rubric comments so
+      // a review never overwrites the work it is reviewing.
+      const comments={};
+      document.querySelectorAll(".rubric-row").forEach(r=>{
+        const v=r.querySelector(".peer-comment").value.trim();
+        if(v)comments[r.dataset.key]=v;
+      });
+      return {on:$("peer").checked,reviewer:val("peerName"),sUpdate:w?w.value:"",
+        sReflection:val("suggestReflection"),comments};
+    })(),
     publicView:$("publicView").checked,
     gradient:currentGrad()
   };
@@ -484,7 +508,9 @@ function buildHTML(d){
     ? `<div class="peer-banner">🔍 Peer reviewed${peer.reviewer?` by ${esc(peer.reviewer)}`:""}</div>` : "";
   const peerNote=(label,text)=>(peerOn&&text&&text.trim())
     ? `<aside class="peer-note"><div class="peer-note-h">✏️ Reviewer suggestion${peer.reviewer?` — ${esc(peer.reviewer)}`:""} · ${esc(label)}</div>\n${paras(text)}\n</aside>` : "";
-  const rubricTitle=peerOn?"Peer Review":"Self Grade Rubric";
+  // The author's self-assessment keeps its own name even on a reviewed post —
+  // the peer's words go in a section of their own below it.
+  const rubricTitle="Self Grade Rubric";
   const figCtr={n:0};  // figure numbers run across the whole post
   const sections=d.weeks.map((w,i)=>{
     const imgs1=w.images1||[];
@@ -509,6 +535,11 @@ function buildHTML(d){
         const note=r.comments?`<p class="rub-note">${esc(r.comments)}</p>`:"";
         return `<div class="rub-block">\n<h3>${esc(r.category)} <span class="lvl">${esc(r.level)}</span></h3>\n${lis}\n${note}\n</div>`;
       }).join("\n")+`\n</details>`:"";
+  const peerCats=peerOn?(d.rubric||[]).filter(r=>(peer.comments||{})[r.key]):[];
+  const peerRubric=peerCats.length
+    ? `<details class="rubric peer">\n<summary>Peer Review${peer.reviewer?` — ${esc(peer.reviewer)}`:""}</summary>\n`+peerCats.map(r=>
+        `<div class="rub-block">\n<h3>${esc(r.category)}</h3>\n<p class="rub-note">${esc(peer.comments[r.key])}</p>\n</div>`
+      ).join("\n")+`\n</details>`:"";
   // Embedded editable state so this page can be re-opened in the generator.
   // Photos are omitted here (they're already inline above) to avoid doubling
   // the file size; they're recovered from the rendered <img> tags on load.
@@ -536,6 +567,7 @@ ${reflection}
 ${peerNote("Reflection",peer.sReflection)}
 ${fileMgmt}
 ${rubric}
+${peerRubric}
 </main>
 <footer><p>${esc(name)} · ${monthYear}</p></footer>
 <script type="application/json" id="portfolio-data">${dataJson}<\/script>
@@ -720,6 +752,7 @@ $("clear").onclick=()=>{
   state.fileMgmt=[];renderFileMgmt();
   setRubric([]);
   $("peer").checked=false;$("peerName").value="";$("suggestReflection").value="";
+  setPeerComments({});
   $("weeks").innerHTML="";state.images={};
   addWeek();
   applyPeerMode();
@@ -750,12 +783,42 @@ function loadData(d){
   addWeek((d.weeks&&d.weeks[0])||{});
   // Peer review (Grade 12 only): restore after the week exists so the update suggestion has a home.
   const pr=d.peer||{};
-  $("peer").checked=!!pr.on&&isMonthly();
-  $("peerName").value=pr.reviewer||"";
+  $("peer").checked=(!!pr.on||isPartnersPost(meta))&&isMonthly();
+  $("peerName").value=pr.reviewer||reviewerDefault();
   $("suggestReflection").value=pr.sReflection||"";
   const wsug=document.querySelector(".w-suggest");if(wsug)wsug.value=pr.sUpdate||"";
+  setPeerComments(pr.comments);
   applyPeerMode();
+  if(isPartnersPost(meta)&&!pr.on){
+    notify(`This is ${esc(meta.student||"someone else")}'s post — peer review is on. Their writing and self-assessment are locked; add your feedback in the boxes that opened up.`,"info");
+  }
   updatePreview();
+}
+
+// ---- whose post is this? -------------------------------------------------
+// Opening a classmate's post should land you straight in peer review rather
+// than making you remember to flip a toggle — and, once posts are handed
+// around by something other than email, this is the hook that tells us the
+// file didn't come from the person sitting here.
+//
+// Three signals, cheapest first: an explicit ?peer=1 in the URL (what a future
+// LTI / Drive handoff would set), then a name that doesn't match the profile.
+// Anything we can't tell is treated as your own post, so a student is never
+// locked out of their own writing.
+function peerParam(){
+  const v=new URLSearchParams(location.search).get("peer");
+  return v==="1"||v==="true";
+}
+function isPartnersPost(meta){
+  if(peerParam())return true;
+  const me=getProfile(), mine=[me.first,me.last].filter(Boolean).join(" ").trim().toLowerCase();
+  const theirs=((meta&&meta.student)||"").trim().toLowerCase();
+  if(!mine||!theirs)return false;          // don't guess without both names
+  return mine!==theirs;
+}
+function reviewerDefault(){
+  const me=getProfile();
+  return [me.first,me.last].filter(Boolean).join(" ").trim();
 }
 
 // Drafts are capped by localStorage (~5MB) and photos are what overflows it.
@@ -809,10 +872,13 @@ function buildRubric(){
       `<div class="rub-cathead"><span class="rub-cat">${esc(cat.label)}</span><span class="rub-level" data-level="Level 1">Level 1</span></div>`+
       `<div class="rub-crit">`+tier("l3",cat.l3,"Level 3 criteria")+
         tier("l4",cat.l4,cat.l3.length?"Level 4 criteria (in addition to Level 3)":"Level 4 criteria")+`</div>`+
-      `<label class="rub-comment-label">Comments<textarea class="rub-comment" placeholder="Explain your self-assessment for this category…"></textarea></label>`;
+      `<label class="rub-comment-label">Comments<textarea class="rub-comment" placeholder="Explain your self-assessment for this category…"></textarea></label>`+
+      `<div class="peer-wrap" hidden><div class="locknote">🔒 The author's self-assessment. Add your feedback below.</div>`+
+      `<label class="rub-comment-label">Your feedback<textarea class="peer-comment" placeholder="What did they do well in this category, and what would you change?…"></textarea></label></div>`;
     box.appendChild(row);
     row.querySelectorAll(".rub-box").forEach(b=>b.addEventListener("change",()=>{updateRubricLevels();autosave();schedulePreview();validate();}));
     row.querySelector(".rub-comment").addEventListener("input",()=>{autosave();schedulePreview();validate();});
+    row.querySelector(".peer-comment").addEventListener("input",()=>{autosave();schedulePreview();validate();});
   });
   updateRubricLevels();
 }
@@ -837,6 +903,12 @@ function getRubric(){
     if(!row)return {key:cat.key,category:cat.label,level:"Level 1",met:[],comments:""};
     const {cL3,cL4,met}=rubCounts(row,cat);
     return {key:cat.key,category:cat.label,level:computeLevel(cat,cL3,cL4),met,comments:row.querySelector(".rub-comment").value.trim()};
+  });
+}
+function setPeerComments(map){
+  map=map||{};
+  document.querySelectorAll(".rubric-row").forEach(r=>{
+    r.querySelector(".peer-comment").value=map[r.dataset.key]||"";
   });
 }
 function setRubric(arr){

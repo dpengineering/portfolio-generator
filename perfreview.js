@@ -347,7 +347,7 @@ function prBuildArtifact(d){
   var selfNum=self.answered===self.total?self.overall.toFixed(2):"—";
   var selfCats=self.answered?
     ("Productive "+self.sub.prod+"/"+self.max.prod+" · Counterproductive "+self.sub.counter+"/"+self.max.counter+" · Performance "+self.sub.perf+"/"+self.max.perf):"";
-  var notesBlock=d.notes?'<div class="note"><strong>Student note:</strong> '+esc(d.notes)+'</div>':"";
+  var notesBlock=d.notes?'<div class="note studentnote"><strong>Note for your mentor:</strong> '+esc(d.notes)+'</div>':"";
   var glink=prGradeLink(d);
   // Embedded state for re-opening (image dataUrls omitted; recovered from the rendered galleries).
   var portMeta=d.portfolio?{meta:d.portfolio.meta,reflection:d.portfolio.reflection,
@@ -368,9 +368,11 @@ function prBuildArtifact(d){
       '<div class="sb primary"><div class="sbnum">'+selfNum+'</div><div class="sblab">Student self-score</div></div>'+
     '</div>\n'+
     '<div class="cats">'+selfCats+'</div>\n'+
-    notesBlock+
     '<div class="note">These ratings are the student\u2019s own self-assessment. The official grade is set by the mentor.</div>\n'+
     '<div id="mentor">'+prArtifactSectionsHTML(d.codes)+'</div>\n'+
+    // The student's note sits here, immediately above the grading box, so the
+    // mentor reads it right before they open the grader.
+    notesBlock+
     '<div class="mentorbox">\n'+
       '<div class="mb-h">\ud83d\udd17 For mentors — grade this submission</div>\n'+
       '<p class="mb-p">Copy this link into a new browser tab. It opens the grading tool pre-filled with this student\u2019s self-assessment — adjust any ratings, then copy the generated comment into Canvas along with the score.</p>\n'+

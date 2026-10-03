@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
-"""Assemble single self-contained HTML builds of the generators.
+"""DEPRECATED — do not update this script, and do not run it.
 
-Each build inlines shared.js, heic2any.min.js and (where the page uses it)
-perfreview.js, and drops the hub link, so the page runs from one file (e.g. embedded in a sandboxed Google Sites iframe). No
-logic is changed — the output is a byte-for-byte superset of the multi-file
-page's behavior.
+The whole point of the dev branch it belongs to is to retire single-file
+builds and serve everything from portfolio.dpeacl.org instead. This script is
+kept only so the frozen *-standalone.html files in the repo root can be traced
+back to the source they came from.
+
+Those frozen files are the copies pasted into Google Sites, which students keep
+as a fallback during rollout. Running this would overwrite them with current
+source -- which no longer matches what Sites is serving -- and the rebuilt page
+would then need re-pasting. Don't.
+
+Once the Sites pages are switched over to portfolio.dpeacl.org, delete this
+script and the two *-standalone.html files together.
+
+(For the record, as last maintained: it inlined shared.js, heic2any.min.js and
+perfreview.js and dropped the hub link, so a page ran from one file.)
 
   weekly.html -> portfolio-standalone.html  (rotation post generator)
   unit.html   -> unit-standalone.html       (unit post generator)
-
-CAUTION: the committed *-standalone.html files are FROZEN. They are the copies
-pasted into Google Sites, which students keep as a fallback while the new
-portfolio.dpeacl.org site is rolled out. Running this script overwrites them
-with the current source, which would mean re-pasting into Sites. Only run it
-when you intend to refresh that fallback.
 """
 import re, pathlib
 

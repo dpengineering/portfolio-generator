@@ -7,7 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📘</text></svg>">
 <style>
   :root{
-    --accent:#0ea5e9; --ink:#1e293b; --muted:#64748b; --border:#e2e8f0;
+    --accent:#0ea5e9; --senior:#8b5cf6; --ink:#1e293b; --muted:#64748b; --border:#e2e8f0;
     --panel:#f8fafc; --ok:#16a34a;
   }
   *{box-sizing:border-box}
@@ -85,9 +85,28 @@
   .grad-custom-inputs[hidden]{display:none}
   .modetoggle{display:flex;align-items:flex-start;gap:.45rem;font-size:.82rem;font-weight:600;color:var(--ink);margin:.2rem 0 .7rem;cursor:pointer}
   .modetoggle input{margin-top:.15rem;flex:none}
-  /* ---- performance review (grade 12 only; see perfreview.js) ---- */
-  .selfscore{display:flex;align-items:baseline;gap:.6rem;background:#fff;border:1px solid var(--border);border-radius:8px;padding:.5rem .75rem;margin-top:.8rem}
-  .selfscore .ssnum{font-size:1.5rem;font-weight:800;color:var(--accent);line-height:1}
+  /* ---- performance review (grade 12 only; see perfreview.js) ----
+     Themed purple throughout so a senior can tell at a glance which parts of
+     this page are the review and which are the rotation post. Each block is a
+     <details> so the review can be collapsed out of the way; the open/closed
+     choice is remembered for the session (see prCollapse* below). */
+  #perfSection{--accent:var(--senior)}
+  #perfSection fieldset{border-color:#ddd6fe}
+  #perfSection legend{color:var(--senior)}
+  details.prfold{border:1px solid #ddd6fe;border-radius:10px;margin:0 0 1rem;background:#fff}
+  details.prfold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:.5rem;
+    padding:.65rem .8rem;font-weight:700;font-size:.9rem;color:var(--senior);background:#faf8ff;border-radius:10px}
+  details.prfold>summary::-webkit-details-marker{display:none}
+  details.prfold>summary::before{content:"▸";font-size:.85em}
+  details.prfold[open]>summary{border-bottom:1px solid #ede9fe;border-radius:10px 10px 0 0}
+  details.prfold[open]>summary::before{content:"▾"}
+  details.prfold>summary .prfold-note{margin-left:auto;font-weight:600;font-size:.76rem;color:var(--muted)}
+  details.prfold .prfold-body{padding:.8rem}
+  details.prfold fieldset{border:0;padding:0;margin:0;background:transparent}
+  details.prfold legend{display:none}
+  #downloadPerf{background:var(--senior)}
+  .selfscore{display:flex;align-items:baseline;gap:.6rem;background:#faf8ff;border:1px solid #ddd6fe;border-radius:8px;padding:.5rem .75rem;margin-top:.8rem}
+  .selfscore .ssnum{font-size:1.5rem;font-weight:800;color:var(--senior);line-height:1}
   .selfscore .sslab{font-size:.82rem;font-weight:600;color:var(--ink)}
   .delta{border:1px solid var(--border);border-radius:8px;padding:.6rem .7rem;margin:0 0 .6rem;background:#fff}
   .delta .drow{display:flex;gap:.5rem;align-items:center}
@@ -216,36 +235,43 @@
          by perfreview.js on demand rather than hidden, so a grade 9-11 student
          never has these inputs in their DOM at all. -->
     <div id="perfSection" hidden>
-      <fieldset>
-        <legend>Weekly Performance Review <span class="hint">— seniors</span></legend>
-        <p class="hint" style="margin:.2rem 0 .7rem">This downloads as a <strong>second file</strong>, with your rotation post built into it. Submit it to the performance review assignment on Canvas; your mentor grades it from the link in its footer.</p>
-        <div class="row">
-          <div><label>Week of<input type="date" id="prWeek"></label></div>
-          <div><label>Mentor <span class="hint">(optional)</span><input type="text" id="prMentor" placeholder="Mentor name"></label></div>
+      <details class="prfold" id="prFoldMain" data-fold="main" open>
+        <summary>📋 Weekly Performance Review <span class="prfold-note" id="prFoldScore"></span></summary>
+        <div class="prfold-body">
+          <p class="hint" style="margin:0 0 .7rem">This downloads as a <strong>second file</strong>, with your rotation post built into it. Submit it to the performance review assignment on Canvas; your mentor grades it from the link in its footer.</p>
+          <div class="row">
+            <div><label>Week of<input type="date" id="prWeek"></label></div>
+            <div><label>Mentor <span class="hint">(optional)</span><input type="text" id="prMentor" placeholder="Mentor name"></label></div>
+          </div>
+          <div class="selfscore">
+            <div class="ssnum" id="prSelfNum">—</div>
+            <div class="sslab">Self-score <span class="hint" id="prSelfCats">Rate the items to see your score</span></div>
+          </div>
         </div>
-        <div class="selfscore">
-          <div class="ssnum" id="prSelfNum">—</div>
-          <div class="sslab">Self-score <span class="hint" id="prSelfCats">Rate the items to see your score</span></div>
+      </details>
+
+      <details class="prfold" data-fold="deltas" open>
+        <summary>56 DELTAs — Skills <span class="prfold-note" id="prFoldDeltas"></span></summary>
+        <div class="prfold-body">
+          <p class="hint" style="margin:0 0 .6rem">Name a DELTA skill you demonstrated this week and describe how, in a sentence or two.</p>
+          <div id="prDeltas"></div>
+          <button class="btn alt" id="prAddDelta" type="button">+ Add skill</button>
+          <datalist id="prDeltaSuggestions"></datalist>
         </div>
-      </fieldset>
+      </details>
 
-      <fieldset>
-        <legend>56 DELTAs — Skills <span class="hint">(at least 2)</span></legend>
-        <p class="hint" style="margin:.2rem 0 .6rem">Name a DELTA skill you demonstrated this week and describe how, in a sentence or two.</p>
-        <div id="prDeltas"></div>
-        <button class="btn alt" id="prAddDelta" type="button">+ Add skill</button>
-        <datalist id="prDeltaSuggestions"></datalist>
-      </fieldset>
+      <details class="prfold" data-fold="rubric" open>
+        <summary>Rubric <span class="prfold-note" id="prFoldRubric"></span></summary>
+        <div class="prfold-body"><div id="prRubric"></div></div>
+      </details>
 
-      <fieldset>
-        <legend>Rubric</legend>
-        <div id="prRubric"></div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Notes for your mentor <span class="hint">(optional)</span></legend>
-        <textarea id="prNotes" placeholder="Anything you want your mentor to know about this week..."></textarea>
-      </fieldset>
+      <details class="prfold" data-fold="notes" open>
+        <summary>Note for your mentor <span class="prfold-note">optional</span></summary>
+        <div class="prfold-body">
+          <p class="hint" style="margin:0 0 .5rem">This appears at the end of your submission, right above your mentor's grading link.</p>
+          <textarea id="prNotes" placeholder="Anything you want your mentor to know about this week..."></textarea>
+        </div>
+      </details>
     </div>
   </div>
 
@@ -395,7 +421,7 @@ function renderThumbs(id){
 // ---- collect + build ----
 function collect(){
   return {
-    meta:{first:val("firstName"),last:val("lastName"),student:(val("firstName")+" "+val("lastName")).trim(),project:val("project"),classroom:val("classroom"),grade:val("grade"),unit:val("unit"),personal:$("personalMode").checked},
+    meta:{first:val("firstName"),last:val("lastName"),student:(val("firstName")+" "+val("lastName")).trim(),project:val("project"),classroom:val("classroom"),grade:val("grade"),unit:val("unit"),...scheduleMeta(),personal:$("personalMode").checked},
     cover:state.cover||null,
     weeks:[...document.querySelectorAll(".week")].map(card=>{
       const im=state.images[card.dataset.id]||{g1:[],g2:[]};
@@ -771,6 +797,37 @@ function prUpdateScore(){
   $("prSelfCats").textContent=r.answered
     ? `Productive ${r.sub.prod}/${r.max.prod} · Counterproductive ${r.sub.counter}/${r.max.counter} · Performance ${r.sub.perf}/${r.max.perf}`
     : "Rate the items to see your score";
+  // Each collapsed section still says where it stands, so folding the review
+  // away doesn't hide whether it's finished.
+  $("prFoldScore").textContent=r.answered?`self-score ${r.overall.toFixed(2)}`:"not started";
+  $("prFoldRubric").textContent=`${r.answered}/${r.total} rated`;
+  const dn=prCollectDeltas().filter(d=>d.skill&&d.text).length;
+  $("prFoldDeltas").textContent=`${dn}/2`;
+}
+
+// ---- collapsible review sections -----------------------------------------
+// Remembered for the session only (sessionStorage): a student who folds the
+// review away to cut visual clutter keeps it folded while they work, but every
+// new visit starts expanded so nobody loses track of an assignment they owe.
+const PR_FOLD_KEY="dpea.prFolds";
+function prReadFolds(){
+  try{return JSON.parse(sessionStorage.getItem(PR_FOLD_KEY))||{};}catch(e){return {};}
+}
+function prSaveFold(name,open){
+  try{
+    const f=prReadFolds();f[name]=open;
+    sessionStorage.setItem(PR_FOLD_KEY,JSON.stringify(f));
+  }catch(e){}            // private mode / blocked storage: folding just stops persisting
+}
+function prWireFolds(){
+  const saved=prReadFolds();
+  document.querySelectorAll("#perfSection details.prfold").forEach(d=>{
+    const name=d.dataset.fold;
+    if(name in saved)d.open=saved[name];
+    if(d.dataset.wired)return;
+    d.dataset.wired="1";
+    d.addEventListener("toggle",()=>prSaveFold(name,d.open));
+  });
 }
 // Builds the review UI the first time a senior needs it, then shows or hides
 // the whole block. Grades 9-11 never get these inputs in their DOM.
@@ -780,6 +837,7 @@ function prApplyVisibility(){
   $("downloadPerf").hidden=!on;
   if(!on)return;
   prRenderRubric("prRubric","prDeltaSuggestions",prOnEdit);
+  prWireFolds();
   if(!document.querySelector("#prDeltas .delta")){prAddDelta("prDeltas",null,prOnEdit);prAddDelta("prDeltas",null,prOnEdit);}
   if(!$("prWeek").value){try{$("prWeek").value=new Date().toISOString().slice(0,10);}catch(e){}}
   prUpdateScore();

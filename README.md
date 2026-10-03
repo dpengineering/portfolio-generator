@@ -22,11 +22,16 @@ grade; **no Canvas rubric is used for any assignment.**
 
 ### The hub
 
-`index.html` asks for a grade once and remembers it on the device
-(`dpea.profile.v1`), then shows only the tools that grade needs — the
-performance review tile appears for grade 12 only. It also remembers the
-student's name so the tools can pre-fill it. Pre-fill never overwrites a field
-that already has something in it, so a loaded draft always wins.
+`index.html` asks once for a grade, a name, and where the student sits in the
+schedule — a **rotation** (A–D) for grades 9–11, or one or more **periods**
+(1–4) for grade 12 — and remembers it on the device (`dpea.profile.v1`). It then
+shows only the tools that grade needs. Pre-fill never overwrites a field that
+already has something in it, so a loaded draft always wins.
+
+The schedule travels with every post as `meta.rotation` / `meta.periods` plus a
+derived `meta.peerKey`, which is what peer-review matching pairs on: same
+rotation for grades 9–11, same **first picked** period for grade 12. The pick
+order is preserved rather than sorted, since the first one is the match key.
 
 Append `?grade=12` to any page to override the stored grade for one page load.
 It isn't saved, and it carries through to whichever tool you click. It's there

@@ -316,6 +316,40 @@ function autosave(){
 // runs client-side and a student can set whatever they like.
 const PROFILE_KEY="dpea.profile.v1";
 const GRADES=["9","10","11","12"];
+
+// Where a student sits in the schedule. Grades 9-11 rotate through one of four
+// rotations; grade 12 is enrolled in one or more periods. This is what lets a
+// week's submissions be bulk-downloaded from Canvas and paired up for peer
+// review: 9-11 match on the same rotation, 12 on their FIRST selected period
+// (so the order they pick them in matters and is preserved).
+const ROTATIONS=["A","B","C","D"];
+const PERIODS=["1","2","3","4"];
+function isSenior(grade){return grade==="12";}
+// The single value two students must share to be eligible peer-review partners.
+// Returns "" when we don't know enough to match them.
+function peerGroupKey(p){
+  if(!p||!p.grade)return "";
+  if(isSenior(p.grade))return (p.periods&&p.periods.length)?("P"+p.periods[0]):"";
+  return p.rotation?("R"+p.rotation):"";
+}
+// The schedule fields a post carries in its metadata, so a bulk peer-review
+// matcher can read them straight out of the downloaded file's embedded JSON
+// without needing a roster. Grades 9-11 carry `rotation`; grade 12 carries
+// `periods` in the order they were picked. `peerKey` is the derived value two
+// students must share to be paired.
+function scheduleMeta(){
+  const p=getProfile();
+  const m={peerKey:peerGroupKey(p)};
+  if(isSenior(p.grade)){if(p.periods&&p.periods.length)m.periods=p.periods.slice();}
+  else if(p.rotation)m.rotation=p.rotation;
+  return m;
+}
+// A human label for the same thing, for UI and for the post's metadata.
+function scheduleLabel(p){
+  if(!p||!p.grade)return "";
+  if(isSenior(p.grade))return (p.periods&&p.periods.length)?("Period "+p.periods.join(", ")):"";
+  return p.rotation?("Rotation "+p.rotation):"";
+}
 function storedProfile(){
   try{return JSON.parse(localStorage.getItem(PROFILE_KEY))||{};}catch(e){return {};}
 }
