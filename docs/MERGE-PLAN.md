@@ -97,6 +97,35 @@ category for the reviewer. The two never share a field, so a review cannot
 overwrite the work it is reviewing, and the downloaded post renders both — the
 author's "Self Grade Rubric" and the reviewer's "Peer Review".
 
+## Peer review delivery
+
+Settled: **Canvas's own peer-review feature** is the channel. "Only your partner
+can see your work" is an authorization requirement, and authorization needs
+something that knows who the viewer is — Canvas already does, already holds the
+roster, and students already know the UI. The alternatives considered were
+per-student Google Drive folders via Apps Script (a second place to look) and
+Cloudflare Access on the custom domain (the first real backend in a project
+built on not having one; kept in reserve for a proper in-browser review UI).
+An unguessable link on a static host was rejected outright: that's obscurity,
+not privacy.
+
+Canvas can't pair by rotation or period, so pairing is ours: `pair.html` groups
+by `meta.peerKey` in the browser and `tools/assign_peer_reviews.py` assigns the
+reviews through the API. The split exists because turning a name into a Canvas
+user id is the one step that needs the authoritative roster — doing it in the
+script keeps the browser tool from guessing identity out of a download filename,
+a format Canvas doesn't actually document.
+
+Decisions: mutual pairs (A↔B), a trio for an odd group, repeats across months
+are fine so no pairing history is kept, and non-submitters need no special
+handling — they're absent from the download and spend the period finishing a
+late post.
+
+Worth stating plainly: **no student data goes to an AI service.** The pairing
+tool makes no network calls and the script talks only to Canvas. An MCP-driven
+approach was considered and rejected for exactly this reason — editing course
+modules through one is fine, routing a roster through one is not.
+
 ## Open
 
 - **`review.html` is now unlinked** but still on disk and still working, as a

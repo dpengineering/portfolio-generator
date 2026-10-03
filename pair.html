@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pair — Peer Review</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔀</text></svg>">
+<style>
+  :root{--accent:#4f46e5;--ink:#1e293b;--muted:#64748b;--border:#e2e8f0;--panel:#f8fafc;--ok:#16a34a;--warn:#9a3412}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#f1f5f9;font-size:15px}
+  header.app{background:#1e1b4b;color:#fff;padding:1.1rem 1.25rem}
+  header.app h1{margin:0;font-size:1.25rem}
+  header.app p{margin:.25rem 0 0;color:#c7d2fe;font-size:.9rem}
+  main{max-width:900px;margin:0 auto;padding:1.25rem 1.25rem 4rem}
+
+  .privacy{background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:.75rem .9rem;font-size:.84rem;color:#3730a3;margin:0 0 1.25rem}
+  .privacy strong{display:block;margin-bottom:.15rem}
+
+  .drop{border:2px dashed var(--border);border-radius:12px;padding:2rem 1rem;text-align:center;color:var(--muted);
+    font-size:.9rem;cursor:pointer;background:#fff}
+  .drop.over{border-color:var(--accent);background:#eef2ff;color:var(--accent)}
+  .drop strong{display:block;font-size:1rem;color:var(--ink);margin-bottom:.3rem}
+
+  .bar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:1rem 0}
+  button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:.55rem .9rem;cursor:pointer}
+  .btn{background:var(--accent);color:#fff}
+  .btn.alt{background:#fff;color:var(--ink);border:1px solid var(--border)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .count{font-size:.84rem;color:var(--muted);margin-left:auto}
+
+  .grp{border:1px solid var(--border);border-radius:10px;background:#fff;margin:0 0 1rem;overflow:hidden}
+  .grp-h{display:flex;align-items:center;gap:.5rem;padding:.6rem .8rem;background:var(--panel);border-bottom:1px solid var(--border);
+    font-weight:700;font-size:.9rem}
+  .grp-h .key{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;color:var(--accent);
+    background:#eef2ff;border:1px solid #c7d2fe;border-radius:999px;padding:.1rem .5rem}
+  .grp-h .n{margin-left:auto;font-weight:600;font-size:.78rem;color:var(--muted)}
+  .pair{display:flex;align-items:center;gap:.6rem;padding:.55rem .8rem;border-top:1px solid var(--border);font-size:.88rem}
+  .pair:first-child{border-top:0}
+  .pair .who{flex:1;min-width:0}
+  .pair .arrow{color:var(--muted);flex:none;font-size:.8rem}
+  .pair.trio{background:#fffbeb}
+  .badge{flex:none;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+    color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:.1rem .45rem}
+
+  .skipped{border:1px solid #fed7aa;background:#fff7ed;border-radius:10px;padding:.7rem .9rem;margin:0 0 1rem;font-size:.84rem;color:var(--warn)}
+  .skipped ul{margin:.4rem 0 0;padding-left:1.2rem}
+  .empty{color:var(--muted);font-size:.9rem;text-align:center;padding:2rem 0}
+  [hidden]{display:none !important}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em;background:var(--panel);
+    border:1px solid var(--border);border-radius:4px;padding:.05rem .3rem}
+</style>
+</head>
+<body>
+<header class="app">
+  <h1>🔀 Peer Review Pairing</h1>
+  <p>Drop in a Canvas submissions download, get pairings grouped by rotation or period.</p>
+</header>
+
+<main>
+  <div class="privacy">
+    <strong>Nothing leaves this page.</strong>
+    Files are read in your browser. No names, no files and no pairings are uploaded anywhere —
+    there is no server to upload them to. Close the tab and it's all gone.
+  </div>
+
+  <div class="drop" id="drop">
+    <strong>Drop the unzipped submissions folder here</strong>
+    or click to choose the <code>.html</code> files
+    <input type="file" id="file" accept=".html,.htm,text/html" multiple hidden>
+  </div>
+
+  <div class="bar" hidden id="bar">
+    <button class="btn" id="shuffle">🔀 Shuffle again</button>
+    <button class="btn alt" id="export">⬇ Export pairings.json</button>
+    <button class="btn alt" id="copy">📋 Copy as text</button>
+    <button class="btn alt" id="reset">✖ Start over</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div id="skipped"></div>
+  <div id="out"><div class="empty">No submissions loaded yet.</div></div>
+</main>
+
+<script>
+// ============================================================================
+// pair.html — build peer-review pairs from a Canvas submissions download.
+//
+// Runs entirely in the browser, like every other tool here. It reads the JSON
+// each post already carries (see scheduleMeta() in shared.js) and never needs a
+// roster, a login or a network call.
+//
+// Students are only ever paired inside their own peerKey -- the same rotation
+// for grades 9-11, the same home period for grade 12 -- because that's who
+// shares a room at the same time.
+//
+// It deliberately stops at the pairing. Turning names into Canvas user ids and
+// assigning the reviews is done by tools/assign_peer_reviews.py, which runs on
+// your machine against the live roster, so nothing here has to guess at
+// identity from a filename.
+// ============================================================================
+const $=id=>document.getElementById(id);
+const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+
+let posts=[];      // {student, grade, peerKey, label, file}
+let skipped=[];    // {file, why}
+let groups=[];     // [{key, label, rounds:[{from,to,trio}]}]
+
+// ---- reading the dropped files -------------------------------------------
+// Only a post built by these generators carries #portfolio-data, so anything
+// else in the folder is reported rather than silently dropped.
+function readPost(name,text){
+  let doc;
+  try{doc=new DOMParser().parseFromString(text,"text/html");}catch(e){return {file:name,why:"couldn't be read as HTML"};}
+  const el=doc.getElementById("portfolio-data");
+  if(!el)return {file:name,why:"not a post from these generators"};
+  let d;
+  try{d=JSON.parse(el.textContent);}catch(e){return {file:name,why:"its embedded data is damaged"};}
+  const m=d.meta||{};
+  const student=(m.student||"").trim();
+  if(!student)return {file:name,why:"has no student name"};
+  if(!m.peerKey)return {file:name,why:`has no rotation or period (${esc(student)} made it before that was asked for)`};
+  return {student,grade:m.grade||"",peerKey:m.peerKey,label:scheduleLabel(m),file:name};
+}
+// Read the schedule back out of a post's metadata for display.
+function scheduleLabel(m){
+  if(m.periods&&m.periods.length)return "Period "+m.periods.join(", ");
+  if(m.rotation)return "Rotation "+m.rotation;
+  return m.peerKey||"";
+}
+
+async function ingest(fileList){
+  const files=[...fileList].filter(f=>/\.html?$/i.test(f.name));
+  const seen=new Set();
+  posts=[];skipped=[];
+  for(const f of files){
+    const text=await f.text();
+    const r=readPost(f.name,text);
+    if(r.why){skipped.push(r);continue;}
+    // A student who submitted twice shows up twice in the download; keep the
+    // first and say so, rather than pairing them with themselves.
+    const dup=r.student.toLowerCase()+"|"+r.peerKey;
+    if(seen.has(dup)){skipped.push({file:f.name,why:`a second submission from ${esc(r.student)}`});continue;}
+    seen.add(dup);
+    posts.push(r);
+  }
+  makePairs();
+  render();
+}
+
+// ---- pairing --------------------------------------------------------------
+function shuffled(a){
+  const x=a.slice();
+  for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]];}
+  return x;
+}
+// Mutual pairs: A reviews B and B reviews A, which is how students already use
+// the tool. An odd group leaves one person over, so the last three become a
+// cycle (A→B→C→A) instead -- still exactly one review written and one received
+// each, which mutual pairs can't give you with three people.
+function pairUp(list){
+  const x=shuffled(list), rounds=[];
+  let i=0;
+  // stop early enough to leave 3 for the cycle when the count is odd
+  const stop=(x.length%2===0)?x.length:x.length-3;
+  for(;i<stop;i+=2){
+    rounds.push({from:x[i],to:x[i+1],trio:false});
+    rounds.push({from:x[i+1],to:x[i],trio:false});
+  }
+  if(x.length%2===1&&x.length>=3){
+    const [a,b,c]=x.slice(i);
+    rounds.push({from:a,to:b,trio:true});
+    rounds.push({from:b,to:c,trio:true});
+    rounds.push({from:c,to:a,trio:true});
+  }
+  return rounds;
+}
+function makePairs(){
+  const byKey=new Map();
+  posts.forEach(p=>{
+    if(!byKey.has(p.peerKey))byKey.set(p.peerKey,[]);
+    byKey.get(p.peerKey).push(p);
+  });
+  groups=[...byKey.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([key,list])=>({
+    key,
+    label:list[0].label||key,
+    members:list.length,
+    // One person in a group has nobody to pair with; say so rather than
+    // dropping them without explanation.
+    rounds:list.length>=2?pairUp(list):[],
+    lonely:list.length===1?list[0]:null
+  }));
+}
+
+// ---- rendering ------------------------------------------------------------
+function render(){
+  $("bar").hidden=!posts.length;
+  const total=groups.reduce((n,g)=>n+g.rounds.length,0);
+  $("count").textContent=posts.length
+    ? `${posts.length} submission${posts.length===1?"":"s"} · ${groups.length} group${groups.length===1?"":"s"} · ${total} review${total===1?"":"s"} to assign`
+    : "";
+
+  const problems=skipped.slice();
+  groups.filter(g=>g.lonely).forEach(g=>problems.push({
+    file:g.lonely.file,why:`${esc(g.lonely.student)} is the only submission in ${esc(g.label)} — nobody to pair with`}));
+  $("skipped").innerHTML=problems.length
+    ? `<div class="skipped"><strong>${problems.length} file${problems.length===1?"":"s"} not paired</strong><ul>`+
+      problems.map(s=>`<li><code>${esc(s.file)}</code> — ${s.why}</li>`).join("")+`</ul></div>`
+    : "";
+
+  if(!posts.length){
+    $("out").innerHTML='<div class="empty">No submissions loaded yet.</div>';
+    return;
+  }
+  $("out").innerHTML=groups.filter(g=>g.rounds.length).map(g=>
+    `<div class="grp">
+       <div class="grp-h"><span class="key">${esc(g.key)}</span>${esc(g.label)}<span class="n">${g.members} student${g.members===1?"":"s"}</span></div>
+       ${g.rounds.map(r=>
+         `<div class="pair${r.trio?" trio":""}">
+            <span class="who">${esc(r.from.student)}</span>
+            <span class="arrow">reviews →</span>
+            <span class="who">${esc(r.to.student)}</span>
+            ${r.trio?'<span class="badge">trio</span>':""}
+          </div>`).join("")}
+     </div>`).join("");
+}
+
+// ---- export ---------------------------------------------------------------
+// reviewer writes the review; author is whose post gets reviewed. The script
+// resolves both names against the live Canvas roster.
+function pairingData(){
+  return {
+    generated:new Date().toISOString(),
+    note:"reviewer reviews author's submission. Names are as entered by students in the generator.",
+    reviews:groups.flatMap(g=>g.rounds.map(r=>({
+      peerKey:g.key,schedule:g.label,
+      reviewer:r.from.student,reviewerFile:r.from.file,
+      author:r.to.student,authorFile:r.to.file
+    })))
+  };
+}
+function download(name,text,type){
+  const b=new Blob([text],{type}),u=URL.createObjectURL(b);
+  const a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),1500);
+}
+function asText(){
+  return groups.filter(g=>g.rounds.length).map(g=>
+    g.label+"\n"+g.rounds.map(r=>`  ${r.from.student} reviews ${r.to.student}`).join("\n")).join("\n\n");
+}
+
+// ---- wiring ---------------------------------------------------------------
+$("drop").onclick=()=>$("file").click();
+$("file").onchange=e=>{if(e.target.files.length)ingest(e.target.files);e.target.value="";};
+["dragenter","dragover"].forEach(ev=>$("drop").addEventListener(ev,e=>{
+  e.preventDefault();$("drop").classList.add("over");}));
+["dragleave","drop"].forEach(ev=>$("drop").addEventListener(ev,e=>{
+  e.preventDefault();$("drop").classList.remove("over");}));
+$("drop").addEventListener("drop",e=>{
+  if(e.dataTransfer&&e.dataTransfer.files.length)ingest(e.dataTransfer.files);});
+$("shuffle").onclick=()=>{makePairs();render();};
+$("export").onclick=()=>download("pairings.json",JSON.stringify(pairingData(),null,2),"application/json");
+$("copy").onclick=async()=>{
+  try{await navigator.clipboard.writeText(asText());$("copy").textContent="📋 Copied";
+    setTimeout(()=>{$("copy").textContent="📋 Copy as text";},1500);}
+  catch(e){download("pairings.txt",asText(),"text/plain");}
+};
+$("reset").onclick=()=>{posts=[];skipped=[];groups=[];render();};
+</script>
+</body>
+</html>

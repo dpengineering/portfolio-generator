@@ -14,6 +14,7 @@ each tool runs entirely in the browser and produces a **self-contained
 | `/unit` (`unit.html`) | Unit post generator (monthly for grade 12) | grades 9–12 | per unit / month |
 | `/review` (`review.html`) | Standalone performance review — kept as a fallback, no longer linked | — | — |
 | `/grade` (`grade.html`) | Mentor grading tool | mentors | weekly |
+| `/pair` (`pair.html`) | Peer-review pairing tool | teachers | per unit / month |
 
 Students in grades 9–11 use the two post generators. Grade 12 fills in a weekly
 performance review **inside the rotation post generator** and downloads two
@@ -125,6 +126,36 @@ identical, or the student's self-score and the mentor's score diverge.
 `review.html` is the pre-merge standalone version. It still works and still
 produces a valid submission, but nothing links to it; it's there as a safety
 valve while the fused flow is tested, and can go once that's settled.
+
+## Peer review
+
+Peer review runs on the **unit/monthly** post, through Canvas's own peer-review
+feature — students and teachers already know it, Canvas already knows who
+everyone is, and a student only ever sees the submission assigned to them.
+
+The one thing Canvas can't do is pair students by rotation or period: its
+automatic assignment ignores both. So leave the assignment on **Require Peer
+Reviews → Manually Assign** and pair them in two steps:
+
+1. **[`pair.html`](pair.html)** — download all submissions from Canvas, unzip,
+   and drop the folder in. It reads each post's own `meta.peerKey`, groups
+   students who share a rotation (9–11) or a home period (12), shuffles, and
+   pairs them mutually: A reviews B, B reviews A. An odd group ends in a trio
+   (A→B→C→A) so everyone still writes exactly one review and receives exactly
+   one. Students who didn't submit simply aren't in the download; anything it
+   can't pair it says so, rather than dropping it quietly. Export `pairings.json`.
+2. **[`tools/assign_peer_reviews.py`](tools/assign_peer_reviews.py)** — run it on
+   your machine with a Canvas API token. It resolves names against the live
+   roster and assigns the reviews. Dry run by default; `--apply` to commit.
+
+Reviewers then download their partner's file from Canvas and load it into
+`/unit`, where peer-review mode switches itself on because the post's author
+isn't them.
+
+**No student data leaves your machine.** `pair.html` runs in the browser with no
+network calls at all, and the script talks only to Canvas. Nothing is sent to
+any third party, and deliberately nothing to an AI service — rosters and student
+work shouldn't go there.
 
 ## Running it locally
 
