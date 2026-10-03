@@ -47,6 +47,13 @@
     border-radius:10px;padding:.7rem .9rem;margin:1rem 0 0;font-size:.84rem;color:var(--warn);cursor:pointer}
   .onegroup input{margin-top:.15rem;flex:none}
   .onegroup strong{color:#7c2d12}
+  .idstats{border:1px solid var(--border);background:#fff;border-radius:10px;padding:.7rem .9rem;margin:0 0 1rem;font-size:.84rem}
+  .idstats .row{display:flex;gap:.5rem;align-items:baseline;padding:.1rem 0}
+  .idstats .lab{min-width:11rem;color:var(--muted)}
+  .idstats .val{font-weight:700;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .idstats .good{color:var(--ok)}
+  .idstats .bad{color:var(--warn)}
+  .idstats .hdr{font-weight:700;margin-bottom:.3rem}
   .skipped{border:1px solid #fed7aa;background:#fff7ed;border-radius:10px;padding:.7rem .9rem;margin:0 0 1rem;font-size:.84rem;color:var(--warn)}
   .skipped ul{margin:.4rem 0 0;padding-left:1.2rem}
   .empty{color:var(--muted);font-size:.9rem;text-align:center;padding:2rem 0}
@@ -93,6 +100,7 @@
     <span class="count" id="count"></span>
   </div>
 
+  <div id="idstats"></div>
   <div id="skipped"></div>
   <div id="out"><div class="empty">No submissions loaded yet.</div></div>
 </main>
@@ -265,6 +273,30 @@ function render(){
   // Only posts with neither an entered ID nor anything usable in the filename
   // are a real matching risk; the rest resolve exactly.
   const weak=posts.filter(p=>!p.sid&&!p.ids.length&&!p.nameKey).length;
+  // How each student will be identified in Canvas. Worth showing before the
+  // export rather than after the assign script has run: if the filename ids
+  // aren't being read, everything silently falls back to the typed name, which
+  // is the thing that drifts.
+  const nSid=posts.filter(p=>p.sid).length;
+  const nIds=posts.filter(p=>p.ids&&p.ids.length).length;
+  const nKey=posts.filter(p=>p.nameKey).length;
+  const nTyped=posts.filter(p=>!p.sid&&!(p.ids&&p.ids.length)&&!p.nameKey).length;
+  const line=(lab,v,good)=>`<div class="row"><span class="lab">${lab}</span>`+
+    `<span class="val ${good?"good":"bad"}">${v}/${posts.length}</span></div>`;
+  $("idstats").innerHTML=posts.length
+    ? `<div class="idstats"><div class="hdr">How these will be matched to Canvas</div>`+
+      line("Student ID entered",nSid,nSid===posts.length)+
+      line("Ids from the filename",nIds,nIds===posts.length)+
+      line("Name from the filename",nKey,nKey===posts.length)+
+      (nTyped?line("Only the typed name",nTyped,false):"")+
+      (nIds===0
+        ? `<div class="row bad" style="margin-top:.4rem">⚠️ No ids were read from any filename. Canvas names
+           downloads <code>lastfirst_number_number_file.html</code> — if these were renamed or re-saved,
+           that's lost, and students can only be matched on the name they typed.</div>`
+        : "")+
+      `</div>`
+    : "";
+
   const noSid=posts.filter(p=>!p.sid).length;
   const sidNote=weak
     ? `<div class="skipped"><strong>${weak} of ${posts.length} posts can only be matched by the name the student typed</strong>

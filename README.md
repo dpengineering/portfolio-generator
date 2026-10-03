@@ -150,6 +150,14 @@ Reviews → Manually Assign** and pair them in two steps:
    course and assignment setup; then a dry run, which prints every pairing
    without writing; then `--apply`.
 
+The dry run opens by reporting what identity the pairing file actually carries,
+and closes with how each student was matched. If that summary says everyone
+matched on *the name typed in the post*, the filename ids never made it into the
+export — re-export from `pair.html`, which shows the same breakdown before you
+download. For the last few students who still can't be placed, `--aliases
+fixes.json` takes `{"name they typed": <canvas user id or 6-digit number>}`, so
+the correction is reusable next cycle instead of a one-off edit.
+
 **Matching students to Canvas.** A Canvas submissions download names each file
 `lastfirst_<user id>_<submission id>_<their file>.html`, and both the name and
 the numbers come from Canvas itself — so they match the roster exactly, unlike

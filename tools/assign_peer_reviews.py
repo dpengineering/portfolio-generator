@@ -165,6 +165,31 @@ def resolve(entry, role, idx):
     return None, "; ".join(tried) or "nothing to match on", None
 
 
+def apply_aliases(aliases, idx, students):
+    """Fold a hand-written name -> id map into the name index.
+
+    For the handful of students whose typed name matches nothing. Keeping it in
+    its own file means the fix is reusable next cycle instead of a one-off edit
+    to pairings.json.
+    """
+    by_sid, by_uid, by_name = idx
+    known = {s["id"] for s in students}
+    used = 0
+    for name, target in aliases.items():
+        key = str(target).strip()
+        who = None
+        if key in by_uid:
+            who = next(iter(by_uid[key]))
+        elif key in by_sid and len(by_sid[key]) == 1:
+            who = next(iter(by_sid[key]))
+        if who is None or who not in known:
+            print(f"  ! alias {name!r} -> {target}: no such student in this course")
+            continue
+        by_name[norm(name)] = {who}
+        used += 1
+    return used
+
+
 # ---- preflight --------------------------------------------------------------
 def preflight(base, token, course, assignment):
     """Confirm the token, course and assignment are usable before touching anything."""
@@ -219,6 +244,10 @@ def main():
     ap.add_argument("--apply", action="store_true", help="actually assign (default is a dry run)")
     ap.add_argument("--check", action="store_true",
                     help="check the token, course and assignment setup, then stop")
+    ap.add_argument("--aliases", metavar="FILE",
+                    help='JSON of fixes for students who still cannot be matched, '
+                         'e.g. {"katie johnson": 48211, "jo smith": "100007"} — '
+                         'the value is a Canvas user id or a 6-digit student number')
     args = ap.parse_args()
 
     base, token = os.environ.get("CANVAS_URL"), os.environ.get("CANVAS_TOKEN")
@@ -235,6 +264,25 @@ def main():
     if not reviews:
         sys.exit(f"{args.pairings} has no reviews in it.")
 
+    # What identity does this file actually carry? If it has nothing from the
+    # Canvas filename, every student will fall through to the name they typed,
+    # which is the case this is all meant to avoid -- so say so before the run
+    # rather than leaving it to be inferred from the summary afterwards.
+    have = {k: sum(1 for r in reviews for role in ("reviewer", "author") if r.get(role + k))
+            for k in ("Sid", "Ids", "NameKey")}
+    slots = len(reviews) * 2
+    print(f"{args.pairings}: {len(reviews)} reviews")
+    print(f"  student IDs      {have['Sid']}/{slots}")
+    print(f"  filename ids     {have['Ids']}/{slots}")
+    print(f"  filename names   {have['NameKey']}/{slots}")
+    if not have["Ids"] and not have["NameKey"]:
+        print()
+        print("  ! Nothing from the Canvas download filename is in this file, so every")
+        print("    student can only be matched on the name they typed into the generator.")
+        print("    That's what the filename ids are for. Re-export pairings.json from")
+        print("    pair.html (it reads the ids out of the filenames) and run again.")
+    print()
+
     print(f"Fetching the roster for course {args.course}…")
     try:
         students = api_list(base, token, f"/api/v1/courses/{args.course}/users",
@@ -242,6 +290,9 @@ def main():
     except urllib.error.HTTPError as e:
         sys.exit(f"Canvas said {e.code} {e.reason}. Check CANVAS_URL, the token, and the course id.")
     idx = build_index(students)
+    if args.aliases:
+        n = apply_aliases(json.load(open(args.aliases)), idx, students)
+        print(f"  {n} alias(es) applied from {args.aliases}")
     by_sid = idx[0]
     print(f"  {len(students)} active students, {len(by_sid)} with a 6-digit ID\n")
 
