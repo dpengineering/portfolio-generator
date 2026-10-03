@@ -93,8 +93,8 @@ def name_keys(student):
 
 
 def build_index(students):
-    """Two lookups: exact by student id, fuzzy by name."""
-    by_sid, by_name = {}, {}
+    """Three lookups: student number, Canvas user id, and name."""
+    by_sid, by_uid, by_name = {}, {}, {}
     for s in students:
         # Canvas exposes the student number as sis_user_id when the token may
         # read SIS data, and otherwise often as login_id.
@@ -102,10 +102,11 @@ def build_index(students):
             v = str(s.get(field) or "").strip()
             if re.fullmatch(r"\d{6}", v):
                 by_sid.setdefault(v, set()).add(s["id"])
+        by_uid.setdefault(str(s["id"]), set()).add(s["id"])
         for k in name_keys(s):
             # a name shared by two students is ambiguous, so remember that
             by_name.setdefault(k, set()).add(s["id"])
-    return by_sid, by_name
+    return by_sid, by_uid, by_name
 
 
 def pick(hits, what):
@@ -117,15 +118,51 @@ def pick(hits, what):
 
 
 def resolve(entry, role, idx):
-    """Prefer the student id; fall back to the name only when there isn't one."""
-    by_sid, by_name = idx
+    """Work through every signal we have, most reliable first.
+
+    The strong ones all come from Canvas itself -- the student number, and the
+    ids and name Canvas wrote into the download filename -- so they match the
+    roster exactly. The name a student typed into the generator is the last
+    resort, because that's the one that drifts.
+
+    Returns (canvas_user_id, problem_or_None, how_it_matched).
+    """
+    by_sid, by_uid, by_name = idx
+    tried = []
+
     sid = str(entry.get(role + "Sid") or "").strip()
     if sid:
         who, why = pick(by_sid.get(sid), "student ID")
-        return who, (f"ID {sid} — {why}" if why else None), sid
+        if who:
+            return who, None, "student ID"
+        tried.append(f"ID {sid}: {why}")
+
+    # Which number Canvas puts where isn't documented, so try each as both.
+    for n in entry.get(role + "Ids") or []:
+        n = str(n).strip()
+        who, _ = pick(by_uid.get(n), "Canvas id")
+        if who:
+            return who, None, "Canvas id in filename"
+        who, _ = pick(by_sid.get(n), "student number")
+        if who:
+            return who, None, "student number in filename"
+
+    # Canvas builds this from its own sortable_name, so it matches exactly.
+    key = (entry.get(role + "NameKey") or "").strip()
+    if key:
+        who, why = pick(by_name.get(norm(key)), "name from the filename")
+        if who:
+            return who, None, "name in filename"
+        tried.append(f"filename name '{key}': {why}")
+
     name = entry.get(role) or ""
-    who, why = pick(by_name.get(norm(name)), "name")
-    return who, (f"{name} — {why}" if why else None), name
+    if name:
+        who, why = pick(by_name.get(norm(name)), "name")
+        if who:
+            return who, None, "name typed in the post"
+        tried.append(f"typed name '{name}': {why}")
+
+    return None, "; ".join(tried) or "nothing to match on", None
 
 
 # ---- preflight --------------------------------------------------------------
@@ -163,7 +200,7 @@ def preflight(base, token, course, assignment):
 
     students = api_list(base, token, f"/api/v1/courses/{course}/users",
                         {"enrollment_type[]": "student", "enrollment_state[]": "active"})
-    by_sid, _ = build_index(students)
+    by_sid = build_index(students)[0]
     print(f"Roster: {len(students)} active students, {len(by_sid)} with a 6-digit ID")
     if students and not by_sid:
         print("  ! No student IDs visible. The token may lack permission to read SIS data,")
@@ -205,31 +242,35 @@ def main():
     except urllib.error.HTTPError as e:
         sys.exit(f"Canvas said {e.code} {e.reason}. Check CANVAS_URL, the token, and the course id.")
     idx = build_index(students)
-    by_sid, _ = idx
+    by_sid = idx[0]
     print(f"  {len(students)} active students, {len(by_sid)} with a 6-digit ID\n")
 
     # Names for the printout come from Canvas, not from the pairing file.
     label = {s["id"]: s.get("name") or s["id"] for s in students}
 
-    planned, problems = [], []
+    planned, problems, how = [], [], {}
     for r in reviews:
-        reviewer_id, why_r, shown_r = resolve(r, "reviewer", idx)
-        author_id, why_a, shown_a = resolve(r, "author", idx)
-        if why_r:
-            problems.append(f"reviewer {why_r}")
-        if why_a:
-            problems.append(f"author {why_a}")
+        reviewer_id, why_r, via_r = resolve(r, "reviewer", idx)
+        author_id, why_a, via_a = resolve(r, "author", idx)
+        for who_id, why, via in ((reviewer_id, why_r, via_r), (author_id, why_a, via_a)):
+            if why:
+                problems.append(why)
+            elif via:
+                how[via] = how.get(via, 0) + 1
         if reviewer_id and author_id:
             if reviewer_id == author_id:
-                problems.append(f"{shown_r} would review their own post — skipped")
+                problems.append(f"{label.get(reviewer_id, reviewer_id)} would review their own post — skipped")
             else:
                 planned.append((r, reviewer_id, author_id))
 
     for r, reviewer_id, author_id in planned:
         print(f"  {r.get('schedule',''):<22} {label[reviewer_id]} → {label[author_id]}")
 
+    if how:
+        print("\nMatched by: " + ", ".join(f"{v}× {k}" for k, v in sorted(how.items(), key=lambda x: -x[1])))
+
     if problems:
-        print(f"\n{len(set(problems))} to sort out by hand:")
+        print(f"\n{len(set(problems))} couldn't be matched:")
         for p in sorted(set(problems)):
             print(f"  ! {p}")
         print("  (fix it in Canvas or in pairings.json, then run again)")

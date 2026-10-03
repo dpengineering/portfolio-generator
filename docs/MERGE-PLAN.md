@@ -121,11 +121,20 @@ are fine so no pairing history is kept, and non-submitters need no special
 handling — they're absent from the download and spend the period finishing a
 late post.
 
-Identity is the student's **6-digit Canvas ID**, collected on the hub. That
-makes Canvas matching exact where a typed name is fuzzy, and it means the
-exported pairing file carries no student names at all — not even in filenames,
-which is why the export dropped them. Names are included only for posts made
-before the ID was asked for, since matching has nothing else to go on.
+Identity resolution is layered, strongest first: the student's 6-digit ID from
+the hub, then the ids Canvas writes into the download filename
+(`lastfirst_<user id>_<submission id>_<file>.html`), then the name Canvas wrote
+there, then the name the student typed. The first three come from Canvas and
+match the roster exactly; the typed name is the only one that drifts, and it
+drifted for 20 of ~100 students on the first real run.
+
+Deliberately nothing assumes which number in the filename is which — that isn't
+documented and differs between instances — so every number is tried against both
+the user-id and student-number indexes. The user id resolves; the submission id
+matches nobody and costs nothing.
+
+Keeping names out of the pairing file falls out of this: a post with a student
+ID or usable filename ids exports no name at all.
 
 Worth stating plainly: **no student data goes to an AI service.** The pairing
 tool makes no network calls and the script talks only to Canvas. An MCP-driven

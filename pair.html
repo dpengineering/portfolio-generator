@@ -117,9 +117,34 @@
 const $=id=>document.getElementById(id);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 
-let posts=[];      // {student, sid, grade, peerKey, label, file}
+let posts=[];      // {student, sid, nameKey, ids, grade, peerKey, label, file}
 let skipped=[];    // {file, why}
 let groups=[];     // [{key, label, rounds:[{from,to,trio}]}]
+
+// ---- what Canvas puts in the filename ------------------------------------
+// A submissions download names files like
+//     lastfirst_<number>_<number>_<the file the student uploaded>.html
+// and sometimes slips LATE in after the name. The numbers are Canvas's own --
+// the student's user id and the submission id -- and the name is built from
+// Canvas's sortable_name. Both therefore match the roster exactly, unlike the
+// name a student typed into the generator, which is where mismatches come from.
+//
+// Which number is which isn't documented, so they're all kept as candidates and
+// the assign script tries each against the roster: the user id resolves, the
+// submission id matches nobody and is harmless. Numbers carry no name, which is
+// why they're preferred over the name token.
+function fromFilename(name){
+  const parts=name.replace(/\.html?$/i,"").split("_");
+  const nameKey=(parts.shift()||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const ids=[];
+  for(const p of parts){
+    if(/^late$/i.test(p))continue;            // Canvas marks late submissions inline
+    if(!/^\d+$/.test(p))break;               // past the ids, into the student's own filename
+    ids.push(p);
+    if(ids.length===3)break;                  // never swallow a filename that starts with digits
+  }
+  return {nameKey,ids};
+}
 
 // ---- reading the dropped files -------------------------------------------
 // Only a post built by these generators carries #portfolio-data, so anything
@@ -139,7 +164,8 @@ function readPost(name,text){
   // fuzzily -- so it's worth knowing how many are in that state.
   const sid=/^\d{6}$/.test((m.sid||"").trim())?m.sid.trim():"";
   const peerKey=m.peerKey||"";
-  return {student,sid,grade:m.grade||"",peerKey,label:scheduleLabel(m),file:name};
+  const fromFile=fromFilename(name);
+  return {student,sid,...fromFile,grade:m.grade||"",peerKey,label:scheduleLabel(m),file:name};
 }
 // Read the schedule back out of a post's metadata for display.
 function scheduleLabel(m){
@@ -163,7 +189,7 @@ async function ingest(fileList){
     if(r.why){skipped.push(r);continue;}
     // A student who submitted twice shows up twice in the download; keep the
     // first and say so, rather than pairing them with themselves.
-    const dup=(r.sid||r.student.toLowerCase())+"|"+r.peerKey;
+    const dup=(r.sid||r.ids[0]||r.nameKey||r.student.toLowerCase())+"|"+r.peerKey;
     if(seen.has(dup)){skipped.push({file:f.name,why:`a second submission from ${esc(r.student)}`});continue;}
     seen.add(dup);
     posts.push(r);
@@ -236,11 +262,18 @@ function render(){
     file:p.file,why:`${esc(p.student)} has no rotation or period — made before the hub asked. Tick “treat everyone as one group” to include them.`}));
   groups.filter(g=>g.lonely).forEach(g=>problems.push({
     file:g.lonely.file,why:`${esc(g.lonely.student)} is the only submission in ${esc(g.label)} — nobody to pair with`}));
+  // Only posts with neither an entered ID nor anything usable in the filename
+  // are a real matching risk; the rest resolve exactly.
+  const weak=posts.filter(p=>!p.sid&&!p.ids.length&&!p.nameKey).length;
   const noSid=posts.filter(p=>!p.sid).length;
-  const sidNote=noSid
-    ? `<div class="skipped"><strong>${noSid} of ${posts.length} posts have no student ID</strong>
-       — those are exported by name instead, and the assign script has to match them against Canvas by name.
-       Once students enter their ID on the hub this goes away.</div>`
+  const sidNote=weak
+    ? `<div class="skipped"><strong>${weak} of ${posts.length} posts can only be matched by the name the student typed</strong>
+       — they have no student ID and their filename isn't in Canvas's usual
+       <code>lastfirst_number_number_file.html</code> form, so the assign script may not place them.</div>`
+    : noSid
+    ? `<div class="skipped"><strong>${noSid} of ${posts.length} posts have no student ID yet</strong>
+       — they'll be matched on the ids Canvas put in the download filename, which is exact.
+       Once students enter their ID on the hub, the pairing file won't need filenames at all.</div>`
     : "";
   $("skipped").innerHTML=sidNote+(problems.length
     ? `<div class="skipped"><strong>${problems.length} file${problems.length===1?"":"s"} not paired</strong><ul>`+
@@ -272,11 +305,25 @@ function render(){
 // that's the only case where the assign script has to fall back to matching on
 // one. Everything else stays name-free.
 function pairingData(){
-  const who=(p,role)=>p.sid?{[role+"Sid"]:p.sid}:{[role]:p.student};
+  // Identity, best first: the student's own ID, then the ids Canvas put in the
+  // download filename. Both are name-free. The filename's name token comes
+  // along only when there's no ID to use -- it matches Canvas exactly, which a
+  // student-typed name often doesn't, so the typed name is a last resort.
+  const who=(p,role)=>{
+    const o={};
+    if(p.sid)o[role+"Sid"]=p.sid;
+    if(p.ids&&p.ids.length)o[role+"Ids"]=p.ids;
+    if(!p.sid){
+      if(p.nameKey)o[role+"NameKey"]=p.nameKey;
+      else o[role]=p.student;
+    }
+    return o;
+  };
   return {
     generated:new Date().toISOString(),
     grouping:$("oneGroup").checked?"one group (rotation/period ignored)":"by rotation / period",
-    note:"reviewer reviews the author's submission; sid is the 6-digit Canvas student ID",
+    note:"reviewer reviews the author's submission. sid = 6-digit student ID; "+
+         "ids/nameKey come from the Canvas download filename and match the roster exactly.",
     reviews:groups.flatMap(g=>g.rounds.map(r=>({
       peerKey:g.key,schedule:g.label,
       ...who(r.from,"reviewer"),...who(r.to,"author")

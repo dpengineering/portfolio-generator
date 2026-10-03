@@ -150,10 +150,14 @@ Reviews → Manually Assign** and pair them in two steps:
    course and assignment setup; then a dry run, which prints every pairing
    without writing; then `--apply`.
 
-Students are matched to Canvas by their **student ID**, so `pairings.json`
-contains IDs and no names at all. A post made before the hub asked for an ID
-falls back to carrying the student's name, which the script then has to match
-against the roster — it reports anything ambiguous instead of guessing.
+**Matching students to Canvas.** A Canvas submissions download names each file
+`lastfirst_<user id>_<submission id>_<their file>.html`, and both the name and
+the numbers come from Canvas itself — so they match the roster exactly, unlike
+the name a student typed into the generator. The pairing export carries, in
+order of preference: the student's own 6-digit ID, the numbers from the
+filename, and only then a name. The script tries each in turn and reports what
+it couldn't place rather than guessing. Nothing is assumed about *which*
+number is which: the user id resolves and the submission id matches nobody.
 
 **Testing before a real cycle:** posts made before the hub asked for a rotation
 or period have nothing to group by. `pair.html` offers a *treat everyone as one
