@@ -23,7 +23,8 @@ grade; **no Canvas rubric is used for any assignment.**
 
 ### The hub
 
-`index.html` asks once for a name, a grade, and where the student sits in the
+`index.html` asks once for a name, a **6-digit student ID** (the one on their
+Canvas account), a grade, and where the student sits in the
 schedule — a **rotation** (A–D) for grades 9–11, or one or more **periods**
 (1–4) for grade 12 — and remembers it on the device (`dpea.profile.v1`). It then
 shows only the tools that grade needs. Pre-fill never overwrites a field that
@@ -145,8 +146,20 @@ Reviews → Manually Assign** and pair them in two steps:
    one. Students who didn't submit simply aren't in the download; anything it
    can't pair it says so, rather than dropping it quietly. Export `pairings.json`.
 2. **[`tools/assign_peer_reviews.py`](tools/assign_peer_reviews.py)** — run it on
-   your machine with a Canvas API token. It resolves names against the live
-   roster and assigns the reviews. Dry run by default; `--apply` to commit.
+   your machine with a Canvas API token. `--check` first to confirm the token,
+   course and assignment setup; then a dry run, which prints every pairing
+   without writing; then `--apply`.
+
+Students are matched to Canvas by their **student ID**, so `pairings.json`
+contains IDs and no names at all. A post made before the hub asked for an ID
+falls back to carrying the student's name, which the script then has to match
+against the roster — it reports anything ambiguous instead of guessing.
+
+**Testing before a real cycle:** posts made before the hub asked for a rotation
+or period have nothing to group by. `pair.html` offers a *treat everyone as one
+group* switch for exactly that case, so an existing batch of submissions can be
+run end to end. It's a visible switch rather than a silent fallback, because
+left on during a real cycle it would pair a 9th grader with a senior.
 
 Reviewers then download their partner's file from Canvas and load it into
 `/unit`, where peer-review mode switches itself on because the post's author

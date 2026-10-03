@@ -106,6 +106,11 @@
         <div><label>First name<input type="text" id="firstName" placeholder="Ada"></label></div>
         <div><label>Last name<input type="text" id="lastName" placeholder="Lovelace"></label></div>
       </div>
+      <!-- The SID is how a post is matched to a Canvas account. It's exact
+           where a typed name isn't, and it means peer-review pairing never has
+           to handle student names at all. -->
+      <label>Student ID <span class="hint">— the 6-digit number on your Canvas account</span>
+        <input type="text" id="sid" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="123456"></label>
 
       <!-- Rotation (grades 9-11) or period(s) (grade 12). This is what peer
            review pairs on, so it travels with every post the student makes. -->
@@ -176,7 +181,7 @@
 // Editing a field must never move the student forward — they may still be
 // typing their name — so field handlers only ever call paint(); nothing but the
 // Next button and the Change button change `stage`.
-const FIELDS={firstName:"first",lastName:"last",grade:"grade"};
+const FIELDS={firstName:"first",lastName:"last",sid:"sid",grade:"grade"};
 let stage="setup";                       // "setup" | "tiles"
 
 function paintStage(){
@@ -207,6 +212,7 @@ function scheduleReady(){
 function missingField(){
   if(!$("firstName").value.trim())return "first name";
   if(!$("lastName").value.trim())return "last name";
+  if(!validSid($("sid").value))return "6-digit student ID";
   if(!$("grade").value)return "grade";
   if(!scheduleReady())return $("grade").value==="12"?"period":"rotation";
   return "";
@@ -234,6 +240,10 @@ function paint(){
   $("weeklyDesc").textContent=senior
     ? "Write up this week's work, then fill in your performance review in the same form. Downloads as two files, one per Canvas assignment."
     : "Write up this week's work with photos, key terms, and a reflection.";
+
+  // keep the field to digits so a typo shows up here rather than in Canvas
+  const sidEl=$("sid"), digits=sidEl.value.replace(/\D/g,"").slice(0,6);
+  if(sidEl.value!==digits)sidEl.value=digits;
 
   const who=[p.first,p.last].filter(Boolean).join(" ");
   const where=scheduleLabel(p);
@@ -292,8 +302,8 @@ document.querySelectorAll(".periodBox").forEach(b=>b.addEventListener("change",(
 $("next").addEventListener("click",()=>{
   const missing=missingField();
   if(missing){
-    const el={"first name":$("firstName"),"last name":$("lastName"),"grade":$("grade"),
-      "rotation":$("rotation"),"period":document.querySelector(".periodBox")}[missing];
+    const el={"first name":$("firstName"),"last name":$("lastName"),"6-digit student ID":$("sid"),
+      "grade":$("grade"),"rotation":$("rotation"),"period":document.querySelector(".periodBox")}[missing];
     if(el&&el.focus)el.focus();
     return;
   }

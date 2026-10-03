@@ -121,6 +121,12 @@ are fine so no pairing history is kept, and non-submitters need no special
 handling — they're absent from the download and spend the period finishing a
 late post.
 
+Identity is the student's **6-digit Canvas ID**, collected on the hub. That
+makes Canvas matching exact where a typed name is fuzzy, and it means the
+exported pairing file carries no student names at all — not even in filenames,
+which is why the export dropped them. Names are included only for posts made
+before the ID was asked for, since matching has nothing else to go on.
+
 Worth stating plainly: **no student data goes to an AI service.** The pairing
 tool makes no network calls and the script talks only to Canvas. An MCP-driven
 approach was considered and rejected for exactly this reason — editing course

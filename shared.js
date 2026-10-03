@@ -395,6 +395,10 @@ const GRADES=["9","10","11","12"];
 // review: 9-11 match on the same rotation, 12 on their FIRST selected period
 // (so the order they pick them in matters and is preserved).
 const ROTATIONS=["A","B","C","D"];
+// A student's 6-digit Canvas ID. Posts carry it so peer-review pairing can be
+// matched to Canvas accounts exactly, instead of guessing at typed-in names --
+// which also keeps names out of the pairing files entirely.
+function validSid(s){return /^\d{6}$/.test((s||"").trim());}
 const PERIODS=["1","2","3","4"];
 function isSenior(grade){return grade==="12";}
 // A senior's home period is simply the earliest one they're present for, so
@@ -420,6 +424,7 @@ function peerGroupKey(p){
 function scheduleMeta(){
   const p=getProfile();
   const m={peerKey:peerGroupKey(p)};
+  if(validSid(p.sid))m.sid=p.sid.trim();
   if(isSenior(p.grade)){const ps=sortPeriods(p.periods);if(ps.length)m.periods=ps;}
   else if(p.rotation)m.rotation=p.rotation;
   return m;

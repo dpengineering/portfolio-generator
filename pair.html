@@ -43,6 +43,10 @@
   .badge{flex:none;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
     color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:.1rem .45rem}
 
+  .onegroup{display:flex;gap:.55rem;align-items:flex-start;background:#fff7ed;border:1px solid #fed7aa;
+    border-radius:10px;padding:.7rem .9rem;margin:1rem 0 0;font-size:.84rem;color:var(--warn);cursor:pointer}
+  .onegroup input{margin-top:.15rem;flex:none}
+  .onegroup strong{color:#7c2d12}
   .skipped{border:1px solid #fed7aa;background:#fff7ed;border-radius:10px;padding:.7rem .9rem;margin:0 0 1rem;font-size:.84rem;color:var(--warn)}
   .skipped ul{margin:.4rem 0 0;padding-left:1.2rem}
   .empty{color:var(--muted);font-size:.9rem;text-align:center;padding:2rem 0}
@@ -69,6 +73,17 @@
     or click to choose the <code>.html</code> files
     <input type="file" id="file" accept=".html,.htm,text/html" multiple hidden>
   </div>
+
+  <!-- Posts made before the hub asked for a rotation/period carry no peerKey,
+       so there is nothing to group them by. This lets you run the whole thing
+       on an existing batch by treating everyone as one group. It is deliberately
+       a visible switch and not a silent fallback: left on by accident during a
+       real cycle it would pair a 9th grader with a senior. -->
+  <label class="onegroup" id="oneGroupWrap" hidden>
+    <input type="checkbox" id="oneGroup">
+    <span><strong>Treat everyone as one group</strong> — ignore rotation and period and pair across the whole batch.
+    For testing on posts made before the hub asked for a schedule.</span>
+  </label>
 
   <div class="bar" hidden id="bar">
     <button class="btn" id="shuffle">🔀 Shuffle again</button>
@@ -102,7 +117,7 @@
 const $=id=>document.getElementById(id);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 
-let posts=[];      // {student, grade, peerKey, label, file}
+let posts=[];      // {student, sid, grade, peerKey, label, file}
 let skipped=[];    // {file, why}
 let groups=[];     // [{key, label, rounds:[{from,to,trio}]}]
 
@@ -119,8 +134,12 @@ function readPost(name,text){
   const m=d.meta||{};
   const student=(m.student||"").trim();
   if(!student)return {file:name,why:"has no student name"};
-  if(!m.peerKey)return {file:name,why:`has no rotation or period (${esc(student)} made it before that was asked for)`};
-  return {student,grade:m.grade||"",peerKey:m.peerKey,label:scheduleLabel(m),file:name};
+  // The SID is the identity Canvas is matched on. Posts made before the hub
+  // asked for one fall back to the name, which the script then has to match
+  // fuzzily -- so it's worth knowing how many are in that state.
+  const sid=/^\d{6}$/.test((m.sid||"").trim())?m.sid.trim():"";
+  const peerKey=m.peerKey||"";
+  return {student,sid,grade:m.grade||"",peerKey,label:scheduleLabel(m),file:name};
 }
 // Read the schedule back out of a post's metadata for display.
 function scheduleLabel(m){
@@ -128,6 +147,11 @@ function scheduleLabel(m){
   if(m.rotation)return "Rotation "+m.rotation;
   return m.peerKey||"";
 }
+
+// A post with no peerKey can't be grouped. Rather than refusing it outright,
+// it's held back and the one-group switch is offered, so an existing batch can
+// still be used for a trial run.
+function unschedulable(){return posts.filter(p=>!p.peerKey);}
 
 async function ingest(fileList){
   const files=[...fileList].filter(f=>/\.html?$/i.test(f.name));
@@ -139,11 +163,13 @@ async function ingest(fileList){
     if(r.why){skipped.push(r);continue;}
     // A student who submitted twice shows up twice in the download; keep the
     // first and say so, rather than pairing them with themselves.
-    const dup=r.student.toLowerCase()+"|"+r.peerKey;
+    const dup=(r.sid||r.student.toLowerCase())+"|"+r.peerKey;
     if(seen.has(dup)){skipped.push({file:f.name,why:`a second submission from ${esc(r.student)}`});continue;}
     seen.add(dup);
     posts.push(r);
   }
+  // offer the escape hatch as soon as anything can't be grouped
+  $("oneGroupWrap").hidden=!posts.length;
   makePairs();
   render();
 }
@@ -176,14 +202,17 @@ function pairUp(list){
   return rounds;
 }
 function makePairs(){
+  const lump=$("oneGroup").checked;
   const byKey=new Map();
   posts.forEach(p=>{
-    if(!byKey.has(p.peerKey))byKey.set(p.peerKey,[]);
-    byKey.get(p.peerKey).push(p);
+    if(!lump&&!p.peerKey)return;            // nothing to group them by
+    const k=lump?"ALL":p.peerKey;
+    if(!byKey.has(k))byKey.set(k,[]);
+    byKey.get(k).push(p);
   });
   groups=[...byKey.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([key,list])=>({
     key,
-    label:list[0].label||key,
+    label:lump?"Everyone (grouping off)":(list[0].label||key),
     members:list.length,
     // One person in a group has nobody to pair with; say so rather than
     // dropping them without explanation.
@@ -201,12 +230,22 @@ function render(){
     : "";
 
   const problems=skipped.slice();
+  // Only a problem while grouping is on; the one-group switch is the fix and
+  // the message says so.
+  if(!$("oneGroup").checked)unschedulable().forEach(p=>problems.push({
+    file:p.file,why:`${esc(p.student)} has no rotation or period — made before the hub asked. Tick “treat everyone as one group” to include them.`}));
   groups.filter(g=>g.lonely).forEach(g=>problems.push({
     file:g.lonely.file,why:`${esc(g.lonely.student)} is the only submission in ${esc(g.label)} — nobody to pair with`}));
-  $("skipped").innerHTML=problems.length
+  const noSid=posts.filter(p=>!p.sid).length;
+  const sidNote=noSid
+    ? `<div class="skipped"><strong>${noSid} of ${posts.length} posts have no student ID</strong>
+       — those are exported by name instead, and the assign script has to match them against Canvas by name.
+       Once students enter their ID on the hub this goes away.</div>`
+    : "";
+  $("skipped").innerHTML=sidNote+(problems.length
     ? `<div class="skipped"><strong>${problems.length} file${problems.length===1?"":"s"} not paired</strong><ul>`+
       problems.map(s=>`<li><code>${esc(s.file)}</code> — ${s.why}</li>`).join("")+`</ul></div>`
-    : "";
+    : "");
 
   if(!posts.length){
     $("out").innerHTML='<div class="empty">No submissions loaded yet.</div>';
@@ -228,14 +267,19 @@ function render(){
 // ---- export ---------------------------------------------------------------
 // reviewer writes the review; author is whose post gets reviewed. The script
 // resolves both names against the live Canvas roster.
+// The reviewer reviews the author's submission. Students are identified by
+// their 6-digit Canvas ID; a name is included ONLY when a post has no ID, since
+// that's the only case where the assign script has to fall back to matching on
+// one. Everything else stays name-free.
 function pairingData(){
+  const who=(p,role)=>p.sid?{[role+"Sid"]:p.sid}:{[role]:p.student};
   return {
     generated:new Date().toISOString(),
-    note:"reviewer reviews author's submission. Names are as entered by students in the generator.",
+    grouping:$("oneGroup").checked?"one group (rotation/period ignored)":"by rotation / period",
+    note:"reviewer reviews the author's submission; sid is the 6-digit Canvas student ID",
     reviews:groups.flatMap(g=>g.rounds.map(r=>({
       peerKey:g.key,schedule:g.label,
-      reviewer:r.from.student,reviewerFile:r.from.file,
-      author:r.to.student,authorFile:r.to.file
+      ...who(r.from,"reviewer"),...who(r.to,"author")
     })))
   };
 }
@@ -259,13 +303,14 @@ $("file").onchange=e=>{if(e.target.files.length)ingest(e.target.files);e.target.
 $("drop").addEventListener("drop",e=>{
   if(e.dataTransfer&&e.dataTransfer.files.length)ingest(e.dataTransfer.files);});
 $("shuffle").onclick=()=>{makePairs();render();};
+$("oneGroup").onchange=()=>{makePairs();render();};
 $("export").onclick=()=>download("pairings.json",JSON.stringify(pairingData(),null,2),"application/json");
 $("copy").onclick=async()=>{
   try{await navigator.clipboard.writeText(asText());$("copy").textContent="📋 Copied";
     setTimeout(()=>{$("copy").textContent="📋 Copy as text";},1500);}
   catch(e){download("pairings.txt",asText(),"text/plain");}
 };
-$("reset").onclick=()=>{posts=[];skipped=[];groups=[];render();};
+$("reset").onclick=()=>{posts=[];skipped=[];groups=[];$("oneGroupWrap").hidden=true;render();};
 </script>
 </body>
 </html>

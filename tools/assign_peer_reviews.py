@@ -18,6 +18,9 @@ Usage
     # see what it would do -- this is the default, nothing is written
     python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678
 
+    # check the token, course and assignment setup first
+    python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --check
+
     # actually assign them
     python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --apply
 
@@ -25,9 +28,13 @@ The assignment must have peer reviews turned ON (Edit assignment -> Require Peer
 Reviews -> Manually Assign). Leave it on manual: letting Canvas assign
 automatically would ignore rotations and periods entirely.
 
-Names come from what students typed into the generator, so they don't always
-match Canvas exactly. Anything this can't match confidently is listed for you to
-fix by hand rather than guessed at.
+Students are matched by their 6-digit Canvas student ID, which posts carry once
+the student has entered it on the hub. Posts made before that fall back to
+matching on the name they typed, which doesn't always match Canvas -- anything
+that can't be matched confidently is listed for you to fix rather than guessed
+at.
+
+Run --check first to confirm the token works and the assignment is set up right.
 """
 import argparse, json, os, re, sys, unicodedata
 import urllib.error, urllib.parse, urllib.request
@@ -86,35 +93,105 @@ def name_keys(student):
 
 
 def build_index(students):
-    idx = {}
+    """Two lookups: exact by student id, fuzzy by name."""
+    by_sid, by_name = {}, {}
     for s in students:
+        # Canvas exposes the student number as sis_user_id when the token may
+        # read SIS data, and otherwise often as login_id.
+        for field in ("sis_user_id", "login_id", "integration_id"):
+            v = str(s.get(field) or "").strip()
+            if re.fullmatch(r"\d{6}", v):
+                by_sid.setdefault(v, set()).add(s["id"])
         for k in name_keys(s):
             # a name shared by two students is ambiguous, so remember that
-            idx.setdefault(k, set()).add(s["id"])
-    return idx
+            by_name.setdefault(k, set()).add(s["id"])
+    return by_sid, by_name
 
 
-def resolve(name, idx):
-    hits = idx.get(norm(name))
+def pick(hits, what):
     if not hits:
-        return None, "no Canvas student with that name"
+        return None, f"no Canvas student with that {what}"
     if len(hits) > 1:
-        return None, f"matches {len(hits)} students in Canvas"
+        return None, f"{what} matches {len(hits)} students in Canvas"
     return next(iter(hits)), None
+
+
+def resolve(entry, role, idx):
+    """Prefer the student id; fall back to the name only when there isn't one."""
+    by_sid, by_name = idx
+    sid = str(entry.get(role + "Sid") or "").strip()
+    if sid:
+        who, why = pick(by_sid.get(sid), "student ID")
+        return who, (f"ID {sid} — {why}" if why else None), sid
+    name = entry.get(role) or ""
+    who, why = pick(by_name.get(norm(name)), "name")
+    return who, (f"{name} — {why}" if why else None), name
+
+
+# ---- preflight --------------------------------------------------------------
+def preflight(base, token, course, assignment):
+    """Confirm the token, course and assignment are usable before touching anything."""
+    ok = True
+    try:
+        me, _ = api(base, token, "/api/v1/users/self")
+        print(f"Token works — signed in as {me.get('name','?')}")
+    except urllib.error.HTTPError as e:
+        sys.exit(f"Token rejected ({e.code} {e.reason}). Check CANVAS_URL and CANVAS_TOKEN.")
+
+    try:
+        c, _ = api(base, token, f"/api/v1/courses/{course}")
+        print(f"Course {course}: {c.get('name','?')}")
+    except urllib.error.HTTPError as e:
+        sys.exit(f"Can't read course {course} ({e.code} {e.reason}).")
+
+    try:
+        a, _ = api(base, token, f"/api/v1/courses/{course}/assignments/{assignment}")
+    except urllib.error.HTTPError as e:
+        sys.exit(f"Can't read assignment {assignment} ({e.code} {e.reason}).")
+    print(f"Assignment {assignment}: {a.get('name','?')}")
+
+    if not a.get("peer_reviews"):
+        print("  ! Peer reviews are OFF for this assignment.")
+        print("    Edit the assignment -> tick 'Require Peer Reviews'.")
+        ok = False
+    elif a.get("automatic_peer_reviews"):
+        print("  ! Peer reviews are set to assign AUTOMATICALLY.")
+        print("    Canvas would ignore rotations and periods. Switch it to 'Manually Assign'.")
+        ok = False
+    else:
+        print("  Peer reviews: on, manually assigned ✓")
+
+    students = api_list(base, token, f"/api/v1/courses/{course}/users",
+                        {"enrollment_type[]": "student", "enrollment_state[]": "active"})
+    by_sid, _ = build_index(students)
+    print(f"Roster: {len(students)} active students, {len(by_sid)} with a 6-digit ID")
+    if students and not by_sid:
+        print("  ! No student IDs visible. The token may lack permission to read SIS data,")
+        print("    so pairings will have to be matched by name. That still works.")
+
+    print("\nReady." if ok else "\nFix the items marked ! before running with --apply.")
+    return 0 if ok else 1
 
 
 # ---- main -------------------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser(description="Assign Canvas peer reviews from pairings.json")
-    ap.add_argument("pairings", help="pairings.json exported from pair.html")
+    ap.add_argument("pairings", nargs="?", help="pairings.json exported from pair.html (not needed with --check)")
     ap.add_argument("--course", required=True, help="Canvas course id")
     ap.add_argument("--assignment", required=True, help="Canvas assignment id")
     ap.add_argument("--apply", action="store_true", help="actually assign (default is a dry run)")
+    ap.add_argument("--check", action="store_true",
+                    help="check the token, course and assignment setup, then stop")
     args = ap.parse_args()
 
     base, token = os.environ.get("CANVAS_URL"), os.environ.get("CANVAS_TOKEN")
     if not base or not token:
         sys.exit("Set CANVAS_URL and CANVAS_TOKEN first (see the docstring at the top of this file).")
+
+    if args.check:
+        return preflight(base, token, args.course, args.assignment)
+    if not args.pairings:
+        sys.exit("Give me a pairings.json (or run --check on its own).")
 
     data = json.load(open(args.pairings))
     reviews = data.get("reviews") or []
@@ -128,30 +205,34 @@ def main():
     except urllib.error.HTTPError as e:
         sys.exit(f"Canvas said {e.code} {e.reason}. Check CANVAS_URL, the token, and the course id.")
     idx = build_index(students)
-    print(f"  {len(students)} active students\n")
+    by_sid, _ = idx
+    print(f"  {len(students)} active students, {len(by_sid)} with a 6-digit ID\n")
+
+    # Names for the printout come from Canvas, not from the pairing file.
+    label = {s["id"]: s.get("name") or s["id"] for s in students}
 
     planned, problems = [], []
     for r in reviews:
-        reviewer_id, why_r = resolve(r["reviewer"], idx)
-        author_id, why_a = resolve(r["author"], idx)
+        reviewer_id, why_r, shown_r = resolve(r, "reviewer", idx)
+        author_id, why_a, shown_a = resolve(r, "author", idx)
         if why_r:
-            problems.append(f"{r['reviewer']} (reviewer) — {why_r}")
+            problems.append(f"reviewer {why_r}")
         if why_a:
-            problems.append(f"{r['author']} (author) — {why_a}")
+            problems.append(f"author {why_a}")
         if reviewer_id and author_id:
             if reviewer_id == author_id:
-                problems.append(f"{r['reviewer']} would review their own post — skipped")
+                problems.append(f"{shown_r} would review their own post — skipped")
             else:
                 planned.append((r, reviewer_id, author_id))
 
     for r, reviewer_id, author_id in planned:
-        print(f"  {r['schedule']:<16} {r['reviewer']} → {r['author']}")
+        print(f"  {r.get('schedule',''):<22} {label[reviewer_id]} → {label[author_id]}")
 
     if problems:
-        print(f"\n{len(set(problems))} name(s) to sort out by hand:")
+        print(f"\n{len(set(problems))} to sort out by hand:")
         for p in sorted(set(problems)):
             print(f"  ! {p}")
-        print("  (fix the spelling in Canvas or in pairings.json, then run again)")
+        print("  (fix it in Canvas or in pairings.json, then run again)")
 
     print(f"\n{len(planned)} review(s) ready, {len(reviews) - len(planned)} skipped.")
     if not args.apply:
@@ -174,7 +255,7 @@ def main():
                 detail = " " + e.read().decode()[:200]
             except Exception:
                 pass
-            print(f"  ! {r['reviewer']} → {r['author']}: {e.code} {e.reason}{detail}")
+            print(f"  ! {label[reviewer_id]} → {label[author_id]}: {e.code} {e.reason}{detail}")
     print(f"\nAssigned {ok} of {len(planned)}.")
 
 
