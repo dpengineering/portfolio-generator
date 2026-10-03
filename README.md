@@ -134,6 +134,11 @@ Peer review runs on the **unit/monthly** post, through Canvas's own peer-review
 feature — students and teachers already know it, Canvas already knows who
 everyone is, and a student only ever sees the submission assigned to them.
 
+> **Peer reviews live on the assignment the students submitted to.** Canvas
+> attaches a review to a submission, so you enable peer review on the unit post
+> assignment itself and assign reviews there. A separate "peer review"
+> assignment has no submissions to point at and every API call returns 404.
+
 The one thing Canvas can't do is pair students by rotation or period: its
 automatic assignment ignores both. So leave the assignment on **Require Peer
 Reviews → Manually Assign** and pair them in two steps:

@@ -212,6 +212,12 @@ def preflight(base, token, course, assignment):
         sys.exit(f"Can't read assignment {assignment} ({e.code} {e.reason}).")
     print(f"Assignment {assignment}: {a.get('name','?')}")
 
+    if a.get("published") is False:
+        print("  ! Not published. Students can't see it and it may reject API writes.")
+        ok = False
+    else:
+        print("  Published ✓")
+
     if not a.get("peer_reviews"):
         print("  ! Peer reviews are OFF for this assignment.")
         print("    Edit the assignment -> tick 'Require Peer Reviews'.")
@@ -230,6 +236,25 @@ def preflight(base, token, course, assignment):
     if students and not by_sid:
         print("  ! No student IDs visible. The token may lack permission to read SIS data,")
         print("    so pairings will have to be matched by name. That still works.")
+
+    # A peer review points at a submission ON THIS ASSIGNMENT. If students
+    # submitted their work somewhere else, there is nothing here to review and
+    # every assignment call 404s -- which is the failure this exists to catch.
+    try:
+        subs = api_list(base, token,
+                        f"/api/v1/courses/{course}/assignments/{assignment}/submissions")
+    except urllib.error.HTTPError as e:
+        print(f"  ! Can't list submissions ({e.code} {e.reason}).")
+        subs = []
+    real = [s for s in subs if s.get("workflow_state") not in (None, "unsubmitted")]
+    print(f"Submissions on this assignment: {len(real)} submitted, {len(subs)} records total")
+    if not real:
+        print("  ! Nobody has submitted to THIS assignment.")
+        print("    Canvas attaches a peer review to a submission on the same assignment,")
+        print("    so there is nothing here to review and every call will 404.")
+        print("    Turn peer review on for the assignment the students actually submitted")
+        print("    to, and use that assignment id.")
+        ok = False
 
     print("\nReady." if ok else "\nFix the items marked ! before running with --apply.")
     return 0 if ok else 1
@@ -332,7 +357,7 @@ def main():
         return
 
     print("\nAssigning…")
-    ok = 0
+    ok, notfound = 0, 0
     for r, reviewer_id, author_id in planned:
         # The id in the URL is the student whose submission is being reviewed;
         # user_id in the body is the student doing the reviewing.
@@ -347,8 +372,17 @@ def main():
                 detail = " " + e.read().decode()[:200]
             except Exception:
                 pass
+            if e.code == 404:
+                notfound += 1
             print(f"  ! {label[reviewer_id]} → {label[author_id]}: {e.code} {e.reason}{detail}")
     print(f"\nAssigned {ok} of {len(planned)}.")
+    if notfound:
+        print(f"\n{notfound} came back 404. Canvas attaches a peer review to a submission on")
+        print("this assignment, so a 404 for every student usually means one of:")
+        print("  - the students submitted to a DIFFERENT assignment than --assignment points at")
+        print("  - the assignment isn't published")
+        print("  - peer reviews aren't enabled on it")
+        print("Run --check against the same course and assignment; it tests all three.")
 
 
 if __name__ == "__main__":
