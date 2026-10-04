@@ -24,6 +24,18 @@ Usage
     # actually assign them
     python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --apply
 
+    # put it back: preview what would be removed, then remove it
+    python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --undo
+    python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --undo --apply
+
+Assigning is idempotent: anything already assigned is left alone, so running it
+twice is a no-op and a re-run after a partial failure only fills the gaps.
+
+--undo removes exactly the pairings in the file you give it, so peer reviews
+assigned by hand outside it are untouched. A review the reviewer has already
+completed is kept, because removing it would throw away feedback they wrote;
+--force overrides that.
+
 The assignment must have peer reviews turned ON (Edit assignment -> Require Peer
 Reviews -> Manually Assign). Leave it on manual: letting Canvas assign
 automatically would ignore rotations and periods entirely.
@@ -190,6 +202,35 @@ def apply_aliases(aliases, idx, students):
     return used
 
 
+# ---- what's already there ---------------------------------------------------
+def fetch_existing(base, token, course, assignment):
+    """Every peer review already on the assignment, keyed (owner, assessor).
+
+    owner is the student whose submission is reviewed; assessor is the reviewer.
+    Having this makes assigning idempotent and makes undo precise -- it only
+    removes pairs that are actually there, and never touches a review somebody
+    assigned by hand that isn't in our pairing file.
+    """
+    out = {}
+    try:
+        for pr in api_list(base, token,
+                           f"/api/v1/courses/{course}/assignments/{assignment}/peer_reviews"):
+            owner, assessor = pr.get("user_id"), pr.get("assessor_id")
+            if owner and assessor:
+                out[(owner, assessor)] = pr
+    except urllib.error.HTTPError as e:
+        print(f"  ! Couldn't read the existing peer reviews ({e.code} {e.reason}).")
+        print("    Carrying on, but assigning may duplicate what's already there.")
+    return out
+
+
+def post_error(e):
+    try:
+        return " " + e.read().decode()[:200]
+    except Exception:
+        return ""
+
+
 # ---- preflight --------------------------------------------------------------
 def preflight(base, token, course, assignment):
     """Confirm the token, course and assignment are usable before touching anything."""
@@ -266,7 +307,12 @@ def main():
     ap.add_argument("pairings", nargs="?", help="pairings.json exported from pair.html (not needed with --check)")
     ap.add_argument("--course", required=True, help="Canvas course id")
     ap.add_argument("--assignment", required=True, help="Canvas assignment id")
-    ap.add_argument("--apply", action="store_true", help="actually assign (default is a dry run)")
+    ap.add_argument("--apply", action="store_true",
+                    help="actually write the change (default is a dry run)")
+    ap.add_argument("--undo", action="store_true",
+                    help="remove the peer reviews in this file instead of assigning them")
+    ap.add_argument("--force", action="store_true",
+                    help="with --undo, also remove reviews a student has already completed")
     ap.add_argument("--check", action="store_true",
                     help="check the token, course and assignment setup, then stop")
     ap.add_argument("--aliases", metavar="FILE",
@@ -351,31 +397,47 @@ def main():
             print(f"  ! {p}")
         print("  (fix it in Canvas or in pairings.json, then run again)")
 
-    print(f"\n{len(planned)} review(s) ready, {len(reviews) - len(planned)} skipped.")
+    print(f"\n{len(planned)} review(s) resolved, {len(reviews) - len(planned)} skipped.")
+
+    existing = fetch_existing(base, token, args.course, args.assignment)
+    print(f"Already on the assignment: {len(existing)} peer review(s)")
+
+    # The URL always names the student whose submission is involved; user_id in
+    # the body always names the reviewer. Same shape for POST and DELETE.
+    def path_for(author_id):
+        return (f"/api/v1/courses/{args.course}/assignments/{args.assignment}"
+                f"/submissions/{author_id}/peer_reviews")
+
+    if args.undo:
+        return do_undo(base, token, planned, existing, label, path_for, args)
+    return do_apply(base, token, planned, existing, label, path_for, args)
+
+
+def do_apply(base, token, planned, existing, label, path_for, args):
+    todo = [p for p in planned if (p[2], p[1]) not in existing]
+    already = len(planned) - len(todo)
+    if already:
+        print(f"  {already} of those are already assigned — they'll be left alone.")
+    if not todo:
+        print("\nNothing to do; every pairing in this file is already assigned.")
+        return 0
+
+    print(f"\n{len(todo)} to assign.")
     if not args.apply:
         print("Dry run — nothing was changed. Re-run with --apply to assign them.")
-        return
+        return 0
 
-    print("\nAssigning…")
+    print("Assigning…")
     ok, notfound = 0, 0
-    for r, reviewer_id, author_id in planned:
-        # The id in the URL is the student whose submission is being reviewed;
-        # user_id in the body is the student doing the reviewing.
-        path = (f"/api/v1/courses/{args.course}/assignments/{args.assignment}"
-                f"/submissions/{author_id}/peer_reviews")
+    for r, reviewer_id, author_id in todo:
         try:
-            api(base, token, path, method="POST", data={"user_id": reviewer_id})
+            api(base, token, path_for(author_id), method="POST", data={"user_id": reviewer_id})
             ok += 1
         except urllib.error.HTTPError as e:
-            detail = ""
-            try:
-                detail = " " + e.read().decode()[:200]
-            except Exception:
-                pass
             if e.code == 404:
                 notfound += 1
-            print(f"  ! {label[reviewer_id]} → {label[author_id]}: {e.code} {e.reason}{detail}")
-    print(f"\nAssigned {ok} of {len(planned)}.")
+            print(f"  ! {label[reviewer_id]} → {label[author_id]}: {e.code} {e.reason}{post_error(e)}")
+    print(f"\nAssigned {ok} of {len(todo)}.")
     if notfound:
         print(f"\n{notfound} came back 404. Canvas attaches a peer review to a submission on")
         print("this assignment, so a 404 for every student usually means one of:")
@@ -383,6 +445,59 @@ def main():
         print("  - the assignment isn't published")
         print("  - peer reviews aren't enabled on it")
         print("Run --check against the same course and assignment; it tests all three.")
+    return 0
+
+
+def do_undo(base, token, planned, existing, label, path_for, args):
+    """Remove exactly the peer reviews this pairing file assigned.
+
+    Only pairs present in the file are touched, so a review assigned by hand
+    outside it survives. A review a student has already completed is left alone
+    unless --force: removing it would throw away feedback they actually wrote.
+    """
+    todo, done, gone = [], [], 0
+    for p in planned:
+        pr = existing.get((p[2], p[1]))
+        if not pr:
+            gone += 1
+        elif pr.get("workflow_state") == "completed":
+            done.append(p)
+        else:
+            todo.append(p)
+
+    if gone:
+        print(f"  {gone} of those aren't assigned — nothing to remove.")
+    if done:
+        word = "will also be removed" if args.force else "will be KEPT"
+        print(f"  {len(done)} have already been completed by the reviewer and {word}.")
+        for r, reviewer_id, author_id in done:
+            print(f"      {label[reviewer_id]} → {label[author_id]}")
+        if not args.force:
+            print("    (--force removes these too, throwing away the feedback they wrote)")
+    if args.force:
+        todo += done
+
+    if not todo:
+        print("\nNothing to remove.")
+        return 0
+
+    print(f"\n{len(todo)} to remove:")
+    for r, reviewer_id, author_id in todo:
+        print(f"  {r.get('schedule',''):<22} {label[reviewer_id]} → {label[author_id]}")
+    if not args.apply:
+        print("\nDry run — nothing was changed. Re-run with --undo --apply to remove them.")
+        return 0
+
+    print("\nRemoving…")
+    ok = 0
+    for r, reviewer_id, author_id in todo:
+        try:
+            api(base, token, path_for(author_id), method="DELETE", data={"user_id": reviewer_id})
+            ok += 1
+        except urllib.error.HTTPError as e:
+            print(f"  ! {label[reviewer_id]} → {label[author_id]}: {e.code} {e.reason}{post_error(e)}")
+    print(f"\nRemoved {ok} of {len(todo)}.")
+    return 0
 
 
 if __name__ == "__main__":

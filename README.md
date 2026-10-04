@@ -155,6 +155,20 @@ Reviews → Manually Assign** and pair them in two steps:
    course and assignment setup; then a dry run, which prints every pairing
    without writing; then `--apply`.
 
+Assigning is **idempotent** — anything already assigned is left alone, so a
+re-run after a partial failure fills only the gaps and running it twice does
+nothing. `--undo` reverses it, and `--undo --apply` commits that:
+
+```bash
+# put a live assignment back the way it was
+python3 tools/assign_peer_reviews.py pairings.json --course N --assignment M --undo --apply
+```
+
+Undo removes only the pairings in the file you hand it, so a peer review
+assigned by hand outside it survives. A review the reviewer has **already
+completed** is kept and reported, since removing it would throw away feedback
+they actually wrote — `--force` overrides that, deliberately.
+
 The dry run opens by reporting what identity the pairing file actually carries,
 and closes with how each student was matched. If that summary says everyone
 matched on *the name typed in the post*, the filename ids never made it into the
