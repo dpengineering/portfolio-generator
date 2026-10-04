@@ -153,6 +153,12 @@ modules through one is fine, routing a roster through one is not.
 - Assigning is idempotent and `--undo` reverses it, so a live assignment can be
   tested and put back. Undo won't remove a review the student already completed
   unless forced.
+- A peer review is completed by **leaving a comment** on the author's
+  submission (plus a rubric, if one is attached — we attach none). So the
+  reviewer's output is comment text, not a file: peer mode composes it and the
+  student pastes it in. Attaching the rendered page as a comment attachment
+  also works and is left available, but it's the comment that completes the
+  review, and asking students to do both was friction for no gain.
 
 ## Open
 

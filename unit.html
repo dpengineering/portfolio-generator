@@ -110,6 +110,8 @@
   .pu-part:first-of-type{border-top:0;padding-top:0;margin-top:0}
   .pu-head{font-weight:700;font-size:.92rem;color:var(--accent);margin-bottom:.3rem}
   .pu-head .pu-n{font-weight:400;color:var(--muted)}
+  .peer-howto{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:.7rem .9rem;
+    margin:0 0 1rem;font-size:.85rem;color:#1d4ed8;line-height:1.5}
   .peer-wrap{margin-top:.55rem;border-top:1px dashed var(--border);padding-top:.5rem}
   .peer-wrap textarea{min-height:70px;border-color:#bfdbfe}
   .locknote{font-size:.72rem;font-weight:700;color:#64748b;margin:.1rem 0 .35rem}
@@ -154,6 +156,7 @@
   <div class="form">
     <div class="toolbar">
       <button class="btn" id="download">⬇ Download portfolio</button>
+      <button class="btn" id="copyReview" type="button" hidden>📋 Copy review for Canvas</button>
       <button class="btn alt" id="save">💾 Save draft</button>
       <button class="btn alt" id="loadBtn">📂 Load draft or post</button>
       <input type="file" id="loadFile" accept=".json,.html,.htm,application/json,text/html" hidden>
@@ -164,6 +167,13 @@
 
     <div class="tip">⚠️ <strong>Your work isn't saved automatically.</strong> Tap <strong>💾 Save draft</strong> before you close this page, and <strong>📂 Load draft</strong> to pick up where you left off.
     You can also use <a href="https://docs.google.com/document/d/1iV-RUj3dHnWcRVB7tMuCfEqWDeEDLgmjhzk_8CkwKcI/copy" target="_blank">this Google Doc Template</a> to draft your writing.</div>
+
+    <div class="peer-howto" id="peerHowTo" hidden>
+      <strong>You're reviewing a classmate's post.</strong>
+      Fill in your feedback below, press <strong>📋 Copy review for Canvas</strong>, then go back to the
+      peer review in Canvas and paste it as a <strong>comment</strong> on their submission.
+      Leaving that comment is what marks your peer review complete — nothing you download here does.
+    </div>
 
     <div class="gate" id="gate"></div>
 
@@ -257,7 +267,7 @@
       <label class="peertoggle" id="peerToggleWrap" hidden><input type="checkbox" id="peer"> 🔍 Peer Review — I'm reviewing a classmate's post</label>
       <div id="peerNameWrap" hidden><label>Reviewer's name<input type="text" id="peerName" placeholder="Your name (the reviewer)"></label></div>
       <p class="hint" id="selfHint" style="margin:.2rem 0 .6rem">Grade your own work honestly against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a>. Check the criteria that are truly met — your level is calculated automatically (Level 4 requires every Level 3 <em>and</em> Level 4 box) — and add a brief comment for each category (required). This renders as a collapsible “Self Grade Rubric” section at the end of your post.</p>
-      <p class="hint" id="peerHint" hidden style="margin:.2rem 0 .6rem">You're reviewing a classmate's post. Grade <em>their</em> work against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a>, check the criteria they truly met, and leave a brief comment for each category (required). Your feedback renders as a collapsible “Peer Review” section at the end of their post.</p>
+      <p class="hint" id="peerHint" hidden style="margin:.2rem 0 .6rem">You're reviewing a classmate's post. Their own self-assessment is locked — read it against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a> and add your feedback in the box under each category (required).</p>
       <div id="rubricRows"></div>
     </fieldset>
       </div>
@@ -325,6 +335,43 @@ function applyPeerMode(){
   $("rubricLegend").textContent=on?"Peer Review":"Self Grade Rubric";
   $("selfHint").hidden=on;
   $("peerHint").hidden=!on;
+  // A peer review is a comment on the author's Canvas submission -- that's what
+  // marks it complete -- so copying the text is the finishing move, not a
+  // download. The download stays available, demoted, for anyone who'd rather
+  // attach the rendered page as well.
+  $("copyReview").hidden=!on;
+  $("peerHowTo").hidden=!on;
+  $("download").classList.toggle("alt",on);
+  $("download").textContent=on?"⬇ Download review page":"⬇ Download portfolio";
+}
+
+// ---- the comment a reviewer pastes into Canvas ----------------------------
+// Plain text, because the Canvas comment box is plain text. Sections are only
+// included when they have something in them, so a partial review still copies.
+function buildReviewComment(){
+  const d=collect(), pr=d.peer||{};
+  const author=(d.meta.student||"").trim()||"this post";
+  const period=(d.meta.unit||"").trim();
+  const out=[];
+  out.push(`Peer review of ${author}'s ${period||"unit"} post`);
+  if(pr.reviewer)out.push(`Reviewed by ${pr.reviewer}`);
+  out.push("");
+  const part=(n)=>{
+    const txt=(pr["sUpdate"+n]||"").trim();
+    if(!txt)return;
+    const sub=(d.weeks[0]&&d.weeks[0]["sub"+n]||"").trim();
+    out.push(`PROJECT UPDATE — ${sub||"pt. "+n}`);
+    out.push(txt,"");
+  };
+  part(1);part(2);
+  if((pr.sReflection||"").trim()){out.push("REFLECTION",pr.sReflection.trim(),"");}
+  const cats=(d.rubric||[]).filter(r=>(pr.comments||{})[r.key]);
+  if(cats.length){
+    out.push("RUBRIC FEEDBACK");
+    cats.forEach(r=>out.push(`${r.category}: ${pr.comments[r.key]}`));
+    out.push("");
+  }
+  return out.join("\n").trim()+"\n";
 }
 
 // ===== Sentence starters — EDIT THESE LISTS FREELY ===================
@@ -719,19 +766,27 @@ function validate(){
   // Peer review mode: the reviewer can't change the (locked) author content, so the
   // checklist is their own — name, a suggestion per section, and full rubric feedback.
   if($("peer")&&$("peer").checked){
+    // Count the REVIEWER's boxes, not the author's. The .rub-comment fields hold
+    // the author's own self-assessment and are locked in peer mode, so gating on
+    // them would make the review impossible to finish whenever the author left a
+    // category blank.
+    const peerDone=rubRows.filter(r=>r.querySelector(".peer-comment").value.trim()).length;
+    const peerRubOK=rubRows.length>0&&peerDone===rubRows.length;
     const revOK=!!$("peerName").value.trim();
     const sug=n=>{const el=document.querySelector(`.w-suggest[data-lm="${n}"]`);return !!(el&&el.value.trim());};
     const suU1OK=sug(1), suU2OK=sug(2), suUOK=suU1OK&&suU2OK;
     const suROK=!!$("suggestReflection").value.trim();
-    $("gate").innerHTML='<div class="ghead">To download your review, finish these:</div>'+
+    $("gate").innerHTML='<div class="ghead">To finish your review, complete these, then copy it into a Canvas comment:</div>'+
       row(revOK,`Enter your name (the reviewer)`)+
       row(suU1OK,`Suggest an edit for Project Update pt. 1`)+
       row(suU2OK,`Suggest an edit for Project Update pt. 2`)+
       row(suROK,`Suggest an edit for the Reflection`)+
-      row(rubOK,`Peer Review: add feedback for all ${rubRows.length} categories (${rubDone}/${rubRows.length})`);
-    const okP=revOK&&suUOK&&suROK&&rubOK;
+      row(peerRubOK,`Add your feedback for all ${rubRows.length} rubric categories (${peerDone}/${rubRows.length})`);
+    const okP=revOK&&suUOK&&suROK&&peerRubOK;
+    $("copyReview").disabled=!okP;
+    $("copyReview").title=okP?"":"Finish the peer-review items above";
     $("download").disabled=!okP;
-    $("download").title=okP?"":"Finish the peer-review items above to enable download";
+    $("download").title=okP?"":"Finish the peer-review items above";
     return okP;
   }
   $("gate").innerHTML='<div class="ghead">To download, finish these:</div>'+
@@ -788,6 +843,20 @@ function postFileName(){
 }
 $("download").onclick=()=>{if(!validate())return;downloadBlob(postFileName(),buildHTML(collect()),"text/html");};
 $("save").onclick=()=>downloadBlob(slug()+"-journal.json",JSON.stringify(collect()),"application/json");
+$("copyReview").onclick=async()=>{
+  if(!validate())return;
+  const text=buildReviewComment();
+  try{
+    await navigator.clipboard.writeText(text);
+    $("copyReview").textContent="📋 Copied — paste it into Canvas";
+    setTimeout(()=>{$("copyReview").textContent="📋 Copy review for Canvas";},2500);
+    notify("Copied. Open your partner's submission in Canvas, paste this as a comment, and submit it — that's what marks your peer review complete.","info");
+  }catch(e){
+    // clipboard blocked (iframe, old Safari): hand them the text as a file
+    downloadBlob("peer-review.txt",text,"text/plain");
+    notify("Couldn't reach the clipboard, so your review downloaded as a text file. Open it, copy the text, and paste it into a Canvas comment.","warn");
+  }
+};
 $("loadBtn").onclick=()=>$("loadFile").click();
 function parsePortfolioHTML(txt){
   const doc=new DOMParser().parseFromString(txt,"text/html");

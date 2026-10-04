@@ -200,7 +200,14 @@ left on during a real cycle it would pair a 9th grader with a senior.
 
 Reviewers then download their partner's file from Canvas and load it into
 `/unit`, where peer-review mode switches itself on because the post's author
-isn't them.
+isn't them. They write their feedback, press **Copy review for Canvas**, and
+paste it as a **comment** on their partner's submission.
+
+That last step is the one that matters: **Canvas marks a peer review complete
+when the reviewer leaves a comment.** Nothing downloaded from the generator
+completes anything, so peer mode makes copying the comment the primary action
+and demotes the download to an optional extra for anyone who also wants to
+attach the rendered page.
 
 **No student data leaves your machine.** `pair.html` runs in the browser with no
 network calls at all, and the script talks only to Canvas. Nothing is sent to
