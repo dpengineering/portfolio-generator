@@ -24,6 +24,9 @@ Usage
     # actually assign them
     python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --apply
 
+    # if --apply returns 404s, find out why against one real pair
+    python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --probe
+
     # put it back: preview what would be removed, then remove it
     python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --undo
     python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --undo --apply
@@ -313,6 +316,8 @@ def main():
                     help="remove the peer reviews in this file instead of assigning them")
     ap.add_argument("--force", action="store_true",
                     help="with --undo, also remove reviews a student has already completed")
+    ap.add_argument("--probe", action="store_true",
+                    help="diagnose a single pair against Canvas and report exactly what it says")
     ap.add_argument("--check", action="store_true",
                     help="check the token, course and assignment setup, then stop")
     ap.add_argument("--aliases", metavar="FILE",
@@ -408,9 +413,94 @@ def main():
         return (f"/api/v1/courses/{args.course}/assignments/{args.assignment}"
                 f"/submissions/{author_id}/peer_reviews")
 
+    if args.probe:
+        return do_probe(base, token, planned, label, args)
     if args.undo:
         return do_undo(base, token, planned, existing, label, path_for, args)
     return do_apply(base, token, planned, existing, label, path_for, args)
+
+
+def do_probe(base, token, planned, label, args):
+    """Work out why a POST 404s, using one real pair, on this Canvas instance.
+
+    --check confirms the assignment is set up correctly and the dry run confirms
+    the pairing resolves, so a 404 at the POST means Canvas disagrees about the
+    URL itself. The documented form addresses the submission by the STUDENT's
+    user id; some instances want the submission's own id. This tries both and
+    says which one works, cleaning up after itself either way.
+    """
+    if not planned:
+        print("Nothing resolved, so there's nothing to probe.")
+        return 1
+    r, reviewer_id, author_id = planned[0]
+    c, a = args.course, args.assignment
+    print(f"\nProbing one pair: {label[reviewer_id]} reviews {label[author_id]}")
+    print(f"  reviewer user id {reviewer_id} · author user id {author_id}\n")
+
+    def show(desc, path, method="GET", data=None):
+        try:
+            body, _ = api(base, token, path, method=method, data=data)
+            print(f"  OK   {method} {path}" + (f"  {data}" if data else ""))
+            return body
+        except urllib.error.HTTPError as e:
+            print(f"  {e.code}  {method} {path}" + (f"  {data}" if data else "") + post_error(e))
+            return None
+
+    asg = show("assignment", f"/api/v1/courses/{c}/assignments/{a}")
+    if asg:
+        flags = {k: asg.get(k) for k in
+                 ("published", "peer_reviews", "automatic_peer_reviews", "anonymous_peer_reviews",
+                  "group_category_id", "moderated_grading", "submission_types",
+                  "anonymous_grading", "workflow_state")}
+        print("\n  assignment flags:")
+        for k, v in flags.items():
+            print(f"    {k:<24} {v}")
+        if asg.get("group_category_id"):
+            print("\n  ! This is a GROUP assignment. Group members have their own submission")
+            print("    ids and peer review behaves differently; that alone can cause the 404.")
+        print()
+
+    sub_obj = show("submission", f"/api/v1/courses/{c}/assignments/{a}/submissions/{author_id}")
+    if sub_obj:
+        print(f"    workflow_state = {sub_obj.get('workflow_state')}   submission id = {sub_obj.get('id')}")
+        if sub_obj.get("workflow_state") in (None, "unsubmitted"):
+            print("    ! This student has not submitted, so there is nothing to review.")
+    print()
+
+    show("existing peer reviews for that submission",
+         f"/api/v1/courses/{c}/assignments/{a}/submissions/{author_id}/peer_reviews")
+    print()
+
+    print("  Trying to create the peer review, documented form (student user id in the URL):")
+    made = show("create by user id",
+                f"/api/v1/courses/{c}/assignments/{a}/submissions/{author_id}/peer_reviews",
+                method="POST", data={"user_id": reviewer_id})
+    which = None
+    if made is not None:
+        which = ("user id", author_id)
+    elif sub_obj and sub_obj.get("id"):
+        print("\n  Retrying with the submission's own id in the URL instead:")
+        made = show("create by submission id",
+                    f"/api/v1/courses/{c}/assignments/{a}/submissions/{sub_obj['id']}/peer_reviews",
+                    method="POST", data={"user_id": reviewer_id})
+        if made is not None:
+            which = ("submission id", sub_obj["id"])
+
+    if which:
+        kind, ident = which
+        print(f"\n  => This instance wants the {kind} ({ident}) in the URL.")
+        print("     Cleaning up the one review this probe just created…")
+        show("cleanup",
+             f"/api/v1/courses/{c}/assignments/{a}/submissions/{ident}/peer_reviews",
+             method="DELETE", data={"user_id": reviewer_id})
+        if kind != "user id":
+            print("\n     Tell me this and I'll switch the script over to submission ids.")
+    else:
+        print("\n  => Neither form worked. The output above shows which GETs resolved:")
+        print("     if the submission GET also 404s, the students' work is on a different")
+        print("     assignment than --assignment points at. If the submission GET is fine")
+        print("     but both POSTs 404, send me this output.")
+    return 0
 
 
 def do_apply(base, token, planned, existing, label, path_for, args):
