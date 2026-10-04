@@ -141,6 +141,19 @@ tool makes no network calls and the script talks only to Canvas. An MCP-driven
 approach was considered and rejected for exactly this reason — editing course
 modules through one is fine, routing a roster through one is not.
 
+## Canvas quirks worth remembering
+
+- A peer review attaches to a submission **on the same assignment**, so peer
+  review is enabled on the unit post assignment itself. A separate assignment
+  has nothing to point at and 404s for everyone.
+- The API docs say the `:submission_id` in the peer-review paths is the
+  student's user id. **That is wrong on our instance** — it 404s for every
+  student, and only the submission's own id is accepted. The script resolves
+  submission ids up front; `--probe` determines which form an instance wants.
+- Assigning is idempotent and `--undo` reverses it, so a live assignment can be
+  tested and put back. Undo won't remove a review the student already completed
+  unless forced.
+
 ## Open
 
 - **`review.html` is now unlinked** but still on disk and still working, as a

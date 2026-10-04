@@ -138,6 +138,12 @@ everyone is, and a student only ever sees the submission assigned to them.
 > attaches a review to a submission, so you enable peer review on the unit post
 > assignment itself and assign reviews there. A separate "peer review"
 > assignment has no submissions to point at and every API call returns 404.
+>
+> **Addressing gotcha:** the Canvas API docs say the `:submission_id` in the
+> peer-review paths is the *student's user id*. On our instance that 404s for
+> every student and only the submission's own id works, so the script looks the
+> submission ids up and uses those. `--probe` reports which form an instance
+> wants, against one real pair, cleaning up after itself.
 
 The one thing Canvas can't do is pair students by rotation or period: its
 automatic assignment ignores both. So leave the assignment on **Require Peer

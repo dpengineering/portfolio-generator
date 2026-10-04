@@ -43,6 +43,15 @@ The assignment must have peer reviews turned ON (Edit assignment -> Require Peer
 Reviews -> Manually Assign). Leave it on manual: letting Canvas assign
 automatically would ignore rotations and periods entirely.
 
+Peer reviews attach to a submission on that same assignment, so this has to be
+the assignment the students actually submitted to -- a separate "peer review"
+assignment has nothing to point at and every call 404s.
+
+Note on addressing: the Canvas docs say the :submission_id in the peer-review
+paths is the student's user id. That isn't true everywhere -- our instance 404s
+on user ids and accepts the submission's own id -- so the submission ids are
+looked up and used. --probe shows which form a given instance wants.
+
 Students are matched by their 6-digit Canvas student ID, which posts carry once
 the student has entered it on the hub. Posts made before that fall back to
 matching on the name they typed, which doesn't always match Canvas -- anything
@@ -203,6 +212,27 @@ def apply_aliases(aliases, idx, students):
         by_name[norm(name)] = {who}
         used += 1
     return used
+
+
+# ---- addressing a submission ------------------------------------------------
+# The Canvas docs say the :submission_id in the peer-review paths is "the id of
+# the student in the course". That is NOT true on every instance -- ours returns
+# 404 for every student when addressed by user id, and accepts the submission's
+# own id. (--probe establishes which one an instance wants.)
+#
+# So we look the submission ids up and use those, falling back to the user id
+# for anyone we can't find one for.
+def fetch_submission_ids(base, token, course, assignment):
+    """{student user id: submission id} for the assignment."""
+    out = {}
+    try:
+        for s in api_list(base, token,
+                          f"/api/v1/courses/{course}/assignments/{assignment}/submissions"):
+            if s.get("user_id") and s.get("id"):
+                out[s["user_id"]] = s["id"]
+    except urllib.error.HTTPError as e:
+        print(f"  ! Couldn't list submissions ({e.code} {e.reason}); falling back to user ids.")
+    return out
 
 
 # ---- what's already there ---------------------------------------------------
@@ -407,11 +437,20 @@ def main():
     existing = fetch_existing(base, token, args.course, args.assignment)
     print(f"Already on the assignment: {len(existing)} peer review(s)")
 
-    # The URL always names the student whose submission is involved; user_id in
-    # the body always names the reviewer. Same shape for POST and DELETE.
+    sub_ids = fetch_submission_ids(base, token, args.course, args.assignment)
+    authors = {p[2] for p in planned}
+    missing = authors - set(sub_ids)
+    print(f"Submission ids found for {len(authors & set(sub_ids))} of {len(authors)} authors")
+    if missing:
+        print(f"  ! {len(missing)} will be addressed by user id instead and may 404:")
+        for uid in sorted(missing):
+            print(f"      {label.get(uid, uid)}")
+
+    # The URL names the submission being reviewed; user_id in the body names the
+    # reviewer. Same shape for POST and DELETE.
     def path_for(author_id):
         return (f"/api/v1/courses/{args.course}/assignments/{args.assignment}"
-                f"/submissions/{author_id}/peer_reviews")
+                f"/submissions/{sub_ids.get(author_id, author_id)}/peer_reviews")
 
     if args.probe:
         return do_probe(base, token, planned, label, args)
@@ -471,7 +510,8 @@ def do_probe(base, token, planned, label, args):
          f"/api/v1/courses/{c}/assignments/{a}/submissions/{author_id}/peer_reviews")
     print()
 
-    print("  Trying to create the peer review, documented form (student user id in the URL):")
+    print("  Trying to create the peer review with the student's user id in the URL")
+    print("  (what the Canvas docs describe):")
     made = show("create by user id",
                 f"/api/v1/courses/{c}/assignments/{a}/submissions/{author_id}/peer_reviews",
                 method="POST", data={"user_id": reviewer_id})
@@ -493,8 +533,8 @@ def do_probe(base, token, planned, label, args):
         show("cleanup",
              f"/api/v1/courses/{c}/assignments/{a}/submissions/{ident}/peer_reviews",
              method="DELETE", data={"user_id": reviewer_id})
-        if kind != "user id":
-            print("\n     Tell me this and I'll switch the script over to submission ids.")
+        print(f"     Normal runs resolve submission ids up front, so they use the"
+              f" {'submission id' if kind != 'user id' else 'user id'} too.")
     else:
         print("\n  => Neither form worked. The output above shows which GETs resolved:")
         print("     if the submission GET also 404s, the students' work is on a different")
