@@ -93,10 +93,14 @@
   .rub-comment-label{margin-top:.55rem}
   .rub-comment{min-height:56px}
   /* peer review (Grade 12): a reviewer annotates a classmate's post */
-  .peertoggle{align-items:flex-start;gap:.45rem;font-size:.85rem;font-weight:700;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:.55rem .7rem;margin:0 0 .7rem;cursor:pointer}
-  .peertoggle:not([hidden]){display:flex}
-  .peertoggle input{margin-top:.15rem;flex:none}
-  #peerNameWrap{margin:0 0 .8rem}
+  .peertoggle{align-items:center;gap:.4rem;font:inherit;font-size:.9rem;font-weight:600;color:var(--ink);
+    background:#fff;border:1px solid var(--border);border-radius:8px;padding:.55rem .9rem;cursor:pointer;
+    white-space:nowrap;user-select:none;margin:0}
+  .peertoggle:not([hidden]){display:inline-flex}
+  .peertoggle:hover{border-color:#1d4ed8}
+  .peertoggle input{flex:none;margin:0}
+  .peertoggle.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+  #peerNameWrap{margin:0 0 .8rem;max-width:22rem}
   .suggest-wrap{margin:.55rem 0 0}
   .suggest-label{display:block;font-size:.82rem;font-weight:700;color:#1d4ed8}
   .suggest-wrap textarea{min-height:70px;border-color:#bfdbfe;margin-top:.25rem}
@@ -166,6 +170,9 @@
     <div class="toolbar">
       <button class="btn" id="download">⬇ Download portfolio</button>
       <button class="btn" id="copyReview" type="button" hidden>📋 Copy review for Canvas</button>
+      <!-- A mode switch belongs with the other controls, not inside the rubric
+           it reshapes. -->
+      <label class="peertoggle" id="peerToggleWrap" hidden><input type="checkbox" id="peer">🔍 Peer review</label>
       <button class="btn alt" id="save">💾 Save draft</button>
       <button class="btn alt" id="loadBtn">📂 Load draft or post</button>
       <input type="file" id="loadFile" accept=".json,.html,.htm,application/json,text/html" hidden>
@@ -183,6 +190,8 @@
       peer review in Canvas and paste it as a <strong>comment</strong> on their submission.
       Leaving that comment is what marks your peer review complete — nothing you download here does.
     </div>
+
+    <div id="peerNameWrap" hidden><label>Reviewer's name<input type="text" id="peerName" placeholder="Your name (the reviewer)"></label></div>
 
     <div class="gate" id="gate"></div>
 
@@ -274,8 +283,6 @@
       <div class="fold-body">
       <fieldset>
       <legend id="rubricLegend">Self Grade Rubric</legend>
-      <label class="peertoggle" id="peerToggleWrap" hidden><input type="checkbox" id="peer"> 🔍 Peer Review — I'm reviewing a classmate's post</label>
-      <div id="peerNameWrap" hidden><label>Reviewer's name<input type="text" id="peerName" placeholder="Your name (the reviewer)"></label></div>
       <p class="hint" id="selfHint" style="margin:.2rem 0 .6rem">Grade your own work honestly against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a>. Check the criteria that are truly met — your level is calculated automatically (Level 4 requires every Level 3 <em>and</em> Level 4 box) — and add a brief comment for each category (required). This renders as a collapsible “Self Grade Rubric” section at the end of your post.</p>
       <p class="hint" id="peerHint" hidden style="margin:.2rem 0 .6rem">You're reviewing a classmate's post. Their own self-assessment is locked — read it against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a> and add your feedback in the box under each category (required).</p>
       <div id="rubricRows"></div>
@@ -354,6 +361,7 @@ function applyPeerMode(){
   // Hide every author-owned field rather than just locking it, and drop the
   // page download: in peer review the only output is the Canvas comment.
   document.body.classList.toggle("peering",on);
+  $("peerToggleWrap").classList.toggle("on",on);
   $("copyReview").hidden=!on;
   $("download").hidden=on;
   $("peerHowTo").hidden=!on;
