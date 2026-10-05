@@ -3,3 +3,17 @@
 
 # Local editor / tooling config (not needed by the published site)
 .claude/
+
+# Student data — never commit. pairings.json is a real roster of who reviews
+# whom; this repo is public and GitHub Pages serves anything in it.
+pairings.json
+pairings*.json
+aliases*.json
+submissions/
+*.zip
+
+# Local notes and scratch
+google_oauth_todo.txt
+*_todo.txt
+__pycache__/
+*.pyc
