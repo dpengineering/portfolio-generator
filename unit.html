@@ -110,6 +110,14 @@
   .pu-part:first-of-type{border-top:0;padding-top:0;margin-top:0}
   .pu-head{font-weight:700;font-size:.92rem;color:var(--accent);margin-bottom:.3rem}
   .pu-head .pu-n{font-weight:400;color:var(--muted)}
+  /* Peer review: the author's own fields come off the page entirely. The
+     reviewer reads the finished post in the preview and the left column holds
+     nothing but their own feedback, so there's no second copy of the text to
+     wade through and nothing of the author's to edit by accident. */
+  body.peering .author-only{display:none !important}
+  body:not(.peering) .peer-only{display:none !important}
+  body.peering header.app{background:#1e3a8a}          /* reviewing someone else's work, not writing your own */
+  body.peering .pu-part{border-top-width:1px}
   .peer-howto{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:.7rem .9rem;
     margin:0 0 1rem;font-size:.85rem;color:#1d4ed8;line-height:1.5}
   .peer-wrap{margin-top:.55rem;border-top:1px dashed var(--border);padding-top:.5rem}
@@ -145,8 +153,9 @@
 <header class="app">
   <div class="app-head">
     <div>
-      <h1>📗 Unit / Monthly Post Generator</h1>
-      <p>Write up your project update this unit/month, add captioned photos, and download a finished portfolio page.</p>
+      <h1>📙 Unit / Monthly Post Generator</h1>
+      <p class="author-only">Write up your project update this unit/month, add captioned photos, and download a finished portfolio page.</p>
+      <p class="peer-only">Peer review — read your classmate's post on the right and write your feedback on the left.</p>
     </div>
     <a class="switch-link" href="index.html">← All tools</a>
   </div>
@@ -165,7 +174,7 @@
       <span class="savednote" id="autonote"></span>
     </div>
 
-    <div class="tip">⚠️ <strong>Your work isn't saved automatically.</strong> Tap <strong>💾 Save draft</strong> before you close this page, and <strong>📂 Load draft</strong> to pick up where you left off.
+    <div class="tip author-only">⚠️ <strong>Your work isn't saved automatically.</strong> Tap <strong>💾 Save draft</strong> before you close this page, and <strong>📂 Load draft</strong> to pick up where you left off.
     You can also use <a href="https://docs.google.com/document/d/1iV-RUj3dHnWcRVB7tMuCfEqWDeEDLgmjhzk_8CkwKcI/copy" target="_blank">this Google Doc Template</a> to draft your writing.</div>
 
     <div class="peer-howto" id="peerHowTo" hidden>
@@ -177,13 +186,14 @@
 
     <div class="gate" id="gate"></div>
 
-    <div class="help">
-      <strong>How this works:</strong> Write up your project's progress over <em>this unit</em> (300–400 words), add four captioned photos,
+    <div class="help author-only">
+      <strong>How this works:</strong> Write up your project's progress over <em>this unit</em> in two parts
+      (150–200 words each), add two captioned photos to each part,
       then click <em>Download portfolio</em> and submit to Canvas.
       <br><strong><a href="https://sites.google.com/dpengineering.org/dpea-portfolios/key-terms" target="_blank">Key terms:</a></strong> wrap a word in asterisks like *torque* to show it as a light-blue key term.
     </div>
 
-    <details class="fold" data-fold="title" open>
+    <details class="fold author-only" data-fold="title" open>
       <summary>Title Card<span class="fold-note"></span></summary>
       <div class="fold-body">
       <fieldset>
@@ -235,10 +245,10 @@
       <div class="fold-body">
       <fieldset>
       <legend>Personal Reflection/Synthesis</legend>
-      <div class="locknote" hidden>🔒 Locked — the author's text. Add your suggestion below.</div>
-      <textarea id="reflection" style="min-height:160px" placeholder="Text here..."></textarea>
-      <div class="starter" id="reflection-starter"></div>
-      <div class="counter" id="reflection-count"></div>
+      <div class="locknote" hidden>🔒 Read their Reflection in the preview, then add your feedback below.</div>
+      <textarea id="reflection" class="author-only" style="min-height:160px" placeholder="Text here..."></textarea>
+      <div class="starter author-only" id="reflection-starter"></div>
+      <div class="counter author-only" id="reflection-count"></div>
       <div class="suggest-wrap" hidden>
         <label class="suggest-label">✏️ Reviewer suggestion for the Reflection <span class="hint">(required)</span>
         <textarea id="suggestReflection" placeholder="Suggest an edit or improvement for this section…"></textarea></label>
@@ -247,7 +257,7 @@
       </div>
     </details>
 
-    <details class="fold" data-fold="filemgmt" open>
+    <details class="fold author-only" data-fold="filemgmt" open>
       <summary>File Management<span class="fold-note"></span></summary>
       <div class="fold-body">
       <fieldset>
@@ -324,7 +334,9 @@ function applyPeerMode(){
   $("peerNameWrap").hidden=!on;
   document.querySelectorAll(".suggest-wrap").forEach(el=>el.hidden=!on);
   document.querySelectorAll(".locknote").forEach(el=>el.hidden=!on);
-  [...document.querySelectorAll(".w-text"),$("reflection")].forEach(t=>{if(t){t.readOnly=on;t.classList.toggle("locked",on);}});
+  [...document.querySelectorAll(".w-text,.w-sub"),$("reflection")].forEach(t=>{
+    if(t){t.readOnly=on;t.classList.toggle("locked",on);}
+  });
   // A reviewer must not be able to rewrite the author's own self-assessment —
   // it's the thing they're reviewing. The boxes and comments grey out and lock,
   // and a separate feedback box opens underneath for the peer's own words.
@@ -339,10 +351,12 @@ function applyPeerMode(){
   // marks it complete -- so copying the text is the finishing move, not a
   // download. The download stays available, demoted, for anyone who'd rather
   // attach the rendered page as well.
+  // Hide every author-owned field rather than just locking it, and drop the
+  // page download: in peer review the only output is the Canvas comment.
+  document.body.classList.toggle("peering",on);
   $("copyReview").hidden=!on;
+  $("download").hidden=on;
   $("peerHowTo").hidden=!on;
-  $("download").classList.toggle("alt",on);
-  $("download").textContent=on?"⬇ Download review page":"⬇ Download portfolio";
 }
 
 // ---- the comment a reviewer pastes into Canvas ----------------------------
@@ -474,26 +488,26 @@ function addWeek(data={}){
   const part=n=>`
     <div class="pu-part" data-part="${n}">
       <div class="pu-head">Project Update <span class="pu-n">— pt. ${n}</span></div>
-      <label>Subtitle <span class="hint">(optional — replaces “pt. ${n}” as the heading in your post)</span>
+      <label class="author-only">Subtitle <span class="hint">(optional — replaces “pt. ${n}” as the heading in your post)</span>
         <input type="text" class="w-sub" data-lm="${n}" placeholder="e.g. Designing the gearbox"></label>
-      <div class="locknote" hidden>🔒 Locked — the author's text. Add your suggestion below.</div>
-      <label>Your progress <span class="hint">(${PART_MIN}–${PART_MAX} words)</span>
+      <div class="locknote" hidden>🔒 Read this part in the preview, then add your feedback below.</div>
+      <label class="author-only">Your progress <span class="hint">(${PART_MIN}–${PART_MAX} words)</span>
         <textarea class="w-text" data-lm="${n}" placeholder="Text here..."></textarea></label>
-      <div class="starter" data-lm="${n}"></div>
-      <div class="counter w-count" data-for="${n}"></div>
+      <div class="starter author-only" data-lm="${n}"></div>
+      <div class="counter w-count author-only" data-for="${n}"></div>
       <div class="suggest-wrap" hidden>
         <label class="suggest-label">✏️ Reviewer suggestion for Project Update pt. ${n} <span class="hint">(required)</span>
         <textarea class="w-suggest" data-lm="${n}" placeholder="Suggest an edit or improvement for this section…"></textarea></label>
       </div>
-      <label>Images for part ${n} <span class="hint">(exactly ${IMAGES_PER_PART}, each with a brief caption)</span></label>
-      <div class="drop wdrop" data-group="g${n}">Drag images here, or click to choose</div>
-      <div class="thumbs wthumbs" data-group="g${n}"></div>
+      <label class="author-only">Images for part ${n} <span class="hint">(exactly ${IMAGES_PER_PART}, each with a brief caption)</span></label>
+      <div class="drop wdrop author-only" data-group="g${n}">Drag images here, or click to choose</div>
+      <div class="thumbs wthumbs author-only" data-group="g${n}"></div>
     </div>`;
   fs.innerHTML=`
     <legend>Project Update</legend>
     ${part(1)}${part(2)}
-    <div class="tip">💻 <strong>Want to show code?</strong> Use <a href="https://ray.so/#padding=32&amp;language=cpp&amp;theme=candy&amp;background=true&amp;darkMode=true&amp;lineNumbers=true" target="_blank" rel="noopener">ray.so</a> for generating images of code, then upload that image above (and caption it).</div>
-    <div class="tip green">🎬 <strong>Have a video?</strong> Convert it to a GIF with <a href="https://hapaz.net/video2gif/" target="_blank" rel="noopener">video2gif</a>, then upload the GIF above — animated GIFs stay animated.</div>`;
+    <div class="tip author-only">💻 <strong>Want to show code?</strong> Use <a href="https://ray.so/#padding=32&amp;language=cpp&amp;theme=candy&amp;background=true&amp;darkMode=true&amp;lineNumbers=true" target="_blank" rel="noopener">ray.so</a> for generating images of code, then upload that image above (and caption it).</div>
+    <div class="tip green author-only">🎬 <strong>Have a video?</strong> Convert it to a GIF with <a href="https://hapaz.net/video2gif/" target="_blank" rel="noopener">video2gif</a>, then upload the GIF above — animated GIFs stay animated.</div>`;
   foldBody.appendChild(fs);fold.appendChild(foldBody);
   $("weeks").appendChild(fold);
   wireFolds(FOLD_NS,fold);
@@ -735,10 +749,14 @@ function keyTermCount(){
   ];
   return texts.reduce((n,t)=>n+((t.match(re)||[]).length),0);
 }
-function renderCounter(el,base,words,min,max){
+function renderCounter(el,words,min,max){
   const ok=words>=min&&words<=max;
   if(el){
-    el.className=base+" "+(ok?"ok":words<min?"lo":"hi");
+    // Swap only the state class. Rebuilding className wholesale used to drop
+    // whatever else the element carried -- which silently un-hid the counters
+    // in peer review, since that's driven by an `author-only` class.
+    el.classList.remove("ok","lo","hi");
+    el.classList.add(ok?"ok":words<min?"lo":"hi");
     el.textContent=words+` / ${min}–${max} words`+(words<min?` — ${min-words} more to go`
       :words>max?` — ${words-max} over`:" ✓");
   }
@@ -747,9 +765,9 @@ function renderCounter(el,base,words,min,max){
 function validate(){
   const wk=theWeek();
   const w1=lmWords(1), w2=lmWords(2), wr=countWords($("reflection").value);
-  const ok1=renderCounter(wk&&wk.querySelector('.w-count[data-for="1"]'),"counter w-count",w1,PART_MIN,PART_MAX);
-  const ok2=renderCounter(wk&&wk.querySelector('.w-count[data-for="2"]'),"counter w-count",w2,PART_MIN,PART_MAX);
-  const okR=renderCounter($("reflection-count"),"counter",wr,REFLECT_MIN,REFLECT_MAX);
+  const ok1=renderCounter(wk&&wk.querySelector('.w-count[data-for="1"]'),w1,PART_MIN,PART_MAX);
+  const ok2=renderCounter(wk&&wk.querySelector('.w-count[data-for="2"]'),w2,PART_MIN,PART_MAX);
+  const okR=renderCounter($("reflection-count"),wr,REFLECT_MIN,REFLECT_MAX);
   const im=groupImgs();
   const g1n=im.g1.filter(i=>i.dataUrl).length, g2n=im.g2.filter(i=>i.dataUrl).length;
   const all=[...im.g1,...im.g2].filter(i=>i.dataUrl);
@@ -1044,9 +1062,9 @@ function buildRubric(){
       `<label class="rub-check"><input type="checkbox" class="rub-box" data-tier="${name}" value="${esc(t)}"> ${esc(t)}</label>`).join(""):"";
     row.innerHTML=
       `<div class="rub-cathead"><span class="rub-cat">${esc(cat.label)}</span><span class="rub-level" data-level="Level 1">Level 1</span></div>`+
-      `<div class="rub-crit">`+tier("l3",cat.l3,"Level 3 criteria")+
+      `<div class="rub-crit author-only">`+tier("l3",cat.l3,"Level 3 criteria")+
         tier("l4",cat.l4,cat.l3.length?"Level 4 criteria (in addition to Level 3)":"Level 4 criteria")+`</div>`+
-      `<label class="rub-comment-label">Comments<textarea class="rub-comment" placeholder="Explain your self-assessment for this category…"></textarea></label>`+
+      `<label class="rub-comment-label author-only">Comments<textarea class="rub-comment" placeholder="Explain your self-assessment for this category…"></textarea></label>`+
       `<div class="peer-wrap" hidden><div class="locknote">🔒 The author's self-assessment. Add your feedback below.</div>`+
       `<label class="rub-comment-label">Your feedback<textarea class="peer-comment" placeholder="What did they do well in this category, and what would you change?…"></textarea></label></div>`;
     box.appendChild(row);
