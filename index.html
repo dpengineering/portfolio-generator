@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DPEA Portfolios</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
+<link rel="icon" type="image/png" href="assets/dpea-logo.png">
 <style>
   :root{
     --accent:#0ea5e9; --ink:#1e293b; --muted:#64748b; --border:#e2e8f0;
@@ -15,7 +15,13 @@
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#f1f5f9}
   header.app{background:#0f172a;color:#fff;padding:1.1rem 1.25rem}
-  header.app h1{margin:0;font-size:1.25rem}
+  header.app h1{margin:0;font-size:1.25rem;display:flex;align-items:center;gap:.55rem}
+  header.app .logo{width:36px;height:36px;flex:none;user-select:none;-webkit-user-drag:none}
+  /* the easter egg: click the logo five times and the header plays an ASCII
+     animation. --cols is set per animation so the whole grid fits a phone
+     without scrolling (a cell is .6em wide). */
+  #ascii{--cols:72;display:block;width:max-content;max-width:100%;margin:.9rem auto .2rem;overflow:hidden;cursor:pointer;
+    font:min(12px,calc((100vw - 2.5rem) / (var(--cols) * .6)))/1 ui-monospace,Menlo,Consolas,monospace;color:#cbd5e1}
   header.app p{margin:.25rem 0 0;color:#cbd5e1;font-size:.9rem}
   main{max-width:860px;margin:0 auto;padding:1.5rem 1.25rem 3rem}
 
@@ -76,8 +82,9 @@
 </head>
 <body>
 <header class="app">
-  <h1>🧰 DPEA Portfolios</h1>
+  <h1><img class="logo" id="logo" src="assets/dpea-logo.png" alt="DPEA logo">DPEA Portfolios</h1>
   <p>Pick a tool to write up your work, then submit the file it gives you on Canvas.</p>
+  <pre id="ascii" title="Click to stop" aria-hidden="true" hidden></pre>
 </header>
 
 <main>
@@ -327,6 +334,114 @@ $("changeWho").addEventListener("click",()=>{
   // everything, since older profiles predate the name and schedule being
   // required. Anyone short a field comes back through this once.
   go(missingField()?"setup":"tiles");
+})();
+</script>
+<script>
+// Easter egg: five quick clicks on the header logo play an ASCII animation,
+// alternating each time — odd activations spin the logo as a coin, even ones
+// play assets/happy.mp4 with sound. Either way, each frame is drawn into a
+// canvas one pixel per character cell, and every pixel's brightness is mapped
+// onto a character ramp.
+//
+// The logo comes from the base64 DPEA_LOGO in shared.js rather than assets/,
+// because a canvas fed from a file:// image is tainted and getImageData would
+// throw. The video has no such fallback, so it only plays when the site is
+// served over http(s) — which it always is in production.
+(function(){
+  const CHAR_ASPECT=0.6;                     // a cell is .6em wide, 1em tall
+  const RAMP=" .:-=+*#%@", FPS=24;
+  const pre=$("ascii"), cv=document.createElement("canvas");
+  const ctx=cv.getContext("2d",{willReadFrequently:true});
+  const img=new Image(); img.src=DPEA_LOGO;
+  let clicks=0, clickTimer=0, plays=0, raf=0, start=0, last=0, anim=null, video=null;
+
+  const LOGO={
+    cols:72, rows:42, seconds:15,
+    begin(){},
+    draw(t){
+      const turn=t/2200*Math.PI*2, side=Math.min(this.cols,this.rows/CHAR_ASPECT)*.95;
+      // spin about the vertical axis: squash x by cos, so the coin goes
+      // edge-on and comes back mirrored on its far side
+      ctx.translate(this.cols/2,this.rows/2);
+      ctx.scale(Math.cos(turn)||.001,CHAR_ASPECT);
+      ctx.drawImage(img,-side/2,-side/2,side,side);
+    },
+    // the gear body is black, so opaque pixels get a floor or the whole gear
+    // would vanish into the dark header
+    level:(lum,a)=>a*(.25+.75*lum),
+    end(){}
+  };
+
+  // 640x282 source; 120x32 cells keeps its shape once cells are .6 as wide as tall
+  const HAPPY={
+    cols:120, rows:32, seconds:Infinity,     // runs until the video ends
+    begin(){
+      // created on first play, so nobody downloads it who never finds the egg
+      if(!video){
+        video=document.createElement("video");
+        video.src="assets/happy.mp4";
+        video.playsInline=true;
+        video.addEventListener("ended",stop);
+      }
+      video.currentTime=0;
+      // called from the click handler, so the browser allows sound
+      video.play().catch(stop);
+    },
+    draw(){
+      if(video.readyState>=2)ctx.drawImage(video,0,0,this.cols,this.rows);
+    },
+    level:lum=>lum,
+    end(){video.pause();}
+  };
+
+  function frame(t){
+    if(!start)start=t;
+    if(t-start>anim.seconds*1000)return stop();
+    raf=requestAnimationFrame(frame);
+    if(t-last<1000/FPS)return;
+    last=t;
+    const {cols,rows}=anim;
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,cols,rows);
+    anim.draw(t-start);
+    let px;
+    try{px=ctx.getImageData(0,0,cols,rows).data;}
+    catch(e){return stop();}                 // tainted canvas (opened from file://)
+    let out="";
+    for(let y=0;y<rows;y++){
+      for(let x=0;x<cols;x++){
+        const i=(y*cols+x)*4;
+        const lum=(.299*px[i]+.587*px[i+1]+.114*px[i+2])/255;
+        const v=anim.level(lum,px[i+3]/255);
+        out+=RAMP[Math.min(RAMP.length-1,Math.round(v*(RAMP.length-1)))];
+      }
+      out+="\n";
+    }
+    pre.textContent=out;
+  }
+  function play(){
+    if(raf)return;
+    anim=(plays++%2===0)?LOGO:HAPPY;
+    cv.width=anim.cols; cv.height=anim.rows;
+    pre.style.setProperty("--cols",anim.cols);
+    start=last=0; pre.hidden=false;
+    anim.begin();
+    raf=requestAnimationFrame(frame);
+  }
+  function stop(){
+    if(!raf)return;
+    cancelAnimationFrame(raf); raf=0;
+    anim.end();
+    pre.hidden=true; pre.textContent="";
+  }
+
+  $("logo").addEventListener("click",()=>{
+    clearTimeout(clickTimer);
+    clickTimer=setTimeout(()=>{clicks=0;},1500);
+    if(++clicks>=5){clicks=0;play();}
+  });
+  pre.addEventListener("click",stop);
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")stop();});
 })();
 </script>
 </body>
