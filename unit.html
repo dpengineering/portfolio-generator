@@ -258,6 +258,9 @@
       <textarea id="reflection" class="author-only" style="min-height:160px" placeholder="Text here..."></textarea>
       <div class="starter author-only" id="reflection-starter"></div>
       <div class="counter author-only" id="reflection-count"></div>
+      <label class="author-only">Images <span class="hint">(optional — up to 2, each with a brief caption)</span></label>
+      <div class="drop author-only" id="reflDrop">Drag images here, or click to choose</div>
+      <div class="thumbs author-only" id="reflThumbs"></div>
       <div class="suggest-wrap" hidden>
         <label class="suggest-label">✏️ Reviewer suggestion for the Reflection <span class="hint">(required)</span>
         <textarea id="suggestReflection" placeholder="Suggest an edit or improvement for this section…"></textarea></label>
@@ -302,7 +305,7 @@
 <script src="heic2any.min.js"></script>
 <script src="shared.js?v=8"></script>
 <script>
-const state={images:{},cover:null,fileMgmt:[]};
+const state={images:{},cover:null,fileMgmt:[],reflectionImgs:[]};
 const DRAFT_KEY="unitPostDraft";
 const FOLD_NS="unit";
 // The project update is written in two parts. The old single box was 300-400
@@ -472,6 +475,34 @@ function renderFileMgmt(){
   });
 }
 
+// ---- reflection photos (optional, up to REFLECT_IMAGES) ----
+// Document-level like the file-management pair rather than part of a week card,
+// since the reflection isn't one.
+wireDrop($("reflDrop"),async files=>{
+  for(const f of files){
+    if(state.reflectionImgs.length>=REFLECT_IMAGES){
+      notify(`The reflection takes at most ${REFLECT_IMAGES} images — the rest were skipped.`,"warn");
+      break;
+    }
+    try{const r=await readImage(f);if(r)state.reflectionImgs.push(r);}
+    catch(e){imgError(f);}
+  }
+  renderReflectionImgs();autosave();updatePreview();validate();
+});
+function renderReflectionImgs(){
+  const box=$("reflThumbs");box.innerHTML="";
+  state.reflectionImgs.forEach((im,idx)=>{
+    const t=document.createElement("div");t.className="thumb";
+    t.innerHTML=`<img src="${im.dataUrl}"><input type="text" placeholder="Caption..." value="${esc(im.caption)}"><button class="rm">remove</button>`;
+    t.querySelector("input").addEventListener("input",e=>{im.caption=e.target.value;autosave();schedulePreview();validate();});
+    t.querySelector(".rm").onclick=()=>{state.reflectionImgs.splice(idx,1);renderReflectionImgs();autosave();updatePreview();validate();};
+    box.appendChild(t);
+  });
+  $("reflDrop").textContent=state.reflectionImgs.length>=REFLECT_IMAGES
+    ? `${REFLECT_IMAGES} images added`
+    : "Drag images here, or click to choose";
+}
+
 // ---- weeks ----
 function addWeek(data={}){
   const id=uid();
@@ -584,6 +615,7 @@ function collect(){
       };
     }),
     reflection:val("reflection"),
+    reflectionImgs:state.reflectionImgs.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl})),
     fileMgmt:state.fileMgmt.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl})),
     rubric:getRubric(),
     peer:(()=>{
@@ -681,8 +713,10 @@ function buildHTML(d){
     html+="</section>";
     return html+(peerNote(`Project Update pt. ${n}`,peer[`sUpdate${n}`])||"");
   }).filter(Boolean).join("\n\n")).join("\n\n");
-  const reflection=d.reflection
-    ? `<section>\n<h2>Looking Back</h2>\n${paras(d.reflection)}\n</section>`:"";
+  const reflImgs=(d.reflectionImgs||[]).filter(i=>i.dataUrl);
+  const reflection=(d.reflection||reflImgs.length)
+    ? `<section>\n<h2>Looking Back</h2>\n${d.reflection?paras(d.reflection)+"\n":""}`+
+      (reflImgs.length?gallery(reflImgs,figCtr,"refl")+"\n":"")+`</section>`:"";
   const fmImgs=(d.fileMgmt||[]).filter(i=>i.dataUrl);
   const fileMgmt=fmImgs.length
     ? `<details class="filemgmt">\n<summary>File Management</summary>\n${fileGallery(fmImgs)}\n</details>`:"";
@@ -708,7 +742,8 @@ function buildHTML(d){
     images1:(w.images1||[]).map(i=>({name:i.name,caption:i.caption})),
     text2:w.text2,sub2:w.sub2,
     images2:(w.images2||[]).map(i=>({name:i.name,caption:i.caption}))
-  })),fileMgmt:(d.fileMgmt||[]).map(i=>({name:i.name,caption:i.caption})),rubric:d.rubric||[],peer:d.peer||null,publicView:!!d.publicView,gradient:d.gradient};
+  })),reflectionImgs:(d.reflectionImgs||[]).map(i=>({name:i.name,caption:i.caption})),
+  fileMgmt:(d.fileMgmt||[]).map(i=>({name:i.name,caption:i.caption})),rubric:d.rubric||[],peer:d.peer||null,publicView:!!d.publicView,gradient:d.gradient};
   const dataJson=JSON.stringify(editData).replace(/</g,"\\u003c");
   return `<!doctype html>
 <html lang="en">
@@ -738,6 +773,7 @@ ${peerRubric}
 
 // ---- requirements before download ----
 const REFLECT_MIN=200, REFLECT_MAX=250, MIN_KEYTERMS=5;
+const REFLECT_IMAGES=2;        // optional, so this is a ceiling and not a target
 const FILEMGMT_IMAGES=2;
 function theWeek(){return document.querySelector(".week");}
 function lmWords(n){const t=theWeek()&&theWeek().querySelector(`.w-text[data-lm="${n}"]`);return countWords(t?t.value:"");}
@@ -778,7 +814,7 @@ function validate(){
   const okR=renderCounter($("reflection-count"),wr,REFLECT_MIN,REFLECT_MAX);
   const im=groupImgs();
   const g1n=im.g1.filter(i=>i.dataUrl).length, g2n=im.g2.filter(i=>i.dataUrl).length;
-  const all=[...im.g1,...im.g2].filter(i=>i.dataUrl);
+  const all=[...im.g1,...im.g2,...state.reflectionImgs].filter(i=>i.dataUrl);
   const captioned=all.filter(i=>i.caption&&i.caption.trim()).length;
   const imgOK=g1n===IMAGES_PER_PART&&g2n===IMAGES_PER_PART, capOK=all.length>0&&captioned===all.length;
   const fmN=state.fileMgmt.filter(i=>i.dataUrl).length, fmOK=fmN===FILEMGMT_IMAGES;
@@ -903,6 +939,8 @@ function parsePortfolioHTML(txt){
     w.images1=(w.images1||[]).map((im,i)=>({...im,dataUrl:g1[i]}));
     w.images2=(w.images2||[]).map((im,i)=>({...im,dataUrl:g2[i]}));
   });
+  const refl=srcs("refl");                  // optional reflection photos
+  data.reflectionImgs=(data.reflectionImgs||[]).map((im,i)=>({...im,dataUrl:refl[i]}));
   const fm=srcs("fm");                      // file-management screenshots
   data.fileMgmt=(data.fileMgmt||[]).map((im,i)=>({...im,dataUrl:fm[i]}));
   // The publishing flag on <body> wins over the embedded JSON, so a hand-edited
@@ -945,6 +983,7 @@ $("clear").onclick=()=>{
   $("publicView").checked=false;
   state.cover=null;renderCover();
   setGrad(COVER_GRADIENTS[DEFAULT_GRAD]);
+  state.reflectionImgs=[];renderReflectionImgs();
   state.fileMgmt=[];renderFileMgmt();
   setRubric([]);
   $("peer").checked=false;$("peerName").value="";$("suggestReflection").value="";
@@ -972,6 +1011,8 @@ function loadData(d){
   $("publicView").checked=!!d.publicView;
   state.cover=d.cover||null;renderCover();
   setGrad(d.gradient);
+  state.reflectionImgs=(d.reflectionImgs||[]).map(i=>({name:i.name||"",caption:i.caption||"",dataUrl:i.dataUrl}));
+  renderReflectionImgs();
   state.fileMgmt=(d.fileMgmt||[]).map(i=>({name:i.name||"",caption:i.caption||"",dataUrl:i.dataUrl}));
   renderFileMgmt();
   setRubric(d.rubric);
@@ -1030,6 +1071,7 @@ function collectLight(){
   const d=collect();
   d.cover=null;
   d.weeks=(d.weeks||[]).map(w=>({...w,images1:[],images2:[]}));
+  d.reflectionImgs=[];
   d.fileMgmt=[];
   return d;
 }

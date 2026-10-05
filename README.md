@@ -75,7 +75,8 @@ pages become links to `portfolio.dpeacl.org` and the builds can be retired.
 - The unit post's Project Update is written in **two parts**, each with its own
   pair of photos (four in total), so the finished post reads in chunks rather
   than one wall of text. Each part heads its section `Project Update — pt. N`,
-  or a subtitle the student gives it instead.
+  or a subtitle the student gives it instead. The reflection takes up to two
+  more photos, optionally — but anything added still needs a caption.
 - A live checklist gates the download until every requirement is met, including
   at least three `*asterisk*` key terms highlighted across the post.
 - Download produces one self-contained `.html` named
