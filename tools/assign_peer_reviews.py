@@ -31,6 +31,11 @@ Usage
     python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --undo
     python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --undo --apply
 
+    # who has finished their peer review, and which comments don't look like
+    # they came from the generator -- writes peer-review-status.json for pair.html
+    python3 tools/assign_peer_reviews.py --course 1234 --assignment 5678 --status
+    python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --status
+
 Assigning is idempotent: anything already assigned is left alone, so running it
 twice is a no-op and a re-run after a partial failure only fills the gaps.
 
@@ -334,10 +339,165 @@ def preflight(base, token, course, assignment):
     return 0 if ok else 1
 
 
+# ---- status: who finished, and does the comment look like ours -------------
+# Canvas marks a peer review complete the moment the reviewer leaves ANY comment
+# on the author's submission, so "complete" alone says nothing about whether it
+# was the review the generator composed. These are the markers that composer
+# (buildReviewComment in unit.html) always writes. Matched as substrings, not
+# whole lines, so a paste that lost its line breaks still passes.
+HEADER = re.compile(r"Peer review of (.+?)['’]s\s.*?post", re.S)
+SECTIONS = (("PROJECT UPDATE", "project update feedback"),
+            ("REFLECTION", "reflection feedback"),
+            ("RUBRIC FEEDBACK", "rubric feedback"))
+
+
+def first_name_overlap(typed, canvas_name):
+    """True when a name typed in the post plausibly belongs to the Canvas student.
+
+    Typed names drift ("Ada L.", "ada lovelace", a nickname), so this only asks
+    whether any word of one appears in the other -- loose on purpose. It exists
+    to catch a review pasted onto the wrong submission, not to police spelling.
+    """
+    words = lambda s: {norm(w) for w in re.split(r"[\s,]+", s or "") if len(norm(w)) > 1}
+    a, b = words(typed), words(canvas_name)
+    return not a or not b or bool(a & b)
+
+
+def check_comment(text, author_name):
+    """Reasons a comment doesn't look like the generator made it ([] = looks right)."""
+    text = (text or "").strip()
+    head = HEADER.match(text)
+    if not head:
+        return ["doesn't start with the generator's “Peer review of …” header"]
+    problems = [f"no {what}" for marker, what in SECTIONS if marker not in text]
+    if not first_name_overlap(head.group(1), author_name):
+        problems.append(f"header names “{head.group(1).strip()}”, not {author_name} "
+                        "— review pasted on the wrong submission?")
+    return problems
+
+
+def do_status(base, token, args, plan):
+    """Report every peer review on the assignment and write it out for pair.html.
+
+    plan, when a pairings.json was given, maps (author id, reviewer id) to that
+    pairing's schedule label, so the report can group by rotation/period and
+    point out pairings that were planned but never assigned.
+    """
+    c, a = args.course, args.assignment
+    course, _ = api(base, token, f"/api/v1/courses/{c}")
+    asg, _ = api(base, token, f"/api/v1/courses/{c}/assignments/{a}")
+    students = api_list(base, token, f"/api/v1/courses/{c}/users",
+                        {"enrollment_type[]": "student", "enrollment_state[]": "active"})
+    name = {s["id"]: s.get("name") or str(s["id"]) for s in students}
+    sortable = {s["id"]: s.get("sortable_name") or name[s["id"]] for s in students}
+
+    # Comments live on the author's submission; the peer review object only says
+    # who is meant to review whom and whether Canvas considers it done.
+    subs = api_list(base, token, f"/api/v1/courses/{c}/assignments/{a}/submissions",
+                    {"include[]": "submission_comments"})
+    comments = {}                                   # (author, commenter) -> [comment]
+    for sub in subs:
+        for cm in sub.get("submission_comments") or []:
+            comments.setdefault((sub.get("user_id"), cm.get("author_id")), []).append(cm)
+    existing = fetch_existing(base, token, c, a)
+
+    rows = []
+    for (author, reviewer), pr in existing.items():
+        mine = sorted(comments.get((author, reviewer), []), key=lambda m: m.get("created_at") or "")
+        texts = [m.get("comment") or "" for m in mine]
+        files = sum(len(m.get("attachments") or []) for m in mine)
+        if not mine:
+            verdict, problems = "missing", (
+                ["Canvas says complete but there's no comment"]
+                if pr.get("workflow_state") == "completed" else [])
+        else:
+            # A reviewer who commented twice ("oops, here's the real one") gets
+            # credit for whichever comment is closest to the generator's.
+            problems = min((check_comment(t, name.get(author, "")) for t in texts), key=len)
+            if files and not any(t.strip() for t in texts):
+                problems = ["left an attachment instead of pasting the review as a comment"]
+            verdict = "flag" if problems else "ok"
+        rows.append({
+            "reviewer": name.get(reviewer, str(reviewer)), "reviewerId": reviewer,
+            "reviewerSort": sortable.get(reviewer, str(reviewer)),
+            "author": name.get(author, str(author)), "authorId": author,
+            "schedule": plan.get((author, reviewer), ""),
+            "state": pr.get("workflow_state") or "assigned",
+            "verdict": verdict, "problems": problems,
+            "comments": [{"text": m.get("comment") or "", "at": m.get("created_at"),
+                          "files": len(m.get("attachments") or [])} for m in mine],
+        })
+
+    # Two reviewers handing in the same text is worth a look whatever its format.
+    seen = {}
+    for r in rows:
+        for cm in r["comments"]:
+            key = re.sub(r"\s+", " ", cm["text"]).strip().lower()
+            if len(key) > 40:
+                seen.setdefault(key, {})[id(r)] = r
+    for same in seen.values():
+        same = list(same.values())
+        if len({r["reviewerId"] for r in same}) > 1:
+            for r in same:
+                others = sorted({o["reviewer"] for o in same if o["reviewerId"] != r["reviewerId"]})
+                note = "same text as " + ", ".join(others)
+                if note not in r["problems"]:
+                    r["problems"].append(note)
+                if r["verdict"] == "ok":
+                    r["verdict"] = "flag"
+
+    rows.sort(key=lambda r: (r["reviewerSort"].lower(), r["author"].lower()))
+    assigned_to = {r["reviewerId"] for r in rows}
+    unassigned = sorted((s for s in students if s["id"] not in assigned_to),
+                        key=lambda s: sortable[s["id"]].lower())
+    never = sorted(f"{name.get(rv, rv)} → {name.get(au, au)}"
+                   for (au, rv) in plan if (au, rv) not in existing)
+    count = lambda v: sum(1 for r in rows if r["verdict"] == v)
+
+    print(f"{course.get('name', c)} · {asg.get('name', a)}")
+    print(f"{len(rows)} peer reviews assigned: {count('ok')} done, "
+          f"{count('flag')} flagged, {count('missing')} not done\n")
+    for v, title in (("flag", "FLAGGED — commented, but check it"),
+                     ("missing", "NOT DONE"), ("ok", "DONE")):
+        group = [r for r in rows if r["verdict"] == v]
+        if not group:
+            continue
+        print(title)
+        for r in group:
+            print(f"  {r['reviewer']} → {r['author']}")
+            for p in r["problems"]:
+                print(f"      ! {p}")
+        print()
+    if unassigned:
+        print(f"{len(unassigned)} active student(s) have no peer review to do:")
+        for s in unassigned:
+            print(f"  {name[s['id']]}")
+        print()
+    if never:
+        print(f"{len(never)} pairing(s) in {args.pairings} were never assigned:")
+        for n in never:
+            print(f"  {n}")
+        print()
+
+    out = {
+        "kind": "peer-review-status",
+        "generated": __import__("datetime").datetime.now().astimezone().isoformat(timespec="seconds"),
+        "course": {"id": c, "name": course.get("name")},
+        "assignment": {"id": a, "name": asg.get("name")},
+        "reviews": rows,
+        "unassigned": [name[s["id"]] for s in unassigned],
+        "neverAssigned": never,
+    }
+    with open(args.out, "w") as f:
+        json.dump(out, f, indent=2, ensure_ascii=False)
+    print(f"Wrote {args.out} — drop it on pair.html under “Check completion”.")
+    return 0
+
+
 # ---- main -------------------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser(description="Assign Canvas peer reviews from pairings.json")
-    ap.add_argument("pairings", nargs="?", help="pairings.json exported from pair.html (not needed with --check)")
+    ap.add_argument("pairings", nargs="?", help="pairings.json exported from pair.html (not needed with --check or --status)")
     ap.add_argument("--course", required=True, help="Canvas course id")
     ap.add_argument("--assignment", required=True, help="Canvas assignment id")
     ap.add_argument("--apply", action="store_true",
@@ -350,6 +510,11 @@ def main():
                     help="diagnose a single pair against Canvas and report exactly what it says")
     ap.add_argument("--check", action="store_true",
                     help="check the token, course and assignment setup, then stop")
+    ap.add_argument("--status", action="store_true",
+                    help="report who has completed their peer review and flag comments that "
+                         "don't look like the generator's; pairings.json is optional")
+    ap.add_argument("--out", default="peer-review-status.json",
+                    help="where --status writes its report (default: %(default)s)")
     ap.add_argument("--aliases", metavar="FILE",
                     help='JSON of fixes for students who still cannot be matched, '
                          'e.g. {"katie johnson": 48211, "jo smith": "100007"} — '
@@ -362,8 +527,10 @@ def main():
 
     if args.check:
         return preflight(base, token, args.course, args.assignment)
+    if args.status and not args.pairings:
+        return do_status(base, token, args, {})
     if not args.pairings:
-        sys.exit("Give me a pairings.json (or run --check on its own).")
+        sys.exit("Give me a pairings.json (or run --check or --status on their own).")
 
     data = json.load(open(args.pairings))
     reviews = data.get("reviews") or []
@@ -433,6 +600,11 @@ def main():
         print("  (fix it in Canvas or in pairings.json, then run again)")
 
     print(f"\n{len(planned)} review(s) resolved, {len(reviews) - len(planned)} skipped.")
+
+    if args.status:
+        print()
+        return do_status(base, token, args,
+                         {(au, rv): r.get("schedule", "") for r, rv, au in planned})
 
     existing = fetch_existing(base, token, args.course, args.assignment)
     print(f"Already on the assignment: {len(existing)} peer review(s)")

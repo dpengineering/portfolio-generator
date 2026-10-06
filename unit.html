@@ -189,6 +189,7 @@
       Fill in your feedback below, press <strong>📋 Copy review for Canvas</strong>, then go back to the
       peer review in Canvas and paste it as a <strong>comment</strong> on their submission.
       Leaving that comment is what marks your peer review complete — nothing you download here does.
+      <br>📱 <strong>On an iPad, use Canvas in Safari</strong> — the Canvas app doesn't show peer reviews.
     </div>
 
     <div id="peerNameWrap" hidden><label>Reviewer's name<input type="text" id="peerName" placeholder="Your name (the reviewer)"></label></div>
@@ -912,7 +913,7 @@ $("copyReview").onclick=async()=>{
     await navigator.clipboard.writeText(text);
     $("copyReview").textContent="📋 Copied — paste it into Canvas";
     setTimeout(()=>{$("copyReview").textContent="📋 Copy review for Canvas";},2500);
-    notify("Copied. Open your partner's submission in Canvas, paste this as a comment, and submit it — that's what marks your peer review complete.","info");
+    notify("Copied. Open your partner's submission in Canvas (in Safari on an iPad — the Canvas app doesn't show peer reviews), paste this as a comment, and submit it — that's what marks your peer review complete.","info");
   }catch(e){
     // clipboard blocked (iframe, old Safari): hand them the text as a file
     downloadBlob("peer-review.txt",text,"text/plain");

@@ -58,6 +58,36 @@
   .skipped ul{margin:.4rem 0 0;padding-left:1.2rem}
   .empty{color:var(--muted);font-size:.9rem;text-align:center;padding:2rem 0}
   [hidden]{display:none !important}
+
+  /* ---- Check completion ---- */
+  .sec{margin:2.5rem 0 0;padding-top:1.5rem;border-top:2px solid var(--border)}
+  .sec h2{margin:0 0 .3rem;font-size:1.1rem}
+  .sec>p{margin:0 0 1rem;font-size:.86rem;color:var(--muted)}
+  .sec pre{background:#0f172a;color:#e2e8f0;border-radius:8px;padding:.6rem .8rem;font-size:.78rem;overflow-x:auto;margin:.4rem 0 1rem}
+  .smeta{font-size:.84rem;color:var(--muted);margin:1rem 0 .5rem}
+  .smeta strong{color:var(--ink)}
+  .filters{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin:0 0 .75rem}
+  .chip{background:#fff;color:var(--ink);border:1px solid var(--border);border-radius:999px;padding:.3rem .75rem;font-size:.82rem}
+  .chip[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .chip .n{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;margin-left:.3rem;opacity:.8}
+  .filters input{margin-left:auto;font:inherit;font-size:.84rem;border:1px solid var(--border);border-radius:8px;padding:.35rem .6rem;min-width:0;width:12rem}
+  .rv{border:1px solid var(--border);border-radius:10px;background:#fff;margin:0 0 .5rem;font-size:.88rem}
+  .rv>summary{display:block;padding:.55rem .8rem;cursor:pointer;list-style:none}
+  .rv .line{display:flex;align-items:center;gap:.6rem}
+  .rv>summary::-webkit-details-marker{display:none}
+  .rv .who{flex:1;min-width:0}
+  .rv .who .to{color:var(--muted)}
+  .rv .sch{flex:none;font-size:.75rem;color:var(--muted)}
+  .pill{flex:none;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;border-radius:999px;padding:.12rem .5rem;border:1px solid}
+  .pill.ok{color:#166534;background:#dcfce7;border-color:#bbf7d0}
+  .pill.flag{color:#92400e;background:#fef3c7;border-color:#fde68a}
+  .pill.missing{color:#991b1b;background:#fee2e2;border-color:#fecaca}
+  .rv ul.why{margin:.3rem 0 0;padding-left:1.4rem;color:var(--warn);font-size:.82rem}
+  .rv .body{border-top:1px solid var(--border);padding:.6rem .8rem;background:var(--panel)}
+  .rv .body pre{white-space:pre-wrap;word-break:break-word;margin:0 0 .5rem;font:inherit;font-size:.84rem;background:#fff;
+    border:1px solid var(--border);border-radius:6px;padding:.5rem .6rem;color:var(--ink)}
+  .rv .body .at{font-size:.75rem;color:var(--muted);margin:0 0 .25rem}
+  .rv .body .none{color:var(--muted);font-size:.84rem}
   code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em;background:var(--panel);
     border:1px solid var(--border);border-radius:4px;padding:.05rem .3rem}
 </style>
@@ -65,7 +95,7 @@
 <body>
 <header class="app">
   <h1>🔀 Peer Review Pairing</h1>
-  <p>Drop in a Canvas submissions download, get pairings grouped by rotation or period.</p>
+  <p>Drop in a Canvas submissions download, get pairings grouped by rotation or period — then check who finished.</p>
 </header>
 
 <main>
@@ -103,6 +133,24 @@
   <div id="idstats"></div>
   <div id="skipped"></div>
   <div id="out"><div class="empty">No submissions loaded yet.</div></div>
+
+  <!-- Check completion. Canvas only shows who finished a peer review on the
+       assignment's peer-review page, ten students at a time. The assign script's
+       --status mode asks Canvas for all of it at once and writes a report; this
+       renders that report. The report is made by the script rather than here
+       because a page can't call the Canvas API -- the browser blocks it, and it
+       would mean pasting a token into a web page. -->
+  <section class="sec" id="statusSec">
+    <h2>✅ Check completion</h2>
+    <p>After students have had time to review, ask Canvas who finished and whether each comment came from the generator:</p>
+    <pre>python3 tools/assign_peer_reviews.py --course N --assignment M --status</pre>
+    <div class="drop" id="sdrop">
+      <strong>Drop peer-review-status.json here</strong>
+      or click to choose it
+      <input type="file" id="sfile" accept=".json,application/json" hidden>
+    </div>
+    <div id="sout"></div>
+  </section>
 </main>
 
 <script>
@@ -390,6 +438,90 @@ $("copy").onclick=async()=>{
   catch(e){download("pairings.txt",asText(),"text/plain");}
 };
 $("reset").onclick=()=>{posts=[];skipped=[];groups=[];$("oneGroupWrap").hidden=true;render();};
+
+// ---- check completion -----------------------------------------------------
+// Renders the report tools/assign_peer_reviews.py --status writes. Every
+// verdict is decided by the script; this only lays it out, lets you filter it,
+// and shows the comment itself so a flag can be judged at a glance.
+let status=null, sfilter="all";
+const VERDICT={ok:"Done",flag:"Check it",missing:"Not done"};
+
+function loadStatus(file){
+  file.text().then(t=>{
+    let d;
+    try{d=JSON.parse(t);}catch(e){d=null;}
+    if(!d||d.kind!=="peer-review-status"){
+      $("sout").innerHTML=`<div class="skipped"><code>${esc(file.name)}</code> isn't a peer-review status report.
+        Make one with <code>--status</code> (see above).</div>`;
+      return;
+    }
+    status=d;sfilter=d.reviews.some(r=>r.verdict!=="ok")?"todo":"all";renderStatus();
+  });
+}
+
+function renderStatus(){
+  const d=status, rs=d.reviews;
+  const n=v=>rs.filter(r=>r.verdict===v).length;
+  const q=($("sq")&&$("sq").value||"").trim().toLowerCase();
+  const shown=rs.filter(r=>
+    (sfilter==="all"||(sfilter==="todo"?r.verdict!=="ok":r.verdict===sfilter))&&
+    (!q||(r.reviewer+" "+r.author).toLowerCase().includes(q)));
+  const chip=(key,label,count)=>
+    `<button class="chip" data-f="${key}" aria-pressed="${sfilter===key}">${label}<span class="n">${count}</span></button>`;
+  const when=d.generated?new Date(d.generated).toLocaleString([], {dateStyle:"medium",timeStyle:"short"}):"";
+  const row=r=>
+    `<details class="rv">
+       <summary>
+         <div class="line">
+           <span class="pill ${r.verdict}">${VERDICT[r.verdict]||esc(r.verdict)}</span>
+           <span class="who">${esc(r.reviewer)} <span class="to">→</span> ${esc(r.author)}</span>
+           ${r.schedule?`<span class="sch">${esc(r.schedule)}</span>`:""}
+         </div>
+         ${r.problems.length?`<ul class="why">${r.problems.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>`:""}
+       </summary>
+       <div class="body">${r.comments.length
+         ? r.comments.map(c=>
+             `<div class="at">${c.at?esc(new Date(c.at).toLocaleString()):""}${c.files?` · ${c.files} attachment${c.files===1?"":"s"}`:""}</div>
+              <pre>${esc(c.text)||"<em>(no text)</em>"}</pre>`).join("")
+         : `<div class="none">No comment from ${esc(r.reviewer)} on this submission yet.</div>`}</div>
+     </details>`;
+  const list=(title,items)=>items&&items.length
+    ? `<div class="skipped"><strong>${title}</strong><ul>${items.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:"";
+
+  $("sout").innerHTML=
+    `<div class="smeta"><strong>${esc(d.assignment.name||d.assignment.id)}</strong> · ${esc(d.course.name||d.course.id)}
+       · checked ${esc(when)} — re-run <code>--status</code> for newer results</div>
+     <div class="filters">
+       ${chip("todo","Needs attention",n("flag")+n("missing"))}
+       ${chip("flag","Check it",n("flag"))}
+       ${chip("missing","Not done",n("missing"))}
+       ${chip("ok","Done",n("ok"))}
+       ${chip("all","All",rs.length)}
+       <button class="btn alt" id="scopy" style="padding:.3rem .75rem;font-size:.82rem">📋 Copy names shown</button>
+       <input id="sq" type="search" placeholder="Find a student" value="${esc(q)}">
+     </div>
+     ${shown.length?shown.map(row).join(""):`<div class="empty">Nobody here.</div>`}
+     ${list(`${(d.unassigned||[]).length} active student${(d.unassigned||[]).length===1?" has":"s have"} no peer review to do`,d.unassigned)}
+     ${list(`${(d.neverAssigned||[]).length} pairing${(d.neverAssigned||[]).length===1?" was":"s were"} planned but never assigned in Canvas`,d.neverAssigned)}`;
+
+  $("sout").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{sfilter=b.dataset.f;renderStatus();});
+  const sq=$("sq");
+  sq.oninput=()=>{const pos=sq.selectionStart;renderStatus();$("sq").focus();$("sq").setSelectionRange(pos,pos);};
+  $("scopy").onclick=async()=>{
+    const text=[...new Set(shown.map(r=>r.reviewer))].join("\n");
+    try{await navigator.clipboard.writeText(text);$("scopy").textContent="📋 Copied";}
+    catch(e){download("peer-review-names.txt",text,"text/plain");}
+  };
+}
+
+$("sdrop").onclick=()=>$("sfile").click();
+$("sfile").onchange=e=>{if(e.target.files.length)loadStatus(e.target.files[0]);e.target.value="";};
+["dragenter","dragover"].forEach(ev=>$("sdrop").addEventListener(ev,e=>{
+  e.preventDefault();$("sdrop").classList.add("over");}));
+["dragleave","drop"].forEach(ev=>$("sdrop").addEventListener(ev,e=>{
+  e.preventDefault();$("sdrop").classList.remove("over");}));
+$("sdrop").addEventListener("drop",e=>{
+  if(e.dataTransfer&&e.dataTransfer.files.length)loadStatus(e.dataTransfer.files[0]);});
 </script>
 </body>
 </html>

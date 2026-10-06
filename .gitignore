@@ -9,6 +9,7 @@
 pairings.json
 pairings*.json
 aliases*.json
+peer-review-status*.json
 submissions/
 *.zip
 

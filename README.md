@@ -210,8 +210,39 @@ completes anything, so peer mode makes copying the comment the primary action
 and demotes the download to an optional extra for anyone who also wants to
 attach the rendered page.
 
+> **iPads: use Canvas in Safari, not the Canvas app.** The app notifies students
+> that a peer review is assigned but never shows it. In Safari they can open the
+> review, download their partner's post and leave the comment, all in one tab.
+
+### Checking who finished
+
+Canvas only shows peer-review completion on the assignment's peer-review page,
+ten students at a time. `--status` fetches all of it at once:
+
+```bash
+python3 tools/assign_peer_reviews.py --course N --assignment M --status
+python3 tools/assign_peer_reviews.py pairings.json --course N --assignment M --status
+```
+
+It prints every assigned review as **done**, **check it** or **not done**, and
+writes `peer-review-status.json` (gitignored: it holds names and the comments
+themselves). Drop that file on `pair.html` under **Check completion** to get one
+alphabetical list you can filter and search, with each comment one click away.
+Given the `pairings.json`, it also labels each review by rotation/period and
+lists pairings that were planned but never assigned.
+
+"Check it" means the reviewer commented but the comment doesn't look like the
+one the generator composes: no `Peer review of …'s … post` header, a missing
+`PROJECT UPDATE` / `REFLECTION` / `RUBRIC FEEDBACK` section, a header naming
+someone other than the author (pasted on the wrong submission), the same text
+as another reviewer, or only an attachment. It's a heuristic for where to look,
+not proof: someone could type the header by hand. Canvas marks a review
+complete on *any* comment, so this is the only signal that it was a real one.
+
 **No student data leaves your machine.** `pair.html` runs in the browser with no
-network calls at all, and the script talks only to Canvas. Nothing is sent to
+network calls at all, and the script talks only to Canvas. That's also why the
+completion report is made by the script and only *displayed* by `pair.html`: a
+web page can't call the Canvas API, and shouldn't hold your token. Nothing is sent to
 any third party, and deliberately nothing to an AI service — rosters and student
 work shouldn't go there.
 
