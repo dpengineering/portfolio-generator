@@ -18,3 +18,4 @@ google_oauth_todo.txt
 *_todo.txt
 __pycache__/
 *.pyc
+tmp/
