@@ -11,6 +11,7 @@
     --panel:#f8fafc; --ok:#16a34a;
     --unit:#ea580c;      /* unit / monthly post — matches unit.html's accent */
     --senior:#8b5cf6;    /* performance review */
+    --onepager:#059669;  /* one-pager — matches onepager.html's accent */
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#f1f5f9}
@@ -50,9 +51,11 @@
     border:1px solid var(--border);border-left:4px solid var(--tool);border-radius:10px;padding:1rem}
   a.tile.t-weekly{--tool:var(--accent)}
   a.tile.t-unit{--tool:var(--unit)}
+  a.tile.t-onepager{--tool:var(--onepager)}
   a.tile:hover{border-color:var(--tool)}
   a.tile.t-weekly:hover{box-shadow:0 2px 10px rgba(14,165,233,.18)}
   a.tile.t-unit:hover{box-shadow:0 2px 10px rgba(234,88,12,.18)}
+  a.tile.t-onepager:hover{box-shadow:0 2px 10px rgba(5,150,105,.18)}
   /* wrap rather than overflow: a long tool name plus a cadence chip can
      outgrow a narrow tile (and does on a phone) */
   a.tile .t-top{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
@@ -168,6 +171,11 @@
       <span class="t-top"><span class="t-emoji">📙</span><span class="t-name" id="unitName">Unit Post</span></span>
       <span class="t-desc" id="unitDesc">A bigger project at the end of a unit/month, with your self-grade rubric.</span>
     </a>
+    <!-- seniors only: an intro page for their exhibit, printed or shown on an iPad -->
+    <a class="tile t-onepager" href="onepager.html" id="onepagerTile" hidden>
+      <span class="t-top"><span class="t-emoji">📄</span><span class="t-name">One-Pager</span><span class="t-when">Per project</span></span>
+      <span class="t-desc">A one-page intro to your exhibit: the science concept, the exhibit, and figures for each. Prints as a single page and fits an iPad screen.</span>
+    </a>
   </div>
 </main>
 
@@ -178,7 +186,7 @@
   </p>
 </footer>
 
-<script src="shared.js?v=8"></script>
+<script src="shared.js?v=9"></script>
 <script>
 // The hub is the one place a student states their grade; the tools pre-fill
 // from it (see applyProfile/trackProfile in shared.js). Tiles stay hidden until
@@ -256,6 +264,7 @@ function paint(){
   const where=scheduleLabel(p);
   $("whochip").textContent=g?[who,`Grade ${g}`,where].filter(Boolean).join(" · "):"";
   $("perfChip").hidden=!senior;
+  $("onepagerTile").hidden=!senior;
 
   // 12th graders post monthly rather than per unit — unit.html already keys
   // this off the same grade value (see isMonthly there).

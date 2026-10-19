@@ -1,9 +1,9 @@
 // ============================================================================
-// shared.js — infrastructure shared by both generators (index.html + unit.html)
+// shared.js — infrastructure shared by the hub and every generator
 //
 // Loaded via <script src="shared.js?v=N"> BEFORE each page's own inline script,
 // so these top-level declarations are visible to the page code that follows.
-// Bump the ?v= number in BOTH html files whenever this file changes, so that
+// Bump the ?v= number in EVERY html file that loads it whenever this file changes, so that
 // district iPads (Safari) fetch the new version without needing a hard refresh.
 //
 // NOTE: nothing here ends up in a *downloaded* portfolio — buildHTML() still
@@ -106,7 +106,10 @@ async function readImage(file){
         const max=1400;let{width:w,height:h}=img;
         if(w>max||h>max){const s=Math.min(max/w,max/h);w=Math.round(w*s);h=Math.round(h*s);}
         const c=document.createElement("canvas");c.width=w;c.height=h;
-        c.getContext("2d").drawImage(img,0,0,w,h);
+        // JPEG has no alpha, so transparent pixels would encode as black --
+        // which wipes out a transparent PNG diagram or CAD render. Paint white first.
+        const ctx=c.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);
+        ctx.drawImage(img,0,0,w,h);
         res({name:file.name,caption:"",dataUrl:c.toDataURL("image/jpeg",0.82)});
       };
       img.onerror=()=>rej(new Error("decode failed"));img.src=fr.result;

@@ -12,6 +12,7 @@ each tool runs entirely in the browser and produces a **self-contained
 | `/` (`index.html`) | Hub — asks your grade, then shows your tools | everyone | — |
 | `/weekly` (`weekly.html`) | Rotation post generator | grades 9–12 | weekly |
 | `/unit` (`unit.html`) | Unit post generator (monthly for grade 12) | grades 9–12 | per unit / month |
+| `/onepager` (`onepager.html`) | One-pager — a printable intro page for an exhibit | grade 12 | per project |
 | `/review` (`review.html`) | Standalone performance review — kept as a fallback, no longer linked | — | — |
 | `/grade` (`grade.html`) | Mentor grading tool | mentors | weekly |
 | `/pair` (`pair.html`) | Peer-review pairing tool | teachers | per unit / month |
@@ -91,6 +92,27 @@ pages become links to `portfolio.dpeacl.org` and the builds can be retired.
   for the student's own content and later publication on their personal site —
   they carry no Canvas or grading requirements, so they never generate a
   performance review.
+
+## The one-pager (grade 12)
+
+[`onepager.html`](onepager.html) makes a single-page introduction to a senior's
+exhibit: a title header (project name, the science concepts as a subheader, the
+DPEA logo top right), then a **Concept Description** and an **Exhibit
+Description**, each with 1–2 captioned figures. It's meant to be printed as a
+real one-pager and put up on GitHub Pages to show on an iPad beside the exhibit,
+so the download is named for the project, URL-style (`schlieren-effect.html`).
+
+- **The page never reflows.** It's laid out at true US Letter size (8.5×11in,
+  Arial/Helvetica, which are metric-compatible and on every device). On a screen
+  the whole page is scaled to fit the window; in print it *is* the page. So a
+  line breaks in the same place in the preview, on an iPad and on paper.
+- **Figures fill whatever room the writing leaves**, down to a 1.5in floor.
+  Past that the page overflows, and the generator measures the preview and
+  blocks the download until it fits ("too long by N lines"). Word counts are
+  guidance with a floor of 120; fitting on the page is the real ceiling.
+- One figure sits beside its caption; two sit side by side, captions beneath.
+- It carries **no student ID or schedule** in its embedded data, unlike the
+  posts, because it's made to be published. The tile shows only for grade 12.
 
 ## The performance review (grade 12)
 

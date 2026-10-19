@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One-Pager Generator</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>">
+<style>
+  :root{
+    --accent:#059669; --ink:#1e293b; --muted:#64748b; --border:#e2e8f0;
+    --panel:#ecfdf5; --ok:#16a34a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#f1f5f9}
+  header.app{background:#064e3b;color:#fff;padding:1.1rem 1.25rem}
+  header.app h1{margin:0;font-size:1.25rem}
+  header.app p{margin:.25rem 0 0;color:#a7f3d0;font-size:.9rem}
+  .app-head{display:flex;justify-content:space-between;align-items:center;gap:1rem}
+  .switch-link{flex:none;background:rgba(255,255,255,.12);color:#fff;text-decoration:none;font-size:.82rem;font-weight:600;padding:.5rem .8rem;border-radius:999px;border:1px solid rgba(255,255,255,.25);white-space:nowrap}
+  .switch-link:hover{background:rgba(255,255,255,.22)}
+  .wrap{display:grid;grid-template-columns:1fr 1fr;gap:0;height:calc(100vh - 76px)}
+  .form{overflow-y:auto;padding:1.25rem;border-right:1px solid var(--border)}
+  .preview{overflow:hidden;background:#fff;display:flex;flex-direction:column}
+  .preview .bar{padding:.5rem .75rem;border-bottom:1px solid var(--border);font-size:.8rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:.5rem}
+  .preview .bar .bar-right{display:flex;align-items:center;gap:.5rem}
+  .fit{font-weight:700}
+  .fit.ok{color:var(--ok)}
+  .fit.no{color:#b91c1c}
+  .btn-mini{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:.15rem .55rem;font-size:.72rem;font-weight:600;line-height:1.4}
+  .btn-mini:hover{background:#fff;color:var(--ink)}
+  iframe{flex:1;border:0;width:100%}
+  fieldset{border:1px solid var(--border);border-radius:10px;margin:0 0 1rem;padding:1rem;background:#fff}
+  legend{font-weight:700;padding:0 .4rem;color:var(--accent)}
+  label{display:block;font-size:.82rem;font-weight:600;margin:.6rem 0 .25rem;color:var(--ink)}
+  .hint{font-weight:400;color:var(--muted);font-size:.78rem}
+  input[type=text],textarea{width:100%;padding:.55rem .65rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.9rem}
+  textarea{resize:vertical;line-height:1.5;min-height:200px}
+  button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:.55rem .9rem;cursor:pointer}
+  .btn{background:var(--accent);color:#fff}
+  .btn.alt{background:#fff;color:var(--ink);border:1px solid var(--border)}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px dashed var(--border)}
+  .btn.danger{background:#fff;color:#b91c1c;border:1px solid #fecaca}
+  .btn.danger.armed{background:#b91c1c;color:#fff;border-color:#b91c1c}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .toolbar{background:#f1f5f9;padding:.5rem 0 .75rem;display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem;border-bottom:1px solid var(--border)}
+  .drop{border:2px dashed var(--border);border-radius:10px;padding:1rem;text-align:center;color:var(--muted);font-size:.85rem;cursor:pointer;background:var(--panel)}
+  .drop.over{border-color:var(--accent);background:#d1fae5;color:var(--accent)}
+  .drop.busy{opacity:.75;border-style:solid;color:var(--accent);cursor:progress}
+  .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.6rem;margin-top:.6rem}
+  .thumb{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff}
+  .thumb img{display:block;width:100%;height:80px;object-fit:contain;background:#f8fafc}
+  .thumb input{border:0;border-top:1px solid var(--border);border-radius:0;font-size:.75rem;padding:.35rem .4rem}
+  .thumb .rm{display:block;width:100%;background:#fee2e2;color:#b91c1c;border:0;font-size:.72rem;padding:.25rem;cursor:pointer}
+  .thumb .fignum{font-size:.68rem;font-weight:700;color:var(--accent);padding:.2rem .4rem;border-top:1px solid var(--border)}
+  .savednote{font-size:.78rem;color:var(--ok)}
+  .help{background:var(--panel);border:1px solid #a7f3d0;border-radius:8px;padding:.6rem .75rem;font-size:.82rem;color:#065f46;margin-bottom:1rem;line-height:1.5}
+  .tip{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:.6rem .75rem;font-size:.8rem;color:#9a3412;margin:.6rem 0 1rem}
+  .gate{border:1px solid var(--border);border-radius:8px;padding:.6rem .75rem;margin-bottom:1rem;background:#fff;font-size:.84rem}
+  .gate .ghead{font-weight:700;margin-bottom:.4rem}
+  .req{display:flex;align-items:center;gap:.45rem;padding:.15rem 0}
+  .req.ok{color:var(--ok)}
+  .req.no{color:#b91c1c}
+  .req .mark{font-weight:700}
+  .counter{font-size:.78rem;font-weight:600;margin-top:.3rem;text-align:right}
+  .counter.lo{color:#b91c1c}
+  .counter.hi{color:#b45309}
+  .counter.ok{color:var(--ok)}
+  .starter{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin:.4rem 0 0;font-size:.78rem}
+  .starter-label{color:var(--muted);font-weight:600;white-space:nowrap}
+  .starter-text{flex:1;min-width:0;text-align:left;background:var(--panel);border:1px solid #a7f3d0;color:#047857;border-radius:999px;padding:.22rem .6rem;font:inherit;font-size:.78rem;cursor:pointer;transition:opacity .5s ease}
+  .starter-text:hover{background:#d1fae5}
+  .starter-nav{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:.15rem .45rem;font-size:.85rem;line-height:1.2;cursor:pointer;min-width:1.7rem;text-align:center}
+  .starter-nav:hover{background:#fff;color:var(--ink)}
+  /* ---- collapsible sections (see wireFolds in shared.js) ---- */
+  details.fold{border:1px solid var(--border);border-radius:10px;margin:0 0 1rem;background:#fff}
+  details.fold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:.5rem;
+    padding:.65rem .8rem;font-weight:700;font-size:.92rem;color:var(--accent);border-radius:10px}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary::before{content:"▸";font-size:.85em;flex:none}
+  details.fold>summary:hover{background:var(--panel)}
+  details.fold[open]>summary{border-bottom:1px solid var(--border);border-radius:10px 10px 0 0}
+  details.fold[open]>summary::before{content:"▾"}
+  details.fold>summary .fold-note{margin-left:auto;flex:none;font-weight:600;font-size:.74rem;color:var(--muted)}
+  details.fold .fold-body{padding:.85rem}
+  details.fold fieldset{border:0;padding:0;margin:0;background:transparent}
+  details.fold legend{display:none}
+  @media (max-width:820px){.wrap{grid-template-columns:1fr;height:auto}.preview{height:80vh;border-top:1px solid var(--border)}}
+</style>
+</head>
+<body>
+<header class="app">
+  <div class="app-head">
+    <div>
+      <h1>📄 One-Pager Generator</h1>
+      <p>An intro page for your project — sized to print as exactly one page, and to fill an iPad screen.</p>
+    </div>
+    <a class="switch-link" href="index.html">← All tools</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="form">
+    <div class="toolbar">
+      <button class="btn" id="download">⬇ Download one-pager</button>
+      <button class="btn alt" id="save">💾 Save draft</button>
+      <button class="btn alt" id="loadBtn">📂 Load draft or one-pager</button>
+      <input type="file" id="loadFile" accept=".json,.html,.htm,application/json,text/html" hidden>
+      <button class="btn ghost" id="foldAll" type="button" title="Collapse or expand every section">⊟ Collapse all</button>
+      <button class="btn danger" id="clear">🗑 Clear</button>
+      <span class="savednote" id="autonote"></span>
+    </div>
+
+    <div class="tip">⚠️ <strong>Your work isn't saved automatically.</strong> Tap <strong>💾 Save draft</strong> before you close this page, and <strong>📂 Load draft</strong> to pick up where you left off.
+    A downloaded one-pager can be loaded back in too.</div>
+
+    <div class="gate" id="gate"></div>
+
+    <div class="help">
+      <strong>How this works:</strong> a one-pager introduces your exhibit to someone walking up to it.
+      Explain the <em>science</em> first, then the <em>exhibit</em> — each with one or two figures.
+      Everything has to fit on a single page, so the preview tells you if you've written too much.
+      <br>The figures grow or shrink to fill whatever room the writing leaves. Refer to them in your text as
+      "figure 1", "figure 2" and so on — the numbers are shown under each photo below.
+      <br>Equations: type symbols straight in — θ, λ, Δ, ², ₁ — or copy them from a site like
+      <a href="https://www.compart.com/en/unicode/" target="_blank" rel="noopener">compart.com</a>.
+    </div>
+
+    <details class="fold" data-fold="title" open>
+      <summary>Title<span class="fold-note"></span></summary>
+      <div class="fold-body">
+      <fieldset>
+      <legend>Title</legend>
+      <label>Project name<input type="text" id="project" placeholder="Schlieren Effect"></label>
+      <label>Science concepts <span class="hint">(the subheader — the big ideas your project covers)</span>
+        <input type="text" id="concepts" placeholder="Optics and Convection"></label>
+    </fieldset>
+      </div>
+    </details>
+
+    <details class="fold" data-fold="concept" open>
+      <summary>Concept Description<span class="fold-note"></span></summary>
+      <div class="fold-body">
+      <fieldset>
+      <legend>Concept Description</legend>
+      <p class="hint" style="margin:.2rem 0 .4rem">Big picture: what science does your project show, and how does it work? Write it for a curious visitor, not for your teacher.</p>
+      <textarea id="conceptText" placeholder="Text here..."></textarea>
+      <div class="starter" id="concept-starter"></div>
+      <div class="counter" id="concept-count"></div>
+      <label>Figures <span class="hint">(1 or 2, each with a caption — diagrams work great here)</span></label>
+      <div class="drop" id="conceptDrop">Drag images here, or click to choose</div>
+      <div class="thumbs" id="conceptThumbs"></div>
+    </fieldset>
+      </div>
+    </details>
+
+    <details class="fold" data-fold="exhibit" open>
+      <summary>Exhibit Description<span class="fold-note"></span></summary>
+      <div class="fold-body">
+      <fieldset>
+      <legend>Exhibit Description</legend>
+      <p class="hint" style="margin:.2rem 0 .4rem">How does your exhibit physically demonstrate the concept? What does a visitor see and do, and how did you design it?</p>
+      <textarea id="exhibitText" placeholder="Text here..."></textarea>
+      <div class="starter" id="exhibit-starter"></div>
+      <div class="counter" id="exhibit-count"></div>
+      <label>Figures <span class="hint">(1 or 2, each with a caption — a CAD model or photo of the exhibit)</span></label>
+      <div class="drop" id="exhibitDrop">Drag images here, or click to choose</div>
+      <div class="thumbs" id="exhibitThumbs"></div>
+    </fieldset>
+      </div>
+    </details>
+  </div>
+
+  <div class="preview">
+    <div class="bar"><span>Live preview <span class="fit" id="fit"></span></span><span class="bar-right"><span id="size"></span><button type="button" class="btn-mini" id="refresh" title="Refresh the preview">↻ Update</button></span></div>
+    <iframe id="frame" title="One-pager preview"></iframe>
+  </div>
+</div>
+
+<script src="heic2any.min.js"></script>
+<script src="shared.js?v=9"></script>
+<script>
+const DRAFT_KEY="onePagerDraft";
+const FOLD_NS="onepager";
+// Two text sections, each with its own figures. Word counts are guidance with
+// a floor; the real ceiling is whether the page still fits (see measureFit).
+const SECTIONS=[
+  {key:"concept",title:"Concept Description"},
+  {key:"exhibit",title:"Exhibit Description"},
+];
+const MIN_WORDS=120, AIM_MIN=150, AIM_MAX=200, MAX_FIGS=2;
+const state={images:{concept:[],exhibit:[]}};
+let fitOver=null;          // px the page overflows by; null until the preview has been measured
+
+// ===== Sentence starters — EDIT THESE LISTS FREELY ===================
+const STARTERS={
+  concept:[
+    "Have you ever noticed that _____? That happens because _____.",
+    "_____ is all around us, but we can't usually see it because _____.",
+    "When _____, the _____ changes, which we can predict with _____.",
+    "The key idea behind this project is _____: _____.",
+    "To understand _____, picture _____.",
+    "This works because of _____, which says that _____.",
+  ],
+  exhibit:[
+    "When visitors walk up, they see _____.",
+    "Visitors can _____ and watch as _____.",
+    "To make _____ visible, we built _____.",
+    "We chose _____ instead of _____ because _____.",
+    "By comparing _____ and _____, visitors learn that _____.",
+    "Our first design _____, so we changed it to _____.",
+  ],
+};
+// =====================================================================
+
+// ---- figures (1-2 per section) ----
+function wireFigures(key){
+  wireDrop($(key+"Drop"),async files=>{
+    const list=state.images[key];
+    for(const f of files){
+      if(list.length>=MAX_FIGS){
+        notify(`Each section takes at most ${MAX_FIGS} figures — the rest were skipped.`,"warn");
+        break;
+      }
+      try{const r=await readImage(f);if(r)list.push(r);}
+      catch(e){imgError(f);}
+    }
+    renderThumbs();autosave();updatePreview();
+  });
+}
+// Figure numbers run down the page, so a concept figure added later renumbers
+// the exhibit's — both sections re-render together.
+function renderThumbs(){
+  let fig=0;
+  SECTIONS.forEach(({key})=>{
+    const box=$(key+"Thumbs"), list=state.images[key];
+    box.innerHTML="";
+    list.forEach((im,idx)=>{
+      const num=++fig;
+      const t=document.createElement("div");t.className="thumb";
+      t.innerHTML=`<img src="${im.dataUrl}"><div class="fignum">Figure ${num}</div><input type="text" placeholder="Caption..." value="${esc(im.caption)}"><button class="rm">remove</button>`;
+      t.querySelector("input").addEventListener("input",e=>{im.caption=e.target.value;autosave();schedulePreview();});
+      t.querySelector(".rm").onclick=()=>{list.splice(idx,1);renderThumbs();autosave();updatePreview();};
+      box.appendChild(t);
+    });
+    $(key+"Drop").textContent=list.length>=MAX_FIGS?`${MAX_FIGS} figures added`:"Drag images here, or click to choose";
+  });
+}
+
+// ---- collect + build ----
+const imgsOut=a=>a.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl}));
+// Deliberately no student ID or schedule here: a one-pager is meant to be put
+// up on a public website, unlike a post submitted to Canvas.
+function collect(){
+  return {
+    meta:{project:val("project"),concepts:val("concepts")},
+    concept:{text:$("conceptText").value,images:imgsOut(state.images.concept)},
+    exhibit:{text:$("exhibitText").value,images:imgsOut(state.images.exhibit)},
+  };
+}
+function collectLight(){
+  const d=collect();
+  SECTIONS.forEach(({key})=>{d[key].images=[];});
+  return d;
+}
+
+// The page is laid out at true Letter size (8.5x11in) and never reflows: on
+// screen it is scaled as a whole to fit the window, and in print it is the
+// page. That's what makes the preview's fit check mean the same thing on an
+// iPad and on paper. Arial/Helvetica are metric-compatible and on every device,
+// so a line breaks in the same place everywhere.
+//
+// Text takes the space it needs; each section's figure row (flex:1) shares
+// what's left, with a floor so a figure never shrinks to a sliver. Past that
+// floor the page overflows, and the generator measures it.
+const PAGE_CSS=`
+@page{size:letter;margin:0}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:#d1d5db;font-family:Arial,Helvetica,sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{width:8.5in;height:11in;background:#fff;padding:.4in .45in .35in;display:flex;flex-direction:column;overflow:hidden;margin:0 auto}
+body.fit{overflow:hidden;height:100vh}
+body.fit .page{position:absolute;left:50%;top:50%;margin:0;transform:translate(-50%,-50%) scale(var(--s,1));box-shadow:0 4px 24px rgba(0,0,0,.25)}
+header{display:flex;align-items:center;gap:.3in;border-bottom:3pt solid #000;padding-bottom:.08in;margin:0 -.45in .1in 0;padding-right:.45in;flex:none}
+header .titles{flex:1;min-width:0}
+h1{font-size:28pt;line-height:1.1;margin:0;font-weight:700}
+.concepts{font-size:15pt;margin:.03in 0 0}
+header img{width:.95in;height:.95in;flex:none;object-fit:contain}
+section{display:flex;flex-direction:column;flex:1 1 auto}
+h2{font-size:15pt;margin:.06in 0 .02in;flex:none}
+.text{flex:none;font-size:11pt;line-height:1.32}
+.text p{margin:0 0 .06in}
+/* contain:size keeps a photo's pixel size out of the layout: the row is
+   exactly as tall as the space left over (never under the floor), and the
+   images shrink to fit it */
+.figs{flex:1 1 0;min-height:1.5in;contain:size;display:grid;gap:.2in;padding:.06in 0 .04in}
+.figs.n2{grid-template-columns:1fr 1fr}
+figure{margin:0;min-height:0;display:grid;grid-template-rows:minmax(0,1fr) auto;gap:.05in}
+figure img{width:100%;height:100%;min-height:0;object-fit:contain;object-position:center bottom}
+figcaption{font-size:9.5pt;line-height:1.3;color:#333;text-align:center}
+/* one figure: caption alongside it, as in a printed handout */
+.figs.n1 figure{grid-template-rows:none;grid-template-columns:minmax(0,1fr) 2.3in;gap:.25in;align-items:center}
+.figs.n1 figure img{object-position:center}
+.figs.n1 figcaption{font-size:10.5pt;text-align:left}
+.empty{color:#9ca3af;font-style:italic}
+/* print undoes the screen fit in CSS rather than relying on a print event,
+   which not every browser fires. A hair under 11in so rounding never spills
+   a blank second page. */
+@media print{body,body.fit{background:none;height:auto;overflow:visible}
+  .page,body.fit .page{position:static;transform:none;box-shadow:none;margin:0;height:10.98in}}
+`;
+
+// Scale-to-fit for screens (an iPad on the exhibit, or the preview pane).
+// Without JS the page simply shows at full size and scrolls. Print ignores the
+// scale entirely (see the @media print rule).
+const FIT_JS=`(function(){var b=document.body,p=document.querySelector(".page");
+function fit(){b.classList.add("fit");
+var s=Math.min(innerWidth/p.offsetWidth,innerHeight/p.offsetHeight)*.97;b.style.setProperty("--s",s);}
+addEventListener("resize",fit);fit();})();`;
+
+const plainParas=t=>esc(t).trim().split(/\n\s*\n/).filter(Boolean).map(p=>"<p>"+p.replace(/\n/g,"<br>")+"</p>").join("\n");
+
+function figures(images,ctr,group){
+  const figs=images.filter(i=>i.dataUrl).map(i=>{
+    const num=++ctr.n;
+    const cap=i.caption?`Figure ${num}: ${esc(i.caption)}`:`Figure ${num}`;
+    return `<figure><img src="${i.dataUrl}" alt="${esc(i.caption||("Figure "+num))}"><figcaption>${cap}</figcaption></figure>`;
+  });
+  return figs.length?`<div class="figs n${figs.length}" data-group="${group}">\n${figs.join("\n")}\n</div>`:"";
+}
+
+function buildHTML(d){
+  const project=d.meta.project||"Project name";
+  const ctr={n:0};
+  const body=SECTIONS.map(({key,title})=>{
+    const s=d[key]||{};
+    const text=(s.text||"").trim()?plainParas(s.text):`<p class="empty">Your ${title.toLowerCase()} goes here.</p>`;
+    return `<section>\n<h2>${title}</h2>\n<div class="text">${text}</div>\n${figures(s.images||[],ctr,key)}\n</section>`;
+  }).join("\n");
+  // Embedded editable state so this page can be re-opened in the generator.
+  // Photos are omitted (they're already inline above) and recovered from the
+  // rendered <img> tags on load.
+  const editData={v:1,meta:d.meta};
+  SECTIONS.forEach(({key})=>{editData[key]={text:d[key].text,images:d[key].images.map(i=>({name:i.name,caption:i.caption}))};});
+  const dataJson=JSON.stringify(editData).replace(/</g,"\\u003c");
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(project)}</title>
+<style>${PAGE_CSS}</style>
+</head>
+<body>
+<div class="page">
+<header>
+<div class="titles">
+<h1>${esc(project)}</h1>
+${d.meta.concepts?`<p class="concepts">${esc(d.meta.concepts)}</p>`:""}
+</div>
+<img class="logo" src="${DPEA_LOGO}" alt="DPEA logo">
+</header>
+${body}
+</div>
+<script>${FIT_JS}<\/script>
+<script type="application/json" id="portfolio-data">${dataJson}<\/script>
+</body>
+</html>`;
+}
+
+// ---- does it fit on one page? ----
+// Measured on the preview itself, at true size (scrollHeight ignores the
+// screen scale transform), once the frame has laid out.
+function measureFit(){
+  try{
+    const doc=$("frame").contentDocument, page=doc&&doc.querySelector(".page");
+    if(!page)return;
+    fitOver=Math.max(0,page.scrollHeight-page.clientHeight);
+  }catch(e){fitOver=null;}
+  const el=$("fit");
+  if(fitOver===null){el.textContent="";el.className="fit";}
+  else if(fitOver===0){el.textContent="· fits on one page ✓";el.className="fit ok";}
+  else{el.textContent=`· too long by ${linesOver()} line${linesOver()===1?"":"s"}`;el.className="fit no";}
+  validate();
+}
+// 11pt text at 1.32 line height is ~19.4px a line at 96px/in
+const linesOver=()=>Math.max(1,Math.ceil((fitOver||0)/19.4));
+
+// ---- requirements before download ----
+function renderCounter(el,words){
+  el.classList.remove("ok","lo","hi");
+  el.classList.add(words<MIN_WORDS?"lo":words>AIM_MAX?"hi":"ok");
+  el.textContent=`${words} words (aim for ${AIM_MIN}–${AIM_MAX})`+(words<MIN_WORDS?` — at least ${MIN_WORDS-words} more to go`:"");
+}
+function validate(){
+  const row=(ok,label)=>`<div class="req ${ok?'ok':'no'}"><span class="mark">${ok?'✓':'○'}</span>${label}</div>`;
+  const projOK=!!val("project"), concOK=!!val("concepts");
+  let rows=row(projOK,"Enter your project name")+row(concOK,"List the science concepts it covers");
+  let ok=projOK&&concOK;
+  SECTIONS.forEach(({key,title})=>{
+    const w=countWords($(key+"Text").value);
+    renderCounter($(key+"-count"),w);
+    const imgs=state.images[key].filter(i=>i.dataUrl);
+    const capd=imgs.filter(i=>i.caption&&i.caption.trim()).length;
+    const wOK=w>=MIN_WORDS, nOK=imgs.length>=1&&imgs.length<=MAX_FIGS, cOK=nOK&&capd===imgs.length;
+    rows+=row(wOK,`${title}: at least ${MIN_WORDS} words (now ${w})`)+
+      row(nOK,`${title}: add 1 or 2 figures (now ${imgs.length})`)+
+      row(cOK,`${title}: caption every figure (${capd}/${imgs.length} captioned)`);
+    ok=ok&&wOK&&nOK&&cOK;
+    foldNote(document.querySelector(`details.fold[data-fold="${key}"]`),`${w} words · ${imgs.length} fig`);
+  });
+  const fitOK=fitOver===0;
+  rows+=row(fitOK,fitOver?`Fit on one page — trim about ${linesOver()} line${linesOver()===1?"":"s"} of writing`:"Fit on one page");
+  ok=ok&&fitOK;
+  $("gate").innerHTML='<div class="ghead">To download, finish these:</div>'+rows;
+  $("download").disabled=!ok;
+  $("download").title=ok?"":"Finish the requirements above to enable download";
+  return ok;
+}
+
+// ---- preview ----
+let previewTimer=null;
+function schedulePreview(){clearTimeout(previewTimer);previewTimer=setTimeout(updatePreview,400);}
+function updatePreview(){
+  const html=buildHTML(collect());
+  fitOver=null;                    // unknown until the new page has laid out
+  $("frame").srcdoc=html;
+  const kb=Math.round(new Blob([html]).size/1024);
+  $("size").textContent=kb>1024?(kb/1024).toFixed(1)+" MB":kb+" KB";
+  validate();
+}
+$("frame").addEventListener("load",measureFit);
+
+// ---- download / draft ----
+// Named for the project, URL-style, since these are meant to be hosted:
+// "Schlieren Effect" -> schlieren-effect.html
+function slug(){return (val("project")||"one-pager").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"one-pager";}
+$("download").onclick=()=>{if(!validate())return;downloadBlob(slug()+".html",buildHTML(collect()),"text/html");};
+$("save").onclick=()=>downloadBlob(slug()+"-draft.json",JSON.stringify(collect()),"application/json");
+$("loadBtn").onclick=()=>$("loadFile").click();
+function parseOnePagerHTML(txt){
+  const doc=new DOMParser().parseFromString(txt,"text/html");
+  const el=doc.getElementById("portfolio-data");
+  if(!el)return null;
+  const data=JSON.parse(el.textContent);
+  if(!data.concept&&!data.exhibit)return null;   // a post from another tool
+  SECTIONS.forEach(({key})=>{
+    const srcs=[...doc.querySelectorAll(`.figs[data-group="${key}"] figure img`)].map(i=>i.getAttribute("src"));
+    const s=data[key]||{text:"",images:[]};
+    s.images=(s.images||[]).map((im,i)=>({...im,dataUrl:srcs[i]}));
+    data[key]=s;
+  });
+  return data;
+}
+$("loadFile").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const fr=new FileReader();
+  fr.onload=()=>{
+    try{
+      const txt=fr.result;
+      const data=/^\s*[{[]/.test(txt)?JSON.parse(txt):parseOnePagerHTML(txt);
+      if(!data)throw new Error("no embedded data");
+      loadData(data);
+    }catch(err){
+      notify("Couldn't open that file. Choose a one-pager (.html) made by this tool, or a saved .json draft.","error");
+    }
+  };
+  fr.readAsText(f);e.target.value="";
+};
+$("refresh").onclick=updatePreview;
+// Two-click confirm rather than confirm(), which a sandboxed embed suppresses.
+let clearArm=null;
+function disarmClear(){clearTimeout(clearArm);clearArm=null;const b=$("clear");b.textContent="🗑 Clear";b.classList.remove("armed");}
+$("clear").onclick=()=>{
+  if(!clearArm){
+    $("clear").textContent="🗑 Click again to clear";$("clear").classList.add("armed");
+    clearArm=setTimeout(disarmClear,4000);
+    return;
+  }
+  disarmClear();
+  localStorage.removeItem(DRAFT_KEY);
+  loadData({});
+};
+
+function loadData(d){
+  const meta=d.meta||{};
+  $("project").value=meta.project||"";
+  $("concepts").value=meta.concepts||"";
+  SECTIONS.forEach(({key})=>{
+    const s=d[key]||{};
+    $(key+"Text").value=s.text||"";
+    state.images[key]=(s.images||[]).filter(i=>i.dataUrl).slice(0,MAX_FIGS)
+      .map(i=>({name:i.name||"",caption:i.caption||"",dataUrl:i.dataUrl}));
+  });
+  renderThumbs();
+  updatePreview();
+}
+
+["project","concepts","conceptText","exhibitText"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
+SECTIONS.forEach(({key})=>{
+  wireFigures(key);
+  wireStarter($(key+"Text"),$(key+"-starter"),STARTERS[key],Math.floor(Math.random()*STARTERS[key].length));
+});
+
+// ---- boot ----
+(function init(){
+  wireFolds(FOLD_NS);
+  wireFoldAll(FOLD_NS,"foldAll");
+  const saved=localStorage.getItem(DRAFT_KEY);
+  if(saved){try{loadData(JSON.parse(saved));return;}catch(e){}}
+  loadData({});
+})();
+</script>
+</body>
+</html>
