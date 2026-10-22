@@ -101,7 +101,8 @@
 <div class="wrap">
   <div class="form">
     <div class="toolbar">
-      <button class="btn" id="download">⬇ Download one-pager</button>
+      <button class="btn" id="downloadPdf">⬇ Download PDF</button>
+      <button class="btn" id="download">⬇ Download HTML</button>
       <button class="btn alt" id="save">💾 Save draft</button>
       <button class="btn alt" id="loadBtn">📂 Load draft or one-pager</button>
       <input type="file" id="loadFile" accept=".json,.html,.htm,application/json,text/html" hidden>
@@ -412,8 +413,10 @@ function validate(){
   rows+=row(fitOK,fitOver?`Fit on one page — trim about ${linesOver()} line${linesOver()===1?"":"s"} of writing`:"Fit on one page");
   ok=ok&&fitOK;
   $("gate").innerHTML='<div class="ghead">To download, finish these:</div>'+rows;
-  $("download").disabled=!ok;
-  $("download").title=ok?"":"Finish the requirements above to enable download";
+  ["download","downloadPdf"].forEach(id=>{
+    $(id).disabled=!ok;
+    $(id).title=ok?"":"Finish the requirements above to enable download";
+  });
   return ok;
 }
 
@@ -421,6 +424,7 @@ function validate(){
 let previewTimer=null;
 function schedulePreview(){clearTimeout(previewTimer);previewTimer=setTimeout(updatePreview,400);}
 function updatePreview(){
+  previewTimer=null;
   const html=buildHTML(collect());
   fitOver=null;                    // unknown until the new page has laid out
   $("frame").srcdoc=html;
@@ -435,6 +439,17 @@ $("frame").addEventListener("load",measureFit);
 // "Schlieren Effect" -> schlieren-effect.html
 function slug(){return (val("project")||"one-pager").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"one-pager";}
 $("download").onclick=()=>{if(!validate())return;downloadBlob(slug()+".html",buildHTML(collect()),"text/html");};
+// PDF goes through the browser's print dialog ("Save as PDF"): the preview is
+// already a true Letter page, and printing keeps the text as text. The PDF is
+// named from the page <title>, the project name. A pending edit is rendered
+// first, so the PDF never lags what was just typed.
+function printPreview(){if(validate())$("frame").contentWindow.print();}
+$("downloadPdf").onclick=()=>{
+  if(!previewTimer)return printPreview();
+  clearTimeout(previewTimer);
+  $("frame").addEventListener("load",printPreview,{once:true});   // after measureFit
+  updatePreview();
+};
 $("save").onclick=()=>downloadBlob(slug()+"-draft.json",JSON.stringify(collect()),"application/json");
 $("loadBtn").onclick=()=>$("loadFile").click();
 function parseOnePagerHTML(txt){

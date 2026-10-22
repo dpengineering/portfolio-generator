@@ -101,6 +101,8 @@ DPEA logo top right), then a **Concept Description** and an **Exhibit
 Description**, each with 1–2 captioned figures. It's meant to be printed as a
 real one-pager and put up on GitHub Pages to show on an iPad beside the exhibit,
 so the download is named for the project, URL-style (`schlieren-effect.html`).
+**⬇ Download PDF** opens the print dialog on the preview (choose "Save as
+PDF"); **⬇ Download HTML** saves the hostable page.
 
 - **The page never reflows.** It's laid out at true US Letter size (8.5×11in,
   Arial/Helvetica, which are metric-compatible and on every device). On a screen
