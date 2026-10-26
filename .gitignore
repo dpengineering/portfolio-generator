@@ -19,3 +19,7 @@ google_oauth_todo.txt
 __pycache__/
 *.pyc
 tmp/
+
+# Original reference cover photos (HEIC/full size). The site uses the
+# converted JPEGs in assets/covers/.
+ref_imgs/

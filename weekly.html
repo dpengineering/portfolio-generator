@@ -25,6 +25,11 @@
   .preview .bar .bar-right{display:flex;align-items:center;gap:.5rem}
   .btn-mini{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:.15rem .55rem;font-size:.72rem;font-weight:600;line-height:1.4}
   .btn-mini:hover{background:#fff;color:var(--ink)}
+  .refrow{display:flex;align-items:center;flex-wrap:wrap;gap:.3rem .6rem;margin:.5rem 0 0}
+  .reftoggle{display:flex;align-items:flex-start;gap:.45rem;font-size:.82rem;font-weight:600;color:var(--ink);margin:0;cursor:pointer}
+  .reftoggle input{margin-top:.15rem;flex:none}
+  .refnav{display:inline-flex;gap:.4rem}
+  .refnav[hidden]{display:none}
   iframe{flex:1;border:0;width:100%}
   fieldset{border:1px solid var(--border);border-radius:10px;margin:0 0 1rem;padding:1rem;background:#fff}
   legend{font-weight:700;padding:0 .4rem;color:var(--accent)}
@@ -229,6 +234,14 @@
       <label>Cover image <span class="hint">(optional — a strong banner photo)</span></label>
       <div class="drop" id="coverDrop">Drag a cover image here, or click to choose</div>
       <div class="thumbs" id="coverThumb"></div>
+      <div class="refrow" id="refCoverWrap" hidden>
+        <label class="reftoggle"><input type="checkbox" id="refCover"> Use a reference photo of this project <span class="hint">(a random one, until you have your own)</span></label>
+        <span class="refnav" id="refNav" hidden>
+          <button type="button" class="starter-nav" id="refPrev" title="Previous photo" aria-label="Previous photo">‹</button>
+          <button type="button" class="starter-nav" id="refNext" title="Next photo" aria-label="Next photo">›</button>
+          <button type="button" class="starter-nav" id="refRand" title="Random photo" aria-label="Random photo">🎲</button>
+        </span>
+      </div>
     </fieldset>
       </div>
     </details>
@@ -298,7 +311,7 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=9"></script>
+<script src="shared.js?v=11"></script>
 <script src="perfreview.js?v=1"></script>
 <script>
 const state={images:{},cover:null};
@@ -351,7 +364,7 @@ wireDrop($("coverDrop"),async files=>{
   if(!files[0])return;
   let r;try{r=await readImage(files[0]);}catch(e){return imgError(files[0]);}
   if(!r)return;                                  // student declined a large GIF
-  state.cover=r.dataUrl;
+  state.cover=r.dataUrl;state.coverRef=null;syncRefToggle();
   renderCover();autosave();updatePreview();
 });
 function renderCover(){
@@ -359,7 +372,7 @@ function renderCover(){
   if(!state.cover)return;
   const t=document.createElement("div");t.className="thumb";
   t.innerHTML=`<img src="${state.cover}"><button class="rm">Remove cover</button>`;
-  t.querySelector(".rm").onclick=()=>{state.cover=null;renderCover();autosave();updatePreview();};
+  t.querySelector(".rm").onclick=()=>{state.cover=null;state.coverRef=null;syncRefToggle();renderCover();autosave();updatePreview();};
   box.appendChild(t);
 }
 
@@ -449,6 +462,7 @@ function collect(){
   return {
     meta:{first:val("firstName"),last:val("lastName"),student:(val("firstName")+" "+val("lastName")).trim(),project:val("project"),classroom:val("classroom"),grade:val("grade"),unit:val("unit"),...scheduleMeta(),personal:$("personalMode").checked},
     cover:state.cover||null,
+    coverRef:state.coverRef||null,
     weeks:[...document.querySelectorAll(".week")].map(card=>{
       const im=state.images[card.dataset.id]||{g1:[],g2:[]};
       const m=a=>a.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl}));
@@ -766,7 +780,7 @@ $("clear").onclick=()=>{
   prSetCodes({});
   $("prDeltas").innerHTML="";
   applyFieldVisibility();
-  state.cover=null;renderCover();
+  state.cover=null;state.coverRef=null;renderCover();syncRefToggle();
   setGrad(COVER_GRADIENTS[DEFAULT_GRAD]);
   $("weeks").innerHTML="";state.images={};
   addWeek();
@@ -788,7 +802,7 @@ function loadData(d){
   $("personalMode").checked=!!(d.meta&&d.meta.personal);
   applyFieldVisibility();
   $("reflection").value=d.reflection||"";
-  state.cover=d.cover||null;renderCover();
+  state.cover=d.cover||null;state.coverRef=(d.cover&&d.coverRef)||null;renderCover();syncRefToggle();
   setGrad(d.gradient);
   prApplyVisibility();                    // build the review UI before filling it
   if(d.perf){
@@ -850,7 +864,7 @@ function prApplyVisibility(){
 
 function collectLight(){
   const d=collect();
-  d.cover=null;
+  d.cover=null;d.coverRef=null;
   d.weeks=(d.weeks||[]).map(w=>({...w,images1:[],images2:[]}));
   return d;
 }
@@ -866,8 +880,12 @@ function applyFieldVisibility(){
   // their own site — so they never carry a performance review, even for a senior.
   prApplyVisibility();
 }
-$("personalMode").addEventListener("change",()=>{applyFieldVisibility();autosave();schedulePreview();validate();});
-$("grade").addEventListener("change",()=>{applyFieldVisibility();autosave();schedulePreview();validate();});
+// Personal projects have no set project or reference photos, so the grade's
+// defaults apply only to school posts.
+const schoolGrade=()=>$("personalMode").checked?"":$("grade").value;
+$("personalMode").addEventListener("change",()=>{applyFieldVisibility();fillGradeProject(schoolGrade());refGradeChanged();autosave();schedulePreview();validate();});
+$("grade").addEventListener("change",()=>{applyFieldVisibility();fillGradeProject(schoolGrade());refGradeChanged();autosave();schedulePreview();validate();});
+wireRefCover({grade:schoolGrade,onChange:()=>{renderCover();autosave();updatePreview();}});
 ["prWeek","prMentor","prNotes"].forEach(id=>$(id).addEventListener("input",prOnEdit));
 $("prAddDelta").onclick=()=>{prAddDelta("prDeltas",null,prOnEdit);prOnEdit();};
 initGradPicker(DEFAULT_GRAD,()=>{autosave();schedulePreview();});
@@ -883,6 +901,8 @@ function hydrateProfile(){
   wireFolds(FOLD_NS);
   wireFoldAll(FOLD_NS,"foldAll");
   applyFieldVisibility();
+  fillGradeProject(schoolGrade());
+  syncRefToggle();
   validate();
 }
 trackProfile(PROFILE_FIELDS);

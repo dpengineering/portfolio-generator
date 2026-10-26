@@ -265,6 +265,94 @@ function setGrad(g){
   else{$("gradFrom").value=g.from;$("gradTo").value=g.to;selectCustom();}
 }
 
+// ---- grade defaults: project name + reference cover photos ----
+// Grades 9-11 each build one set project, so picking a grade fills in its name.
+// 12th graders choose their own project and type it in.
+const GRADE_PROJECTS={"9":"Luminism Shadow Box (LSB)","10":"Light Sculpture (LS)","11":"Kinetic Sculpture (KS)"};
+// Fill the project for this grade, but only over a blank or another grade's
+// default -- never over a name the student typed themselves.
+function fillGradeProject(grade){
+  const el=$("project");if(!el)return;
+  const v=el.value.trim();
+  if(v&&!Object.values(GRADE_PROJECTS).includes(v))return;
+  el.value=GRADE_PROJECTS[grade]||"";
+}
+
+// Stock photos of each grade's project, for students who don't have a good
+// banner shot yet. Converted to JPEG from ref_imgs/ (browsers outside Safari
+// can't show HEIC). A grade with no photos here doesn't offer the toggle.
+const REF_COVERS={
+  "9":[],
+  "10":["assets/covers/ls/ls_base_and_knob.jpg","assets/covers/ls/ls_isometric.jpg","assets/covers/ls/ls_pcb.jpg"],
+  "11":[],
+};
+// The page's state.cover holds the photo as a data: URL (the downloaded post is
+// one self-contained file); state.coverRef records which reference it came from,
+// so the toggle survives a reload and a grade change can swap it.
+// opts: {grade:()=>grade or "" when refs don't apply, onChange:()=>re-render+save}
+let refOpts=null, refToken=0;
+const refList=()=>(refOpts&&REF_COVERS[refOpts.grade()])||[];
+function syncRefToggle(){
+  const has=refList().length>0;
+  $("refCoverWrap").hidden=!has;
+  $("refCover").checked=!!state.coverRef;
+  $("refNav").hidden=!state.coverRef||refList().length<2;
+}
+// Load a reference photo: the given path, or a random one other than the current.
+async function pickRefCover(path){
+  const list=refList();
+  if(!path){
+    const pool=list.length>1?list.filter(p=>p!==state.coverRef):list;
+    path=pool[Math.floor(Math.random()*pool.length)];
+  }
+  if(!path)return;
+  const token=++refToken;
+  try{
+    const res=await fetch(path);if(!res.ok)throw new Error(res.status);
+    const blob=await res.blob();
+    const r=await readImage(new File([blob],path.split("/").pop(),{type:blob.type||"image/jpeg"}));
+    if(token!==refToken)return;               // a newer pick/clear won the race
+    state.cover=r.dataUrl;state.coverRef=path;
+  }catch(e){
+    if(token!==refToken)return;
+    notify("Sorry, the reference photo couldn't be loaded. Check your connection, or add your own cover image.","error");
+    state.coverRef=null;
+  }
+  syncRefToggle();refOpts.onChange();
+}
+// Step through the grade's photos in order, wrapping at either end (the same
+// ‹ › 🎲 controls as the sentence starters).
+function stepRefCover(dir){
+  const list=refList();if(!list.length)return;
+  const i=list.indexOf(state.coverRef);
+  pickRefCover(list[(i+dir+list.length)%list.length]);
+}
+function clearRefCover(){
+  refToken++;
+  if(state.coverRef){state.cover=null;state.coverRef=null;}
+  syncRefToggle();
+}
+// Grade (or personal mode) changed: a reference cover follows to the new
+// project's photos, or goes away if that grade has none.
+function refGradeChanged(){
+  if(state.coverRef){
+    if(refList().length){pickRefCover();return;}
+    clearRefCover();refOpts.onChange();return;
+  }
+  syncRefToggle();
+}
+function wireRefCover(opts){
+  refOpts=opts;
+  $("refCover").onchange=()=>{
+    if($("refCover").checked)pickRefCover();
+    else{clearRefCover();opts.onChange();}
+  };
+  $("refPrev").onclick=()=>stepRefCover(-1);
+  $("refNext").onclick=()=>stepRefCover(1);
+  $("refRand").onclick=()=>pickRefCover();
+  syncRefToggle();
+}
+
 // ---- draft persistence ----
 // downloadBlob triggers a file download. autosave persists collect() to
 // localStorage; each page sets its own DRAFT_KEY and provides collect().
