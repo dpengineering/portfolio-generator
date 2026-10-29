@@ -1048,7 +1048,8 @@ $("clear").onclick=()=>{
   updatePreview();
 };
 
-function loadData(d){
+// restoring: reloading this browser's own draft (on refresh), not opening a file.
+function loadData(d,restoring){
   const meta=d.meta||{};
   let first=meta.first||"", last=meta.last||"";
   if(!first&&!last&&meta.student){        // legacy draft/HTML: split the old single name field
@@ -1073,8 +1074,10 @@ function loadData(d){
   $("weeks").innerHTML="";state.images={};
   addWeek((d.weeks&&d.weeks[0])||{});
   // Peer review (Grade 12 only): restore after the week exists so the update suggestion has a home.
-  const pr=d.peer||{};
-  $("peer").checked=(!!pr.on||isPartnersPost(meta))&&isMonthly();
+  // Opening someone else's post turns peer review on. A restored draft keeps
+  // whatever was saved, so unchecking the box survives a refresh.
+  const pr=d.peer||{}, partners=!restoring&&isPartnersPost(meta);
+  $("peer").checked=(!!pr.on||partners)&&isMonthly();
   $("peerName").value=pr.reviewer||reviewerDefault();
   $("suggestReflection").value=pr.sReflection||"";
   [1,2].forEach(n=>{
@@ -1084,7 +1087,7 @@ function loadData(d){
   });
   setPeerComments(pr.comments);
   applyPeerMode();
-  if(isPartnersPost(meta)&&!pr.on){
+  if(partners&&!pr.on){
     notify(`This is ${esc(meta.student||"someone else")}'s post — peer review is on. Their writing and self-assessment are locked; add your feedback in the boxes that opened up.`,"info");
   }
   updatePreview();
@@ -1264,7 +1267,7 @@ trackProfile(PROFILE_FIELDS);
 // ---- boot ----
 (function init(){
   const saved=localStorage.getItem(DRAFT_KEY);
-  if(saved){try{loadData(JSON.parse(saved));hydrateProfile();schedulePreview();return;}catch(e){}}
+  if(saved){try{loadData(JSON.parse(saved),true);hydrateProfile();schedulePreview();return;}catch(e){}}
   hydrateProfile();
   addWeek();
   applyPeerMode();
