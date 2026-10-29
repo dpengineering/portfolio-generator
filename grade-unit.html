@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grade — Unit Post</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+<style>
+  :root{--accent:#4f46e5;--ink:#1e293b;--muted:#64748b;--border:#e2e8f0;--panel:#f8fafc;--dev:#d97706}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#f1f5f9;font-size:15px}
+  header.app{background:#1e1b4b;color:#fff;padding:1.1rem 1.25rem}
+  header.app h1{margin:0;font-size:1.25rem}
+  header.app p{margin:.25rem 0 0;color:#c7d2fe;font-size:.9rem}
+  .wrap{max-width:1180px;margin:0 auto;padding:1.25rem 1.1rem 3rem}
+  .who{margin:0 0 1rem;display:flex;flex-wrap:wrap;align-items:baseline;gap:.4rem .8rem}
+  .who h2{margin:0;font-size:1.2rem}
+  .who p{margin:0;color:var(--muted);font-size:.9rem}
+  .ver{font-size:.72rem;font-weight:700;color:var(--accent);background:#eef2ff;border:1px solid #c7d2fe;border-radius:999px;padding:.1rem .55rem}
+  /* paste / drop */
+  .paste{background:#fff;border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1rem;max-width:820px}
+  .paste label{display:block;font-weight:600;font-size:.85rem;margin-bottom:.4rem}
+  .paste input[type=text]{width:100%;padding:.55rem .65rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.85rem;margin-bottom:.6rem}
+  .drop{margin-top:1rem;border:2px dashed var(--border);border-radius:10px;padding:1rem;text-align:center;color:var(--muted);font-size:.85rem;cursor:pointer;background:var(--panel)}
+  .drop.over{border-color:var(--accent);color:var(--accent)}
+  .err{color:#b91c1c;font-size:.85rem;font-weight:600;margin-top:.6rem}
+  .btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:.55rem .9rem;font:inherit;font-weight:600;cursor:pointer}
+  /* score band */
+  .scoreband{display:flex;gap:.75rem;margin:0 0 1.25rem;max-width:820px}
+  .sb{flex:1;background:#fff;border:1px solid var(--border);border-radius:10px;padding:.8rem .9rem;text-align:center}
+  .sb.primary{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+  .sbnum{font-size:2rem;font-weight:800;color:var(--accent);line-height:1}
+  .sb.self .sbnum{color:var(--muted)}
+  .sblab{font-size:.76rem;color:var(--muted);font-weight:600;margin-top:.2rem}
+  .sbcopy{margin-top:.4rem}
+  .sbcopy button{font-size:.72rem;padding:.25rem .5rem;border:1px solid var(--border);background:#fff;color:var(--accent);border-radius:6px;font-weight:600;cursor:pointer}
+  .cats{font-size:.8rem;color:var(--muted);margin:-.75rem 0 1.25rem;max-width:820px;text-align:center}
+  .hint{background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;border-radius:8px;padding:.55rem .7rem;font-size:.82rem;margin-bottom:1rem}
+  .hint.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
+  /* a section: the post's writing beside the criteria that grade it */
+  .gsec{margin:1.6rem 0 0}
+  .gsec>h3{margin:0 0 .6rem;font-size:1.05rem;color:var(--accent)}
+  .gsec>h3 .w{font-size:.78rem;color:var(--muted);font-weight:600}
+  .cols{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:1rem;align-items:start}
+  @media (max-width:860px){.cols{grid-template-columns:1fr}}
+  .post{background:#fff;border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;font-family:Georgia,"Times New Roman",serif;font-size:1rem;line-height:1.6;position:sticky;top:.75rem;max-height:calc(100vh - 1.5rem);overflow:auto}
+  @media (max-width:860px){.post{position:static;max-height:none}}
+  .post h4{font-family:system-ui,sans-serif;font-size:.92rem;color:var(--ink);margin:.4rem 0 .3rem}
+  .post p{margin:.45rem 0}
+  .post .kt{color:rgb(0,67,250);font-weight:600}   /* same as the post's .key */
+  .post .empty{color:var(--muted);font-style:italic}
+  .fig{font-family:system-ui,sans-serif;font-size:.8rem;color:var(--muted);background:var(--panel);border:1px dashed #cbd5e1;border-radius:8px;padding:.4rem .55rem;margin:.4rem 0}
+  .fig img{display:block;max-width:100%;max-height:260px;border-radius:6px;margin-bottom:.3rem}
+  .fig b{color:var(--ink)}
+  .selfc{font-family:system-ui,sans-serif;font-size:.82rem;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:.5rem .65rem;margin-top:.8rem}
+  .selfc b{display:block;color:#c2410c;margin-bottom:.15rem}
+  /* criterion cards */
+  .item{background:#fff;border:1px solid var(--border);border-radius:10px;padding:.7rem .8rem;margin:0 0 .6rem;outline:none}
+  .item:focus-within{outline:2px solid var(--accent);outline-offset:2px}   /* shows which card takes 0-4 */
+  .item.dev{border-color:var(--dev);box-shadow:0 0 0 1px var(--dev) inset}
+  .ihead{display:flex;justify-content:space-between;gap:.5rem;align-items:baseline;margin-bottom:.35rem}
+  .itext{font-weight:700}
+  .selfnote{font-size:.74rem;color:var(--muted);white-space:nowrap}
+  .selfnote .badge{display:none;color:var(--dev);font-weight:700}
+  .item.dev .selfnote .badge{display:inline}
+  .item.dev .selfnote .same{display:none}
+  .lv{display:flex;gap:.5rem;align-items:flex-start;font-size:.82rem;line-height:1.4;padding:.3rem .45rem;margin:.1rem 0;border:1px solid transparent;border-radius:7px;cursor:pointer}
+  .lv:hover{background:var(--panel)}
+  .lv input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+  .lv .n{flex:none;width:1.4rem;height:1.4rem;border-radius:999px;border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:.78rem;color:var(--muted)}
+  .lv .d{color:#475569}
+  .lv.zero .d{color:var(--muted);font-style:italic}
+  .lv:has(input:checked){background:#eef2ff;border-color:#c7d2fe}
+  .lv:has(input:checked) .n{background:var(--accent);border-color:var(--accent);color:#fff}
+  .lv .stu{flex:none;margin-left:auto;font-size:.68rem;font-weight:700;color:#c2410c;background:#fff7ed;border:1px solid #fed7aa;border-radius:999px;padding:0 .4rem;white-space:nowrap}
+  .itemcomment{margin:.45rem 0 0}
+  .itemcomment textarea{width:100%;padding:.45rem .55rem;border:1px solid var(--dev);border-radius:8px;font:inherit;font-size:.85rem;line-height:1.4;resize:vertical;min-height:44px;background:#fffbeb}
+  /* output */
+  .out{background:#fff;border:1px solid var(--border);border-radius:10px;padding:1rem;margin-top:1.8rem;max-width:820px}
+  .out h3{margin:0 0 .2rem;font-size:1rem}
+  .out .subtle{color:var(--muted);font-size:.82rem;margin:0 0 .8rem}
+  .out label{display:block;font-size:.78rem;font-weight:700;color:#475569;margin:.2rem 0 .3rem}
+  .out textarea{width:100%;padding:.55rem .65rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.9rem;line-height:1.5;resize:vertical}
+  .commentbox{white-space:pre-wrap;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:.65rem .7rem;font-size:.88rem;line-height:1.5;min-height:3rem;overflow-wrap:anywhere}
+  .cprow{display:flex;gap:.5rem;align-items:center;margin-top:.5rem}
+  .cpmsg{font-size:.76rem;color:var(--muted)}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header class="app">
+  <h1>✅ Unit Post — Grading</h1>
+  <p>Score each criterion beside the writing it grades, then copy the score and comment into Canvas.</p>
+</header>
+
+<div class="wrap">
+  <div class="paste" id="pasteUI" hidden>
+    <label for="pasteIn">Paste the grading link</label>
+    <input type="text" id="pasteIn" placeholder="Copy the grading link from the Self Grade Rubric at the bottom of the student's post in Canvas, then paste it here">
+    <button class="btn" id="pasteGo">Load</button>
+    <div class="drop" id="drop">No link (an older post)? Drop the student's downloaded post <b>.html</b> here, or click to choose it.<input type="file" id="fileIn" accept=".html,.htm,text/html" hidden></div>
+    <div class="err" id="err" hidden></div>
+  </div>
+
+  <div id="grader" hidden>
+    <div class="who">
+      <h2 id="whoName">Student</h2>
+      <p id="whoMeta"></p>
+      <span class="ver" id="ver"></span>
+    </div>
+    <div class="hint warn" id="verWarn" hidden></div>
+    <div class="hint warn" id="checkNote" hidden>This student self-graded with checkboxes, so their levels are estimated: Level 3 and Level 4 boxes → 4, Level 3 only → 3, Level 4 only → 3, neither → 2.</div>
+
+    <div class="scoreband">
+      <div class="sb self"><div class="sbnum" id="selfNum">—</div><div class="sblab">Student self-score</div></div>
+      <div class="sb primary">
+        <div class="sbnum" id="mentorNum">—</div><div class="sblab">Mentor score</div>
+        <div class="sbcopy"><button id="copyScore">Copy score</button> <span class="cpmsg" id="scoreMsg"></span></div>
+      </div>
+    </div>
+    <div class="cats" id="cats"></div>
+
+    <div class="hint" style="max-width:820px">Every criterion starts at the student's self-grade. Change only where you disagree — changed criteria are highlighted, and each change is listed in the comment. <strong>Keyboard:</strong> click a criterion (or Tab to it), type <kbd>0</kbd>–<kbd>4</kbd>, then <kbd>Enter</kbd> for the next one. <span id="photoNote">Photos aren't in the link — check them in the post in Canvas.</span></div>
+
+    <div id="rubric"></div>
+
+    <div class="out">
+      <h3>For Canvas</h3>
+      <p class="subtle">Type the score into the points box, then paste the comment.</p>
+      <label for="notes">Notes / feedback (optional)</label>
+      <textarea id="notes" rows="3" placeholder="Anything you want the student to know…"></textarea>
+      <label style="margin-top:.8rem">Comment</label>
+      <div class="commentbox" id="commentOut"></div>
+      <div class="cprow"><button class="btn" id="copyComment">Copy comment</button><span class="cpmsg" id="copyMsg"></span></div>
+    </div>
+  </div>
+</div>
+
+<script src="unitrubric.js?v=1"></script>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+// Paragraphs, with *key terms* in bold as they are in the post.
+const paras=t=>(t||"").trim().split(/\n\s*\n/).filter(Boolean)
+  .map(p=>"<p>"+esc(p).replace(/\*(\S(?:[^*\n]*\S)?)\*/g,'<span class="kt">$1</span>').replace(/\n/g,"<br>")+"</p>").join("");
+
+// Same default as the perf-review grader: steer questions to email.
+const DEFAULT_NOTES="* Please email with any questions/comments. Replying here via a Canvas comment does not reach my primary inbox.";
+
+// ===== state =========================================================
+let post=null;        // the urPayload() of the post being graded
+let photos=null;      // {f1,f2,fr,fm: [dataUrl]} when graded from a dropped file
+let selfLv={};        // student's self-levels {criterionId: 0-4}
+let mentorLv={};      // mentor's levels (start = selfLv)
+let keyEntry=false;   // true while a level is being set by keyboard
+
+function extractCode(input,key){
+  input=(input||"").trim();
+  const m=input.match(new RegExp("[#&?]"+key+"=([^&\\s]+)"));
+  return m?m[1]:"";
+}
+function start(p,imgs){
+  if(!p||!Array.isArray(p.sl))return false;
+  post=p;photos=imgs||null;selfLv={};mentorLv={};
+  UR_CRITERIA.forEach((c,i)=>{
+    const l=p.sl[i];
+    if(Number.isInteger(l)){selfLv[c.id]=l;mentorLv[c.id]=l;}
+  });
+  showGrader();
+  return true;
+}
+function loadFromCode(raw){
+  const code=extractCode(raw,"u")||((raw||"").trim().match(/^[\w-]+$/)?raw.trim():"");
+  if(!code)return false;
+  try{return start(urDecode(code));}catch(e){return false;}
+}
+
+// Fallback for posts downloaded before the grading link: read the post itself.
+// Its #portfolio-data block has the writing and self-grade; photos come from
+// the rendered <img>s (the same split unit.html uses to reopen a post).
+function loadFromFile(file){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    try{
+      const doc=new DOMParser().parseFromString(fr.result,"text/html");
+      const data=JSON.parse(doc.getElementById("portfolio-data").textContent);
+      if(!data.weeks||!data.rubric)throw new Error("not a unit post");
+      const srcs=g=>[...doc.querySelectorAll(`.gallery[data-group="${g}"] img`)].map(i=>i.getAttribute("src"));
+      if(start(urPayload(data),{f1:srcs("1"),f2:srcs("2"),fr:srcs("refl"),fm:srcs("fm")})){
+        history.replaceState(null,"","#u="+urEncode(post));
+        return;
+      }
+    }catch(e){}
+    showErr("That file doesn't look like a unit/monthly post. Download the student's post .html from Canvas and drop it here.");
+  };
+  fr.readAsText(file);
+}
+function showErr(msg){$("err").textContent=msg;$("err").hidden=false;}
+
+// ===== render ========================================================
+function figHTML(caps,imgs,ctr){
+  return (caps||[]).map((cap,i)=>{
+    const n=++ctr.n, src=imgs&&imgs[i];
+    return `<div class="fig">${src?`<img src="${esc(src)}" alt="">`:""}<b>Figure ${n}:</b> ${esc(cap)||"<i>no caption</i>"}${src?"":" — photo in the post"}</div>`;
+  }).join("");
+}
+function postHTML(sec,ctr){
+  const p=post, im=photos||{};
+  let h="";
+  if(sec==="update"){
+    [1,2].forEach(n=>{
+      h+=`<h4>Project Update — ${esc(p["s"+n])||"pt. "+n}</h4>`;
+      h+=paras(p["t"+n])||'<p class="empty">No text.</p>';
+      h+=figHTML(p["f"+n],im["f"+n],ctr);
+    });
+  }else if(sec==="synthesis"){
+    h+=`<h4>Looking Back</h4>`+(paras(p.r)||'<p class="empty">No reflection.</p>')+figHTML(p.fr,im.fr,ctr);
+  }else{
+    const shots=im.fm||[];
+    h+=shots.length?shots.map(s=>`<div class="fig"><img src="${esc(s)}" alt=""></div>`).join("")
+      :`<p class="empty">${p.fm||0} file-management screenshot${p.fm===1?"":"s"} — view ${p.fm===1?"it":"them"} in the post.</p>`;
+  }
+  const c=(p.c||{})[sec];
+  if(c)h+=`<div class="selfc"><b>Student's comment</b>${esc(c)}</div>`;
+  return h;
+}
+function itemHTML(c){
+  const self=selfLv[c.id];
+  const selfTxt=Number.isInteger(self)?`Level ${self}`:"—";
+  const rows=urLevelsOf(c,true).map(l=>
+    `<label class="lv${l===0?" zero":""}"><input type="radio" tabindex="-1" name="m_${c.id}" value="${l}"${mentorLv[c.id]===l?" checked":""}>`+
+    `<span class="n">${l}</span><span class="d">${esc(l===0?UR_L0:c.levels[l])}</span>`+
+    (self===l?'<span class="stu">Student</span>':"")+`</label>`).join("");
+  return `<div class="item" data-id="${c.id}" tabindex="0" role="group" aria-label="${esc(c.label)} — type 0 to 4; Enter for the next criterion">`+
+    `<div class="ihead"><span class="itext">${esc(c.label)}</span><span class="selfnote"><span class="same">Student: ${selfTxt}</span>`+
+    `<span class="badge">Changed from ${selfTxt}</span></span></div>${rows}`+
+    `<div class="itemcomment" hidden><textarea class="ic" data-id="${c.id}" placeholder="Why the change? (added to this criterion in the Canvas comment)"></textarea></div></div>`;
+}
+function renderRubric(){
+  const ctr={n:0};   // figure numbers run across the post, as they do in it
+  $("rubric").innerHTML=UR_SECTIONS.map(s=>
+    `<section class="gsec"><h3>${esc(s.label)} <span class="w">· ${Math.round(s.weight*100)}%</span></h3>`+
+    `<div class="cols"><div class="post">${postHTML(s.key,ctr)}</div>`+
+    `<div class="crits">${UR_CRITERIA.filter(c=>c.sec===s.key).map(itemHTML).join("")}</div></div></section>`).join("");
+}
+$("rubric").addEventListener("change",e=>{
+  const t=e.target;
+  if(!t.name||!t.name.startsWith("m_"))return;
+  const id=t.name.slice(2);
+  mentorLv[id]=+t.value;
+  refresh();
+  // A mouse click that changed the student's level jumps to its comment box;
+  // skipped during keyboard entry so 0-4 → Enter keeps flowing.
+  if(!keyEntry&&mentorLv[id]!==selfLv[id]){
+    const ic=$("rubric").querySelector(`.ic[data-id="${id}"]`);if(ic)ic.focus();
+  }
+});
+// Keyboard entry: focus a criterion card, type 0-4, Enter → next card.
+$("rubric").addEventListener("keydown",e=>{
+  if(e.target.tagName==="TEXTAREA")return;
+  const item=e.target.closest&&e.target.closest(".item");if(!item)return;
+  if(/^[0-4]$/.test(e.key)){
+    const inp=item.querySelector(`input[value="${e.key}"]`);
+    if(inp){
+      e.preventDefault();
+      keyEntry=true;inp.checked=true;inp.dispatchEvent(new Event("change",{bubbles:true}));keyEntry=false;
+    }
+  }else if(e.key==="Enter"){
+    e.preventDefault();
+    const items=[...$("rubric").querySelectorAll(".item")], i=items.indexOf(item);
+    if(i>=0&&i<items.length-1)items[i+1].focus();else $("notes").focus();
+  }
+});
+$("rubric").addEventListener("input",e=>{if(e.target.classList.contains("ic"))$("commentOut").textContent=formatComment();});
+
+const fmt=v=>v===null?"—":v.toFixed(2);
+function deviations(){
+  return UR_CRITERIA.filter(c=>Number.isInteger(mentorLv[c.id])&&mentorLv[c.id]!==selfLv[c.id]);
+}
+function formatComment(){
+  const res=urScore(mentorLv), kind=post.g==="12"?"Monthly Post":"Unit Post";
+  let out=`${kind} — ${fmt(res.overall)} / 4.00\n`+
+    UR_SECTIONS.map(s=>`${s.short} ${fmt(res.sections[s.key])}`).join(" · ")+"\n";
+  const devs=deviations();
+  if(devs.length){
+    out+="\nAdjustments from self-assessment:\n"+devs.map(c=>{
+      const from=Number.isInteger(selfLv[c.id])?`Level ${selfLv[c.id]}`:"—";
+      let line=`• ${c.label}: ${from} → Level ${mentorLv[c.id]}`;
+      const ic=$("rubric").querySelector(`.ic[data-id="${c.id}"]`), txt=ic?ic.value.trim():"";
+      if(txt)line+="\n    "+txt;
+      return line;
+    }).join("\n")+"\n";
+  }else{
+    out+="\nScores match the student's self-assessment.\n";
+  }
+  const notes=$("notes").value.trim();
+  if(notes)out+="\nNotes:\n"+notes+"\n";
+  return out.trim();
+}
+function refresh(){
+  const res=urScore(mentorLv);
+  $("mentorNum").textContent=fmt(res.overall);
+  $("cats").textContent=UR_SECTIONS.map(s=>`${s.short} ${fmt(res.sections[s.key])} (${Math.round(s.weight*100)}%)`).join(" · ");
+  UR_CRITERIA.forEach(c=>{
+    const el=$("rubric").querySelector(`.item[data-id="${c.id}"]`);if(!el)return;
+    const dev=Number.isInteger(mentorLv[c.id])&&mentorLv[c.id]!==selfLv[c.id];
+    el.classList.toggle("dev",dev);
+    el.querySelector(".itemcomment").hidden=!dev;
+  });
+  $("commentOut").textContent=formatComment();
+}
+function showGrader(){
+  $("pasteUI").hidden=true;$("grader").hidden=false;
+  const p=post;
+  $("whoName").textContent=p.n||"Student";
+  const period=p.u?(p.g==="12"?p.u:"Unit "+p.u):"";
+  $("whoMeta").textContent=[p.g?"Grade "+p.g:"",period,p.p].filter(Boolean).join(" · ");
+  $("ver").textContent="Unit rubric v"+(p.v||"?");
+  $("verWarn").hidden=p.v===UR_VERSION;
+  $("verWarn").textContent=`This post was written to unit rubric v${p.v||"?"}, but this grader uses v${UR_VERSION}. Some criteria may not match what the student saw.`;
+  $("checkNote").hidden=p.sm!=="check";
+  $("photoNote").hidden=!!photos;
+  $("selfNum").textContent=fmt(urScore(selfLv).overall);
+  $("notes").value=DEFAULT_NOTES;
+  renderRubric();refresh();
+}
+function showPaste(){$("grader").hidden=true;$("pasteUI").hidden=false;$("pasteIn").focus();}
+
+// ===== copy ==========================================================
+function copyText(text,msgEl){
+  const flash=m=>{if(msgEl){msgEl.textContent=m;setTimeout(()=>{msgEl.textContent="";},1600);}};
+  let ok=false;
+  try{
+    const ta=document.createElement("textarea");
+    ta.value=text;ta.setAttribute("readonly","");
+    ta.style.cssText="position:fixed;top:0;left:-9999px;white-space:pre";
+    document.body.appendChild(ta);ta.focus();ta.select();
+    ok=document.execCommand("copy");document.body.removeChild(ta);
+  }catch(e){}
+  if(ok){flash("Copied ✓");return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(text).then(()=>flash("Copied ✓"),()=>flash("Copy failed — select manually"));
+  else flash("Copy failed — select manually");
+}
+
+// ===== wiring ========================================================
+$("notes").addEventListener("input",()=>{$("commentOut").textContent=formatComment();});
+$("copyComment").addEventListener("click",()=>copyText(formatComment(),$("copyMsg")));
+$("copyScore").addEventListener("click",()=>{
+  const v=urScore(mentorLv).overall;
+  if(v===null){$("scoreMsg").textContent="Score every criterion first";setTimeout(()=>{$("scoreMsg").textContent="";},1600);return;}
+  copyText(v.toFixed(2),$("scoreMsg"));
+});
+$("pasteGo").addEventListener("click",()=>{
+  const raw=$("pasteIn").value;
+  // A performance-review link pasted here belongs to the other grader.
+  const d=extractCode(raw,"d");
+  if(d){location.href="grade.html#d="+d;return;}
+  if(loadFromCode(raw)){history.replaceState(null,"","#u="+(extractCode(raw,"u")||raw.trim()));}
+  else showErr("That doesn't look like a valid grading link. Copy the full link from the student's post.");
+});
+$("pasteIn").addEventListener("keydown",e=>{if(e.key==="Enter")$("pasteGo").click();});
+const drop=$("drop");
+drop.addEventListener("click",()=>$("fileIn").click());
+$("fileIn").addEventListener("change",e=>{if(e.target.files[0])loadFromFile(e.target.files[0]);});
+drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("over");});
+drop.addEventListener("dragleave",()=>drop.classList.remove("over"));
+drop.addEventListener("drop",e=>{e.preventDefault();drop.classList.remove("over");if(e.dataTransfer.files[0])loadFromFile(e.dataTransfer.files[0]);});
+
+(function init(){
+  if(!loadFromCode(location.hash))showPaste();
+})();
+</script>
+</body>
+</html>

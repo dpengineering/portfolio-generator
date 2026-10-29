@@ -14,7 +14,8 @@ each tool runs entirely in the browser and produces a **self-contained
 | `/unit` (`unit.html`) | Unit post generator (monthly for grade 12) | grades 9–12 | per unit / month |
 | `/onepager` (`onepager.html`) | One-pager — a printable intro page for an exhibit | grade 12 | per project |
 | `/review` (`review.html`) | Standalone performance review — kept as a fallback, no longer linked | — | — |
-| `/grade` (`grade.html`) | Mentor grading tool | mentors | weekly |
+| `/grade` (`grade.html`) | Mentor grading tool (performance reviews; hands unit-post links to `/grade-unit`) | mentors | weekly |
+| `/grade-unit` (`grade-unit.html`) | Mentor grading tool for unit/monthly posts | mentors | per unit / month |
 | `/pair` (`pair.html`) | Peer-review pairing tool | teachers | per unit / month |
 
 Students in grades 9–11 use the two post generators. Grade 12 fills in a weekly
@@ -152,6 +153,30 @@ identical, or the student's self-score and the mentor's score diverge.
 `review.html` is the pre-merge standalone version. It still works and still
 produces a valid submission, but nothing links to it; it's there as a safety
 valve while the fused flow is tested, and can go once that's settled.
+
+## Grading unit/monthly posts
+
+Mentors score each rubric criterion 0–4 beside the writing it grades, in
+[`grade-unit.html`](grade-unit.html). The criteria, scoring, and link encoding
+live once, in [`unitrubric.js`](unitrubric.js), which both `unit.html` and the
+grader load, so the student's self-score and the mentor's score can't drift apart.
+
+- **The link.** Every downloaded Grade 12 post carries a grading link inside its
+  Self Grade Rubric section: `/grade#u=…`, the same address as the perf review,
+  which `grade.html` hands on to `/grade-unit`. The fragment holds the post's
+  text, captions, and self-grade, but not its photos, so mentors check those in
+  the post itself. The address is baked into every post, so it must stay reachable.
+- **Self-grade.** Grade 12 picks a level per criterion, the same scale mentors
+  use, and sees a live self-score. Grades 9–11 keep the checkboxes, which the
+  grader maps to estimated levels.
+- **Scoring.** Each section averages its criteria; overall =
+  60% Project Update + 30% Reflection + 10% File Management, on 0–4.
+- **Older posts.** Posts downloaded before the link existed can be dropped into
+  `/grade-unit` as an `.html` file, photos included.
+- **Rubric changes.** Bump `UR_VERSION` in `unitrubric.js`; the grader shows the
+  version a post was written to and warns on a mismatch.
+
+Full design: [`docs/PLAN-unit-grading.md`](docs/PLAN-unit-grading.md).
 
 ## Peer review
 

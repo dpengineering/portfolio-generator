@@ -83,7 +83,7 @@
 <div class="wrap">
   <div class="paste" id="pasteUI" hidden>
     <label for="pasteIn">Paste the student's grading code</label>
-    <input type="text" id="pasteIn" placeholder="Copy the grading code from the bottom of the student's submission in Canvas, then paste it here">
+    <input type="text" id="pasteIn" placeholder="Copy the grading link from the bottom of the student's submission or post in Canvas, then paste it here">
     <button class="btn" id="pasteGo">Load</button>
   </div>
 
@@ -119,6 +119,9 @@
 </div>
 
 <script>
+// Unit/monthly posts link to this same address with #u=… (one address for
+// mentors to keep), but they're graded by grade-unit.html.
+if(/^#u=/.test(location.hash))location.replace("grade-unit.html"+location.hash);
 const $=id=>document.getElementById(id);
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 
@@ -366,6 +369,8 @@ $("notes").addEventListener("input",function(){$("commentOut").textContent=forma
 $("copyComment").addEventListener("click",function(){copyText(formatComment(),$("copyMsg"));});
 $("copyScore").addEventListener("click",function(){copyText(computeScore(mentorCodes).overall.toFixed(2),null);});
 $("pasteGo").addEventListener("click",function(){
+  var u=($("pasteIn").value||"").match(/[#&?]u=([^&\s]+)/);
+  if(u){location.href="grade-unit.html#u="+u[1];return;}   // a unit post's link
   if(loadFromCode($("pasteIn").value)){history.replaceState(null,"","#d="+extractCode($("pasteIn").value));showGrader();}
   else alert("That doesn't look like a valid grading link. Copy the full link from the student's submission.");
 });

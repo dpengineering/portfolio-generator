@@ -8,7 +8,7 @@ find clunky, and replaces
 the self-rubric's one-level-per-section output with a 0–4 score **per
 criterion**.
 
-Status: **design only — no code yet.**
+Status: **built** — `unitrubric.js`, `grade-unit.html`, the Grade 12 self-rubric in `unit.html`, and the `#u=` hand-off in `grade.html`.
 
 ---
 
@@ -24,7 +24,7 @@ Status: **design only — no code yet.**
 | **Prefill** | The student's self-rubric prefills the mentor's scores: Grade 12's chosen levels carry over exactly ([Student self-rubric](#student-self-rubric-grade-12)); checkbox rubrics map through a table ([Prefill](#prefill-from-the-checkbox-self-rubric-grades-911-older-posts)). Mentors grade by exception. |
 | **Scoring** | Section score = **average** of its criteria. Overall = **0.6 × Update + 0.3 × Reflection + 0.1 × Files**, on 0–4. Output: score for the Canvas points box + a comment, as in `grade.html`. |
 | **Grader address** | **One address for both graders: `portfolio.dpeacl.org/grade`.** Unit links use their own fragment key (`/grade#u=…`; perf reviews keep `#d=…`). `grade.html` recognizes a unit code, in the URL or its paste box, and hands off to the unit grader, which lives in its own file so the perf-review grader's code stays untouched mid-year. Mentors keep one bookmark and one paste box. The address is baked into permanent files, so it must stay reachable. |
-| **Which grades** | The link goes in posts for **all grades**, so 9–11 can adopt the grader without another generator change. |
+| **Which grades** | The link goes in **Grade 12 posts only** for now. Grades 9–11 can still be graded by dropping the post file into the grader; turning the link on for them is a one-line change in `buildHTML`. |
 | **Versioning** | The payload carries a **rubric version**, and the grader **displays** it (e.g. "Unit rubric v1"), so rubric wording or criteria can change later without breaking links in older posts. |
 | **Canvas comment** | Per-criterion notes only where the mentor changed the prefilled score (as `grade.html` does), plus overall notes. |
 | **Peer review** | **Tabled.** Leave room for a peer column in the layout; decide later. |
@@ -54,15 +54,15 @@ Pairing approved 2026-10-28.
 |---|-----------|---------|---------|
 | 5 | Growth | Explains what you learned or how you grew — not just what you did | Names a specific way your thinking or approach changed |
 | 6 | Connections | Connects this work to a specific earlier experience or class | Draws a transferable lesson and says how you'll apply it going forward |
-| 7 | Personal detail | Grounded in real personal detail — an actual moment, decision, or feeling | *(none — meeting Level 3 counts as full marks, 4)* |
+| 7 | Personal detail | *(no separate Level 3 — see below)* | Grounded in real personal detail — an actual moment, decision, or feeling |
 
 Levels 2 and 1 use the sheet's generic Reflection wording, shown under all three
 criteria: Level 2 "Makes connections without adequate explanation or personal
 detail"; Level 1 "No thoughtful synthesis or connections — lists learning from
 each space, but does not make connections".
 
-So criterion 7 offers Levels 0–3 only, and choosing Level 3 scores **4**, so a
-perfect Reflection can still reach 4.
+Criterion 7 has a single upper level, so it offers **4, 2, 1** (and 0 for
+mentors). In the checkbox rubric its one box maps to 4.
 
 ### File Management (10%) — 1 criterion
 | # | Criterion | Scoring |

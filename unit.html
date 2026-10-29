@@ -97,6 +97,19 @@
   .rub-check input{margin-top:.15rem;flex:none}
   .rub-comment-label{margin-top:.55rem}
   .rub-comment{min-height:56px}
+  /* Grade 12 picks a level per criterion instead of checking boxes; the
+     fieldset's .levels class switches between the two. */
+  .rubricset.levels .rub-crit,.rubricset.levels .hint-check{display:none}
+  .rubricset:not(.levels) .rub-levels,.rubricset:not(.levels) .hint-lv,.rubricset:not(.levels) .selfscore{display:none}
+  .rub-critlv{margin:.55rem 0 .7rem}
+  .rub-critname{font-size:.82rem;font-weight:700;color:var(--ink);margin-bottom:.2rem}
+  .rub-lv{display:flex;align-items:flex-start;gap:.45rem;font-size:.8rem;font-weight:400;margin:.12rem 0;padding:.25rem .4rem;border:1px solid transparent;border-radius:6px;cursor:pointer}
+  .rub-lv:hover{background:#fff}
+  .rub-lv:has(input:checked){background:#fff;border-color:var(--accent)}
+  .rub-lv input{margin-top:.15rem;flex:none}
+  .rub-lvtag{flex:none;font-weight:700;color:var(--accent);min-width:1.1rem}
+  .selfscore{background:#fff;border:1px solid var(--border);border-radius:8px;padding:.5rem .7rem;margin:0 0 .7rem;font-size:.82rem;color:var(--muted)}
+  .selfscore strong{color:var(--accent);font-size:1rem}
   /* peer review (Grade 12): a reviewer annotates a classmate's post */
   .peertoggle{align-items:center;gap:.4rem;font:inherit;font-size:.9rem;font-weight:600;color:var(--ink);
     background:#fff;border:1px solid var(--border);border-radius:8px;padding:.55rem .9rem;cursor:pointer;
@@ -298,9 +311,10 @@
     <details class="fold" data-fold="rubric" open>
       <summary>Self Grade Rubric<span class="fold-note"></span></summary>
       <div class="fold-body">
-      <fieldset>
+      <fieldset class="rubricset" id="rubricSet">
       <legend id="rubricLegend">Self Grade Rubric</legend>
-      <p class="hint" id="selfHint" style="margin:.2rem 0 .6rem">Grade your own work honestly against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a>. Check the criteria that are truly met — your level is calculated automatically (Level 4 requires every Level 3 <em>and</em> Level 4 box) — and add a brief comment for each category (required). This renders as a collapsible “Self Grade Rubric” section at the end of your post.</p>
+      <p class="hint" id="selfHint" style="margin:.2rem 0 .6rem">Grade your own work honestly against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a>. <span class="hint-check">Check the criteria that are truly met — your level is calculated automatically (Level 4 requires every Level 3 <em>and</em> Level 4 box) — and add a brief comment for each category (required).</span><span class="hint-lv">Pick the level that honestly describes your work for each criterion — the same scale your mentor grades on — and add a brief comment for each category (required). Your self-score is calculated the same way your mentor's is: each category averages its criteria, weighted Project Update 60%, Reflection 30%, File Management 10%.</span> This renders as a collapsible “Self Grade Rubric” section at the end of your post.</p>
+      <div class="selfscore author-only" id="selfScore"></div>
       <p class="hint" id="peerHint" hidden style="margin:.2rem 0 .6rem">You're reviewing a classmate's post. Their own self-assessment is locked — read it against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a> and add your feedback in the box under each category (required).</p>
       <div id="rubricRows"></div>
     </fieldset>
@@ -318,6 +332,7 @@
 
 <script src="heic2any.min.js"></script>
 <script src="shared.js?v=11"></script>
+<script src="unitrubric.js?v=1"></script>
 <script>
 const state={images:{},cover:null,fileMgmt:[],reflectionImgs:[]};
 const DRAFT_KEY="unitPostDraft";
@@ -341,6 +356,7 @@ function applyGradeMode(){
   // Keep the current selection if it's still valid; otherwise default Grade 12 to
   // the current month (a convenience the student can still change), else leave blank.
   sel.value=opts.includes(prev)?prev:(monthly?MONTHS[new Date().getMonth()]:"");
+  if($("rubricRows").children.length)updateRubricLevels();   // Grade 12 grades per criterion
   // Peer review is a Grade 12 feature: show its toggle only then, and force it off otherwise.
   const pt=$("peerToggleWrap");
   if(pt){
@@ -364,7 +380,7 @@ function applyPeerMode(){
   // A reviewer must not be able to rewrite the author's own self-assessment —
   // it's the thing they're reviewing. The boxes and comments grey out and lock,
   // and a separate feedback box opens underneath for the peer's own words.
-  document.querySelectorAll(".rub-box").forEach(b=>{b.disabled=on;});
+  document.querySelectorAll(".rub-box,.rub-lvl").forEach(b=>{b.disabled=on;});
   document.querySelectorAll(".rub-comment").forEach(c=>{c.readOnly=on;c.classList.toggle("locked",on);});
   document.querySelectorAll(".peer-wrap").forEach(el=>{el.hidden=!on;});
   document.querySelectorAll(".rubric-row").forEach(r=>r.classList.toggle("peerlocked",on));
@@ -669,6 +685,11 @@ body[data-public="true"] details.filemgmt,body[data-public="true"] details.rubri
 .rub-met li{margin:.15rem 0}
 .rub-none{font-family:system-ui,sans-serif;font-size:.95rem;color:var(--muted);font-style:italic;margin:.25rem 0 .5rem}
 .rub-note{margin:.35rem 0 0;font-style:italic}
+.rub-score{font-family:system-ui,sans-serif;font-size:1rem;margin:0 0 1rem}
+.mentorbox{margin:1rem 0 1.25rem;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px;padding:.85rem 1rem;font-family:system-ui,sans-serif}
+.mentorbox .mb-h{font-weight:700;font-size:.9rem;color:#334155;margin-bottom:.25rem}
+.mentorbox .mb-p{margin:0 0 .55rem;font-size:.8rem;color:#64748b;line-height:1.45}
+.mentorbox .mb-url{display:block;font-family:"SF Mono",Consolas,monospace;font-size:.78rem;color:#4f46e5;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:.5rem .6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:all;-webkit-user-select:all;cursor:text}
 .peer-banner{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-family:system-ui,sans-serif;font-weight:700;border-radius:10px;padding:.6rem .95rem;margin:0 0 2rem;display:flex;align-items:center;gap:.5rem}
 .peer-note{background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #3b82f6;border-radius:8px;padding:.8rem 1.1rem;margin:-1.5rem 0 3rem}
 .peer-note-h{font-family:system-ui,sans-serif;font-weight:700;color:#1d4ed8;font-size:.92rem;margin-bottom:.4rem}
@@ -735,15 +756,31 @@ function buildHTML(d){
   const fmImgs=(d.fileMgmt||[]).filter(i=>i.dataUrl);
   const fileMgmt=fmImgs.length
     ? `<details class="filemgmt">\n<summary>File Management</summary>\n${fileGallery(fmImgs)}\n</details>`:"";
-  const rubricCats=(d.rubric||[]).filter(r=>r.comments||(r.met&&r.met.length));
+  const hasLevels=r=>r.levels&&Object.keys(r.levels).length;
+  const rubricCats=(d.rubric||[]).filter(r=>r.comments||(r.met&&r.met.length)||hasLevels(r));
+  // Grade 12 posts list each criterion's chosen level; 9-11 list the boxes checked.
+  const levelList=r=>`<ul class="rub-met">\n${UR_CRITERIA.filter(c=>c.sec===r.key&&r.levels[c.id]!==undefined).map(c=>
+    `<li><strong>${esc(c.label)}</strong> — Level ${r.levels[c.id]}: ${esc(c.levels[r.levels[c.id]]||"")}</li>`).join("\n")}\n</ul>`;
+  const selfLevels={};(d.rubric||[]).forEach(r=>Object.assign(selfLevels,r.levels||{}));
+  const selfOverall=urScore(selfLevels).overall;
+  const selfScore=(rubricCats.some(hasLevels)&&selfOverall!==null)?`<p class="rub-score">Self-score: <strong>${selfOverall.toFixed(2)} / 4.00</strong></p>\n`:"";
+  // The mentor's way into grade-unit.html -- Grade 12 only for now. Click-to-select
+  // because Canvas's preview runs no scripts and blocks link clicks (same as the perf review).
+  const mentorBox=d.meta.grade!=="12"?"":`<div class="mentorbox">\n<div class="mb-h">🔗 For mentors — grade this post</div>\n`+
+    `<p class="mb-p">Click the link to select it, copy it, and paste it into a new browser tab. It opens the grading tool with this post's writing and the student's self-grade, so you can score each criterion and copy the score and comment into Canvas. Photos aren't in the link — view them here.</p>\n`+
+    `<span class="mb-url">${esc(urGradeLink(d))}</span>\n</div>`;
   const rubric=rubricCats.length
     ? `<details class="rubric">\n<summary>${esc(rubricTitle)}</summary>\n`+rubricCats.map(r=>{
+        if(hasLevels(r)){
+          const note=r.comments?`<p class="rub-note">${esc(r.comments)}</p>`:"";
+          return `<div class="rub-block">\n<h3>${esc(r.category)} <span class="lvl">${esc(r.level)}</span></h3>\n${levelList(r)}\n${note}\n</div>`;
+        }
         const lis=(r.met&&r.met.length)
           ? `<ul class="rub-met">\n${r.met.map(m=>`<li>${esc(m)}</li>`).join("\n")}\n</ul>`
           : `<p class="rub-none">No criteria selected.</p>`;
         const note=r.comments?`<p class="rub-note">${esc(r.comments)}</p>`:"";
         return `<div class="rub-block">\n<h3>${esc(r.category)} <span class="lvl">${esc(r.level)}</span></h3>\n${lis}\n${note}\n</div>`;
-      }).join("\n")+`\n</details>`:"";
+      }).join("\n")+`\n${selfScore}${mentorBox}\n</details>`:"";
   const peerCats=peerOn?(d.rubric||[]).filter(r=>(peer.comments||{})[r.key]):[];
   const peerRubric=peerCats.length
     ? `<details class="rubric peer">\n<summary>Peer Review${peer.reviewer?` — ${esc(peer.reviewer)}`:""}</summary>\n`+peerCats.map(r=>
@@ -836,6 +873,7 @@ function validate(){
   const rubRows=[...document.querySelectorAll(".rubric-row")];
   const rubDone=rubRows.filter(r=>r.querySelector(".rub-comment").value.trim()).length;
   const rubOK=rubRows.length>0&&rubDone===rubRows.length;
+  const lvN=Object.keys(pickedLevels()).length, lvOK=!levelMode()||lvN===UR_CRITERIA.length;
   const nameOK=!!$("firstName").value.trim() && !!$("lastName").value.trim();
   const grOK=!!$("grade").value, unOK=!!$("unit").value;
   const kt=keyTermCount(), ktOK=kt>=MIN_KEYTERMS;
@@ -877,8 +915,9 @@ function validate(){
     row(capOK,`Add a brief caption to every image (${captioned}/${all.length} captioned)`)+
     row(okR,`Reflection/Synthesis: ${REFLECT_MIN}–${REFLECT_MAX} words (now ${wr})`)+
     row(fmOK,`Add exactly ${FILEMGMT_IMAGES} File Management screenshots (now ${fmN})`)+
+    (levelMode()?row(lvOK,`Self Grade Rubric: pick a level for all ${UR_CRITERIA.length} criteria (${lvN}/${UR_CRITERIA.length})`):"")+
     row(rubOK,`Self Grade Rubric: add a comment for all ${rubRows.length} categories (${rubDone}/${rubRows.length})`);
-  const ok=ok1&&ok2&&imgOK&&capOK&&okR&&fmOK&&rubOK&&nameOK&&grOK&&unOK&&ktOK;
+  const ok=ok1&&ok2&&imgOK&&capOK&&okR&&fmOK&&rubOK&&lvOK&&nameOK&&grOK&&unOK&&ktOK;
   $("download").disabled=!ok;
   $("download").title=ok?"":"Finish the requirements above to enable download";
   return ok;
@@ -1099,17 +1138,7 @@ $("peer").addEventListener("change",()=>{applyPeerMode();autosave();schedulePrev
 $("publicView").addEventListener("change",()=>{autosave();schedulePreview();});
 // ---- self grade rubric (students check the criteria they meet; level is computed) ----
 // Cumulative per the unit rubric: Level 4 = every Level 3 AND every Level 4 box.
-const RUBRIC=[
-  {key:"update",label:"Project Update (Technical Writing)",compute:"cumulative",
-    l3:["Uses key terms correctly and precisely — they add clarity, not padding","Opens by stating what you set out to build or solve this unit, and why","Explains the reasoning behind your key decisions (\"I did X because...\"), not just what you did","Each image is referred to (by figure number) in the text and shows something you actually discuss"],
-    l4:["Written so a reader outside the project could follow it — terms explained or clear in context, no filler","Maintains clear focus on the project throughout the text","Supports results with specific evidence (real numbers, parts, etc.) and explains their correlation, not just \"it worked well\"","Visuals do explanatory work — labeled, annotated, or captioned to teach, not just decorate"]},
-  {key:"synthesis",label:"Reflection/Synthesis",compute:"cumulative",
-    l3:["Explains what you learned or how you grew this unit — not just what you did","Connects this work to a specific earlier experience or class","Grounded in real personal detail — an actual moment, decision, or feeling"],
-    l4:["Names a specific way your thinking or approach changed","Draws a transferable lesson and says how you'll apply it going forward"]},
-  {key:"filemgmt",label:"File Management",compute:"binary",
-    l3:[],
-    l4:["Two file-management screenshots, named and organized correctly","Images are properly named and organized"]},
-];
+// RUBRIC (the checkbox lists) and UR_CRITERIA (the per-criterion levels) are in unitrubric.js.
 // File Management only defines Level 4 / Level 1 in the sheet -> binary.
 function computeLevel(cat,cL3,cL4){
   if(cat.compute==="binary")return (cat.l4.length&&cL4===cat.l4.length)?"Level 4":"Level 1";
@@ -1130,11 +1159,15 @@ function buildRubric(){
       `<div class="rub-cathead"><span class="rub-cat">${esc(cat.label)}</span><span class="rub-level" data-level="Level 1">Level 1</span></div>`+
       `<div class="rub-crit author-only">`+tier("l3",cat.l3,"Level 3 criteria")+
         tier("l4",cat.l4,cat.l3.length?"Level 4 criteria (in addition to Level 3)":"Level 4 criteria")+`</div>`+
+      `<div class="rub-levels author-only">`+UR_CRITERIA.filter(c=>c.sec===cat.key).map(c=>
+        `<div class="rub-critlv" data-crit="${c.id}"><div class="rub-critname">${esc(c.label)}</div>`+
+        urLevelsOf(c).map(l=>`<label class="rub-lv"><input type="radio" class="rub-lvl" name="lvl_${c.id}" value="${l}"><span class="rub-lvtag">${l}</span><span>${esc(c.levels[l])}</span></label>`).join("")+
+        `</div>`).join("")+`</div>`+
       `<label class="rub-comment-label author-only">Comments<textarea class="rub-comment" placeholder="Explain your self-assessment for this category…"></textarea></label>`+
       `<div class="peer-wrap" hidden><div class="locknote">🔒 The author's self-assessment. Add your feedback below.</div>`+
       `<label class="rub-comment-label">Your feedback<textarea class="peer-comment" placeholder="What did they do well in this category, and what would you change?…"></textarea></label></div>`;
     box.appendChild(row);
-    row.querySelectorAll(".rub-box").forEach(b=>b.addEventListener("change",()=>{updateRubricLevels();autosave();schedulePreview();validate();}));
+    row.querySelectorAll(".rub-box,.rub-lvl").forEach(b=>b.addEventListener("change",()=>{updateRubricLevels();autosave();schedulePreview();validate();}));
     row.querySelector(".rub-comment").addEventListener("input",()=>{autosave();schedulePreview();validate();});
     row.querySelector(".peer-comment").addEventListener("input",()=>{autosave();schedulePreview();validate();});
   });
@@ -1148,19 +1181,39 @@ function rubCounts(row,cat){
     met:boxes.filter(b=>b.checked).map(b=>b.value)
   };
 }
+// Grade 12 self-grades per criterion (the scale mentors grade on); 9-11 check boxes.
+const levelMode=()=>isMonthly();
+function pickedLevels(){
+  const out={};
+  document.querySelectorAll(".rub-lvl:checked").forEach(r=>{out[r.name.slice(4)]=+r.value;});
+  return out;
+}
+const fmtScore=v=>v===null?"—":v.toFixed(2);
 function updateRubricLevels(){
+  const lv=levelMode(), score=urScore(pickedLevels());
+  $("rubricSet").classList.toggle("levels",lv);
   RUBRIC.forEach(cat=>{
     const row=document.querySelector(`.rubric-row[data-key="${cat.key}"]`);if(!row)return;
-    const {cL3,cL4}=rubCounts(row,cat), lvl=computeLevel(cat,cL3,cL4);
+    const {cL3,cL4}=rubCounts(row,cat);
+    const lvl=lv?`${fmtScore(score.sections[cat.key])} / 4`:computeLevel(cat,cL3,cL4);
     const el=row.querySelector(".rub-level");el.textContent=lvl;el.dataset.level=lvl;
   });
+  $("selfScore").innerHTML=`Your self-score: <strong>${fmtScore(score.overall)}</strong> / 4.00`+
+    (score.overall===null?" — pick a level for every criterion to see it":"");
 }
 function getRubric(){
   return RUBRIC.map(cat=>{
     const row=document.querySelector(`.rubric-row[data-key="${cat.key}"]`);
     if(!row)return {key:cat.key,category:cat.label,level:"Level 1",met:[],comments:""};
     const {cL3,cL4,met}=rubCounts(row,cat);
-    return {key:cat.key,category:cat.label,level:computeLevel(cat,cL3,cL4),met,comments:row.querySelector(".rub-comment").value.trim()};
+    const r={key:cat.key,category:cat.label,level:computeLevel(cat,cL3,cL4),met,comments:row.querySelector(".rub-comment").value.trim()};
+    if(levelMode()){
+      const picked=pickedLevels();r.levels={};
+      UR_CRITERIA.filter(c=>c.sec===cat.key).forEach(c=>{if(picked[c.id]!==undefined)r.levels[c.id]=picked[c.id];});
+      const s=urScore(picked).sections[cat.key];
+      r.level=s===null?"—":`${s.toFixed(2)} / 4`;
+    }
+    return r;
   });
 }
 function setPeerComments(map){
@@ -1178,7 +1231,14 @@ function setRubric(arr){
     row.querySelectorAll(".rub-box").forEach(b=>{b.checked=met.includes(b.value);});
     row.querySelector(".rub-comment").value=saved.comments||"";
   });
+  const levels={};
+  arr.forEach(r=>Object.assign(levels,r.levels||{}));
+  // A Grade 12 draft from before the level pickers: start from its checkboxes.
+  const converted=levelMode()&&!Object.keys(levels).length&&arr.some(r=>r.met&&r.met.length);
+  if(converted)Object.assign(levels,urLevelsFromChecks(arr));
+  document.querySelectorAll(".rub-lvl").forEach(r=>{r.checked=levels[r.name.slice(4)]===+r.value;});
   updateRubricLevels();
+  if(converted)notify("Your Self Grade Rubric now uses a level for each criterion. We filled them in from your checkboxes — check each one before you download.","warn");
 }
 buildRubric();
 initGradPicker(DEFAULT_GRAD,()=>{autosave();schedulePreview();});
