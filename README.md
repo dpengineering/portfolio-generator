@@ -97,9 +97,12 @@ pages become links to `portfolio.dpeacl.org` and the builds can be retired.
   The banks come from `keyterms.json`, built from the
   [key terms pages](https://sites.google.com/dpengineering.org/dpea-portfolios/key-terms)
   by [`tools/scrape_keyterms.py`](tools/scrape_keyterms.py). The browser can't
-  read Google Sites directly (no CORS header), so edit the Sites pages and re-run
-  the script; it asks about anything odd (typos, instructions written as terms)
-  and remembers the answers in `tools/keyterms-decisions.json`. A
+  read Google Sites directly (no CORS header), so edit the Sites pages and a
+  [nightly GitHub Action](.github/workflows/keyterms.yml) republishes them (or
+  run it now from the Actions tab). If that run fails, a line needs a person:
+  run the script on a computer — it asks about anything odd (typos,
+  instructions written as terms) and remembers the answers in
+  `tools/keyterms-decisions.json` — and commit that file. A
   `*Same as 9.1, plus...` line pulls in that unit's list for the same rotation.
 - A **personal project** toggle drops the school fields. Personal projects are
   for the student's own content and later publication on their personal site —

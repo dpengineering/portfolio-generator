@@ -21,6 +21,10 @@ Usage
     # forget saved decisions that no longer match anything on the pages
     python3 tools/scrape_keyterms.py --prune
 
+    # the nightly GitHub Action: never prompt, and exit 3 (after writing) when
+    # something needs a person -- see .github/workflows/keyterms.yml
+    python3 tools/scrape_keyterms.py --no-input --fail-on-review
+
 Page layout it expects
 ----------------------
 Each page lists units, each unit lists the four rotations, and each rotation
@@ -53,8 +57,10 @@ Flagged for review
     parentheses, longer than a sentence fragment, or starting "plus any" /
     "Please". Suggested fix: show it as a note above the chips.
   * A trailing aside like "(Know what they are!)". Suggested fix: drop the aside.
-  * Likely typos, judged against the other terms on the pages and, where the
-    system has one, /usr/share/dict/words. Suggested fix: the corrected spelling.
+  * Likely typos, judged against the system dictionary (/usr/share/dict/words)
+    and the other terms on the pages. Suggested fix: the corrected spelling.
+    Skipped where there's no dictionary: the pages alone flag too many real
+    words (projection -> protection).
   * Text under a unit before its first rotation header. Suggested fix: drop it.
 
 Each flag can be fixed as suggested, edited by hand, kept as-is, dropped, or
@@ -64,7 +70,10 @@ itself is still the better fix -- the saved choice then stops matching, and
 --prune clears it out.
 
 When there's no terminal to ask on (a scheduled job), flagged lines with no
-saved choice are kept as-is and listed, and the run carries on.
+saved choice are kept as-is and listed, and the run carries on. With
+--fail-on-review it then exits 3 -- except for possible typos, since another
+system's dictionary may flag words this one doesn't, leaving nothing a local
+run could answer.
 
 Nothing is written if any page fails to fetch or no longer looks like the
 layout above, so a Google Sites redesign can't quietly empty the word banks.
@@ -274,6 +283,8 @@ class TypoChecker:
 
     def suggest(self, text):
         """Return (fixed_text, [(wrong, right), ...]) or None."""
+        if not self.dict:
+            return None
         changes, out, last = [], [], 0
         for m in re.finditer(r"[A-Za-z]+", text):
             word = m.group(0)
@@ -323,7 +334,7 @@ def find_flag(item, typos):
     if hit:
         fixed, changes = hit
         why = "possible typo: " + ", ".join(f"{a} -> {b}" for a, b in changes)
-        return {"why": why, "suggest": "fix", "to": fixed}
+        return {"why": why, "suggest": "fix", "to": fixed, "typo": True}
     return None
 
 
@@ -394,6 +405,8 @@ def build(items, decisions, interactive, report):
         else:
             flag = find_flag(item, typos)
             if flag:
+                if not flag.get("typo"):
+                    report["needs_review"] = True
                 if accept_all or not interactive:
                     report["unreviewed"].append(f"{dkey}  ({flag['why']})")
                     decision = {"action": "keep"}
@@ -423,6 +436,7 @@ def build(items, decisions, interactive, report):
         if item["rot"] is None:
             # Only reachable if kept: there's no rotation to file it under.
             report["unreviewed"].append(f"{dkey}  (kept, but has no rotation -- left out)")
+            report["needs_review"] = True
             continue
         if action == "note":
             note = {"text": text}
@@ -530,6 +544,9 @@ def main():
     ap.add_argument("--html-dir", help="read 9th.html/10th.html/11th.html from here instead of fetching")
     ap.add_argument("--prune", action="store_true", help="remove saved decisions that no longer match")
     ap.add_argument("--no-input", action="store_true", help="never prompt (default when not on a terminal)")
+    ap.add_argument("--fail-on-review", action="store_true",
+                    help="exit 3 after writing if a line needs review (other than a possible typo) "
+                         "or the layout looks off")
     args = ap.parse_args()
     interactive = sys.stdin.isatty() and not args.no_input
 
@@ -549,7 +566,8 @@ def main():
 
     decisions = load_json(DECISIONS_PATH, {})
     decisions_before = json.dumps(decisions, sort_keys=True)
-    report = {"problems": problems, "ignored": [], "unreviewed": [], "duplicates": [], "empty": []}
+    report = {"problems": problems, "ignored": [], "unreviewed": [], "duplicates": [], "empty": [],
+              "needs_review": False}
 
     built = build(items, decisions, interactive, report)
     if built is None:
@@ -605,6 +623,11 @@ def main():
             return
         save_json(OUT_PATH, new)
         print("Wrote keyterms.json.")
+    # The word banks are written either way -- a flagged line ships as-is, like
+    # a manual run's "keep" -- but a scheduled run should still get noticed.
+    # Possible typos alone don't count; see the module docstring.
+    if args.fail_on_review and (report["needs_review"] or report["problems"]):
+        sys.exit(3)
 
 
 if __name__ == "__main__":
