@@ -186,6 +186,185 @@ setInterval(()=>{
   });
 },ROTATE_MS/STAGGER_SLOTS);
 
+// ---- key term word bank (grades 9–11) --------------------------------------
+// keyterms.json maps grade -> unit -> rotation -> {terms, notes}. It's built from
+// the Google Sites key terms pages by tools/scrape_keyterms.py, because the
+// browser can't read Sites directly (no CORS header). The bank sits right under
+// the page's key terms panel and borrows its .help look; when there's no list
+// for the student's grade/unit/classroom it stays hidden and the panel looks as
+// it always did. Tapping a chip types *term* into the writing box used last.
+const KT_ROTATIONS=["Art","Computer Lab","Physics","Machine Shop"];
+const KT_RE=/\*(\S(?:[^*\n]*\S)?)\*/g;          // the same rule as keyTerms()
+const KT_HIDE_KEY="dpea.kt.hidden";
+let _ktData=null, _ktLoading=null;
+function loadKeyTerms(){
+  if(!_ktLoading)_ktLoading=fetch("keyterms.json")
+    .then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})
+    .then(d=>{_ktData=d.grades||{};})
+    .catch(()=>{_ktData={};});                    // offline or missing: no bank, nothing breaks
+  return _ktLoading;
+}
+// Lower case, punctuation to spaces, and a plural -s dropped, padded with spaces
+// so includes() only matches whole words: "Calipers" matches "caliper".
+const ktNorm=s=>" "+(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().split(" ")
+  .map(w=>w.length>3&&!/ss$/.test(w)?w.replace(/s$/,""):w).join(" ")+" ";
+// "Vertical Mill or Mill", "Chamfer(s), Chamfer mill, or Chamfering" and
+// "Light Emitting Diode (LED)" each name one idea several ways; any of them
+// counts as using the term. The first is what a tap inserts.
+function ktVariants(term){
+  const m=term.match(/\s*\(([^()]*)\)\s*$/);
+  const base=(m?term.slice(0,m.index):term).trim()||term;
+  const out=base.split(/\s*,\s*(?:or\s+|and\s+|&\s+)?|\s+(?:and\/)?or\s+/i).map(s=>s.trim()).filter(Boolean);
+  if(m&&/^[A-Z0-9]{2,}$/.test(m[1].trim()))out.push(m[1].trim());
+  return out.length?out:[term];
+}
+// Insert at the caret like insertAtCaret, with a space either side where the
+// term would otherwise run into a word (or after it at the very end, so the
+// student can keep typing). The caret stays put on screen
+// (preventScroll) since the student is already looking at that box.
+function ktInsert(ta,text){
+  const s=ta.selectionStart??ta.value.length, e=ta.selectionEnd??ta.value.length;
+  const before=ta.value.slice(0,s), after=ta.value.slice(e);
+  const ins=(before&&!/\s$/.test(before)?" ":"")+text+(!after||/^[A-Za-z0-9*]/.test(after)?" ":"");
+  ta.value=before+ins+after;
+  ta.selectionStart=ta.selectionEnd=s+ins.length;
+  ta.focus({preventScroll:true});ta.dispatchEvent(new Event("input",{bubbles:true}));
+}
+// The bank pins to the top of the form while the student scrolls down to a
+// writing box. -1.25rem cancels the form's own padding so it sits flush with
+// the top edge; on phones the page itself scrolls, so it pins at 0.
+let _ktStyled=false;
+function ktStyle(){
+  if(_ktStyled)return;_ktStyled=true;
+  const st=document.createElement("style");
+  st.textContent=
+`.kt{position:sticky;top:-1.25rem;z-index:5;box-shadow:0 4px 10px rgba(15,23,42,.08)}
+@media (max-width:820px){.kt{top:0}}
+.kt-head{display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap}
+.kt-head .kt-sub{opacity:.8}
+.kt-head .kt-used{margin-left:auto;font-weight:600}
+.kt-toggle{background:transparent;color:inherit;border:1px solid currentColor;opacity:.7;border-radius:999px;padding:.05rem .55rem;font-size:.72rem}
+.kt-toggle:hover{opacity:1}
+.kt.kt-collapsed .kt-body,.kt.kt-collapsed .kt-tabs{display:none}
+.kt-tabs{display:flex;gap:.3rem;flex-wrap:wrap;margin:.45rem 0 0}
+.kt-tab{background:#fff;color:inherit;border:1px solid rgba(15,23,42,.15);border-radius:999px;padding:.15rem .6rem;font-size:.75rem}
+.kt-tab.on{background:currentColor}
+.kt-tab.on span{color:#fff}
+.kt-tab .kt-n{font-weight:700;margin-left:.25rem}
+.kt-notes{margin:.45rem 0 0;font-size:.78rem}
+.kt-notes p{margin:.15rem 0}
+.kt-notes a{color:inherit;font-weight:600}
+.kt-chips{display:flex;flex-wrap:wrap;gap:.3rem;margin:.45rem 0 0;max-height:4.6rem;overflow-y:auto;padding:1px}
+.kt-chip{background:#fff;color:var(--ink,#1e293b);border:1px solid rgba(15,23,42,.15);border-radius:999px;padding:.18rem .6rem;font-size:.78rem;font-weight:500;line-height:1.3;text-align:left}
+.kt-chip:hover{border-color:currentColor}
+.kt-chip.said{border-style:dashed;border-color:#b45309}
+.kt-chip.used{background:#f0fdf4;border-color:#86efac;color:#166534}
+.kt-chip.used::before{content:"✓ ";font-weight:700}
+.kt-tip{margin:.35rem 0 0;font-size:.72rem;opacity:.8}`;
+  document.head.appendChild(st);
+}
+// opts: {panel: the page's key terms .help element, grade(), unit(),
+//        rotation(): the classroom, or omit it to show all four as tabs,
+//        boxes(): the writing textareas a chip can type into}
+// Returns {update()}; call update() whenever the post changes (validate() is a
+// good spot -- it already runs on every edit and after every load).
+function wireKeyTermBank(opts){
+  ktStyle();
+  const el=document.createElement("div");
+  el.className=opts.panel.className+" kt";el.hidden=true;   // same look (and author-only) as the panel
+  opts.panel.after(el);
+  let last=null, shown="", tab=null;
+  document.addEventListener("focusin",e=>{if(opts.boxes().includes(e.target))last=e.target;});
+  let hidden=false;try{hidden=sessionStorage.getItem(KT_HIDE_KEY)==="1";}catch(e){}
+
+  const usage=()=>{
+    const texts=opts.boxes().map(t=>t.value);
+    const keys=texts.flatMap(t=>[...t.matchAll(KT_RE)].map(m=>ktNorm(m[1])));
+    return {keys,plain:ktNorm(texts.join(" "))};
+  };
+  const isUsed=(term,u)=>ktVariants(term).some(v=>{const n=ktNorm(v);return u.keys.some(k=>k.includes(n));});
+  const isSaid=(term,u)=>ktVariants(term).some(v=>u.plain.includes(ktNorm(v)));
+
+  function hint(msg){
+    el.classList.remove("kt-collapsed");
+    el.innerHTML=`<div class="kt-head"><strong>📚 Word bank</strong><span class="kt-sub">${esc(msg)}</span></div>`;
+  }
+  function render(g,u,rots,bank){
+    const multi=!opts.rotation;
+    if(!rots.includes(tab))tab=rots[0];
+    const list=bank[tab];
+    el.classList.toggle("kt-collapsed",hidden);
+    el.innerHTML=
+      `<div class="kt-head"><strong>📚 Word bank</strong>`+
+      `<span class="kt-sub">Grade ${esc(g)} · Unit ${esc(u)}${multi?"":" · "+esc(tab)}</span>`+
+      `<span class="kt-used"></span><button type="button" class="kt-toggle">${hidden?"Show":"Hide"}</button></div>`+
+      (multi?`<div class="kt-tabs" role="tablist">${rots.map(r=>
+        `<button type="button" class="kt-tab${r===tab?" on":""}" role="tab" data-rot="${esc(r)}"><span>${esc(r)}<span class="kt-n"></span></span></button>`).join("")}</div>`:"")+
+      `<div class="kt-body">`+
+      ((list.notes||[]).length?`<div class="kt-notes">${list.notes.map(n=>{
+        const t=esc(n.text.replace(/^\((.*)\)$/s,"$1"));
+        return `<p>📝 ${t}${n.link?` <a href="${esc(n.link)}" target="_blank" rel="noopener">(open)</a>`:""}</p>`;}).join("")}</div>`:"")+
+      `<div class="kt-chips">${(list.terms||[]).map((t,i)=>
+        `<button type="button" class="kt-chip" data-i="${i}" title="Add *${esc(ktVariants(t)[0])}* where you're typing">${esc(t)}</button>`).join("")}</div>`+
+      `<div class="kt-tip">Tap a term to add it, highlighted, where you're typing. ✓ = in your post as a key term.</div>`+
+      `</div>`;
+    el.querySelector(".kt-toggle").onclick=()=>{
+      hidden=!hidden;try{sessionStorage.setItem(KT_HIDE_KEY,hidden?"1":"0");}catch(e){}
+      el.classList.toggle("kt-collapsed",hidden);el.querySelector(".kt-toggle").textContent=hidden?"Show":"Hide";
+    };
+    el.querySelectorAll(".kt-tab").forEach(b=>b.onclick=()=>{tab=b.dataset.rot;shown="";update();});
+    el.querySelectorAll(".kt-chip").forEach(b=>{
+      // Keep the caret in the writing box: without this, pressing the chip
+      // moves focus to it and the textarea forgets where the student was.
+      b.addEventListener("pointerdown",e=>e.preventDefault());
+      b.addEventListener("mousedown",e=>e.preventDefault());
+      b.onclick=()=>{
+        const ta=last&&document.contains(last)&&!last.readOnly?last:null;
+        if(!ta){notify("Tap in the box you're writing in first, then tap a term.","info");return;}
+        ktInsert(ta,"*"+ktVariants(list.terms[+b.dataset.i])[0]+"*");
+      };
+    });
+  }
+  function marks(bank,rots){
+    const u=usage(), list=bank[tab].terms||[];
+    let n=0;
+    el.querySelectorAll(".kt-chip").forEach(b=>{
+      const t=list[+b.dataset.i], used=isUsed(t,u), said=!used&&isSaid(t,u);
+      if(used)n++;
+      b.classList.toggle("used",used);b.classList.toggle("said",said);
+      b.setAttribute("aria-pressed",used?"true":"false");
+      if(said)b.title="In your writing but not highlighted yet: wrap it in *asterisks*";
+      else b.title=`Add *${ktVariants(t)[0]}* where you're typing`;
+    });
+    const usedEl=el.querySelector(".kt-used");
+    if(usedEl)usedEl.textContent=list.length?`${n} of ${list.length} used`:"";
+    el.querySelectorAll(".kt-tab").forEach(b=>{
+      const c=(bank[b.dataset.rot].terms||[]).filter(t=>isUsed(t,u)).length;
+      b.querySelector(".kt-n").textContent=c?`✓${c}`:"";
+    });
+  }
+  function update(){
+    if(!_ktData){loadKeyTerms().then(update);return;}
+    const g=opts.grade(), u=opts.unit(), byGrade=_ktData[g];
+    const off=()=>{el.hidden=true;shown="";};
+    if(!byGrade)return off();
+    const rot=opts.rotation?opts.rotation():null;
+    if(!u||(opts.rotation&&!rot)){
+      shown="";el.hidden=false;
+      return hint(`Pick your unit${opts.rotation?" and classroom":""} above to see its key terms.`);
+    }
+    const bank=byGrade[u]||{};
+    const rots=(opts.rotation?[rot]:KT_ROTATIONS).filter(r=>bank[r]);
+    if(!rots.length)return off();
+    if(opts.rotation)tab=rot;
+    const key=[g,u,tab,rots.join()].join("|");
+    if(key!==shown||!rots.includes(tab)){render(g,u,rots,bank);shown=[g,u,tab,rots.join()].join("|");}
+    el.hidden=false;
+    marks(bank,rots);
+  }
+  return {update};
+}
+
 // ---- downloaded-post stylesheet (shared base + per-page theme) ----
 // t = {accent, gradFrom, gradTo, overlay}; extra = optional page-specific CSS
 // (e.g. the unit generator's rubric / file-management rules) inserted before
