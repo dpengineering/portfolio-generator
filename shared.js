@@ -351,7 +351,7 @@ function wireKeyTermBank(opts){
     const rot=opts.rotation?opts.rotation():null;
     if(!u||(opts.rotation&&!rot)){
       shown="";el.hidden=false;
-      return hint(`Pick your unit${opts.rotation?" and classroom":""} above to see its key terms.`);
+      return hint(`Pick your unit${opts.rotation?" and classroom":""} above to see its key terms. Kudos to IK for the idea!`);
     }
     const bank=byGrade[u]||{};
     const rots=(opts.rotation?[rot]:KT_ROTATIONS).filter(r=>bank[r]);
