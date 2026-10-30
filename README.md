@@ -89,6 +89,18 @@ pages become links to `portfolio.dpeacl.org` and the builds can be retired.
   a too-big draft costs the student their photos, never their writing.
 - iPhone/iPad HEIC photos convert automatically (via the bundled
   [heic2any](https://github.com/alexcorvi/heic2any), MIT).
+- A **key term word bank** (grades 9–11) pins under the key terms panel once the
+  grade and unit (and, on the rotation post, the classroom) are picked; the unit
+  post shows all four rotations as tabs. Tapping a chip types `*term*` into the
+  writing box used last, and a chip gets a ✓ once the term is highlighted in the
+  post. With no list for that unit, the panel looks as it always did.
+  The banks come from `keyterms.json`, built from the
+  [key terms pages](https://sites.google.com/dpengineering.org/dpea-portfolios/key-terms)
+  by [`tools/scrape_keyterms.py`](tools/scrape_keyterms.py). The browser can't
+  read Google Sites directly (no CORS header), so edit the Sites pages and re-run
+  the script; it asks about anything odd (typos, instructions written as terms)
+  and remembers the answers in `tools/keyterms-decisions.json`. A
+  `*Same as 9.1, plus...` line pulls in that unit's list for the same rotation.
 - A **personal project** toggle drops the school fields. Personal projects are
   for the student's own content and later publication on their personal site —
   they carry no Canvas or grading requirements, so they never generate a

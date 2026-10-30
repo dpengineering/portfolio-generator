@@ -168,7 +168,7 @@
   details.fold .fold-body{padding:.85rem}
   details.fold fieldset{border:0;padding:0;margin:0;background:transparent}
   details.fold legend{display:none}
-  @media (max-width:820px){.wrap{grid-template-columns:1fr;height:auto}.preview{height:70vh;border-top:1px solid var(--border)}}
+  @media (max-width:820px){.wrap{grid-template-columns:1fr;height:auto}.form{overflow:visible}.preview{height:70vh;border-top:1px solid var(--border)}}
 </style>
 </head>
 <body>
@@ -331,7 +331,7 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=11"></script>
+<script src="shared.js?v=12"></script>
 <script src="unitrubric.js?v=1"></script>
 <script>
 const state={images:{},cover:null,fileMgmt:[],reflectionImgs:[]};
@@ -858,7 +858,16 @@ function renderCounter(el,words,min,max){
   }
   return ok;
 }
+// Key term word bank for this grade/unit (shared.js), one tab per rotation since
+// a unit post covers all four. validate() runs on every edit and after every
+// load, so it keeps the bank and its ✓s current.
+const termBank=wireKeyTermBank({
+  panel:document.querySelector(".help"),
+  grade:()=>$("grade").value, unit:()=>$("unit").value,
+  boxes:()=>[...document.querySelectorAll(".w-text"),$("reflection")]
+});
 function validate(){
+  termBank.update();
   const wk=theWeek();
   const w1=lmWords(1), w2=lmWords(2), wr=countWords($("reflection").value);
   const ok1=renderCounter(wk&&wk.querySelector('.w-count[data-for="1"]'),w1,PART_MIN,PART_MAX);
