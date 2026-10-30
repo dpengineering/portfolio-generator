@@ -27,7 +27,7 @@ Status: **built** — `unitrubric.js`, `grade-unit.html`, the Grade 12 self-rubr
 | **Which grades** | The link goes in **Grade 12 posts only** for now. Grades 9–11 can still be graded by dropping the post file into the grader; turning the link on for them is a one-line change in `buildHTML`. |
 | **Versioning** | The payload carries a **rubric version**, and the grader **displays** it (e.g. "Unit rubric v1"), so rubric wording or criteria can change later without breaking links in older posts. |
 | **Canvas comment** | Per-criterion notes only where the mentor changed the prefilled score (as `grade.html` does), plus overall notes. |
-| **Peer review** | **Tabled.** Leave room for a peer column in the layout; decide later. |
+| **Peer review** | **Moves into the grader** (decided 2026-10-29). Peers score the post in `grade-unit.html`'s peer mode, and the generator's peer-review mode is removed. See [Peer review via the grader](#peer-review-via-the-grader). |
 
 ---
 
@@ -89,9 +89,8 @@ student picks one. Grades 9–11 keep today's checkboxes until that team opts in
 - **Prefill is exact**: the mentor's scores start at the student's chosen levels.
 - **Old drafts**: a Grade 12 draft saved with checkboxes converts to levels on load
   with the prefill table below, and the student confirms.
-- **Peer review mode** locks the level pickers the same way it locks the checkboxes now.
 - **Cost**: `unit.html` maintains two rubric UIs, switched by grade (as `isMonthly`
-  already switches Unit/Month and peer review), until 9–11 moves over.
+  already switches Unit/Month), until 9–11 moves over.
 
 ## Prefill from the checkbox self-rubric (Grades 9–11, older posts)
 
@@ -125,7 +124,100 @@ mentors do. That changes the grade 9–11 generator too, so decide it with that 
 - **Publish-ready posts** hide the Self Grade Rubric fold, and the link with it.
   That's right for public posts; students must leave it unchecked for Canvas
   (the generator already says so).
-- **Peer review** (tabled): peer comments live in Canvas submission comments,
-  which the zip doesn't include. Options when revisited: export them via
-  `tools/assign_peer_reviews.py` (it already fetches them) for the grader to load,
-  or have the final submission carry the peer data in the file.
+- **Mentors seeing peer feedback in the grader** (still tabled): peer comments
+  live in Canvas submission comments, which the post file doesn't carry. The
+  grader's peer comment has a fixed format with per-criterion levels, so
+  `tools/assign_peer_reviews.py` (which already fetches them) could later export
+  them for the grader to show beside the mentor's scores.
+
+---
+
+## Peer review via the grader
+
+Decided 2026-10-29; switching over for the next cycle (rough drafts due for peer
+review at the end of the week of 2026-11-02).
+
+**Why.** On Canvas's peer-review page, students can only download their
+partner's post and leave a comment; the HTML isn't shown. They already download
+the file and load it into the generator's peer mode. Loading it into the grader
+instead gives peers the same per-criterion rubric and side-by-side layout mentors
+use, brings back peer scores (which mentors liked in last year's sheet), and
+lets the generator drop peer review mode entirely.
+
+### Who is grading
+The grader's mode comes from how it was opened. No prompt, nothing remembered:
+
+| Opened from | Mode |
+|---|---|
+| The link in a post (`/grade#u=…`) | Mentor (unchanged) |
+| The hub's **Peer review** tile (`/grade-unit?as=peer`) | Peer reviewer |
+| `/grade-unit` with neither | Asks "Grading as: Mentor / Peer reviewer" |
+
+The hub shows the tile to Grade 12, like the one-pager tile. Modes are an honor
+system: peer mode adds requirements, it doesn't protect anything.
+
+### Peer mode
+- **Way in:** drop the partner's downloaded post `.html` (photos included). The
+  file is read in the browser and never uploaded anywhere.
+- **Blank start:** every criterion starts unscored, and the student's self-grade
+  is **hidden until every criterion is scored**, then revealed beside each card
+  (and the self-score beside the peer score) for comparison.
+- **Required before Copy:** a level for all 8 criteria, and a comment for each
+  of the 3 sections.
+- **No mentor default note** ("Please email…").
+- **Reviewer name:** prefilled from the hub profile, editable.
+- **The comment** keeps the header the `--status` check looks for and the
+  author's name it uses to catch reviews pasted on the wrong submission:
+
+  ```
+  Peer review of Ada Lovelace's October post
+  Reviewed by Grace Hopper
+  Peer score: 3.30 / 4.00 (a classmate's estimate, not your grade)
+
+  PROJECT UPDATE — 3.00
+  • Key Terms in Context: Level 2 — terms listed, not explained
+  • Organization of Content: Level 3
+  • Writing Style: Level 3
+  • Image Quality & Content: Level 4
+  Comments: …
+
+  REFLECTION — 3.67
+  • Growth: Level 3
+  • Connections: Level 4
+  • Personal Detail: Level 4
+  Comments: …
+
+  FILE MANAGEMENT — 4.00
+  • File Management Screenshots: Level 4
+  Comments: …
+  ```
+  It lists every criterion's level, not only changes, since peers don't start
+  from the self-grade.
+
+### Comment boxes for everyone
+A **Section comments** toggle adds a comment box under each section's criteria
+and an optional note on every criterion. Off by default for mentors, who keep
+today's behavior (a note opens automatically when they change a score); forced
+on and required for peers. Mentor comments include any section comments under
+the section's scores.
+
+### Generator: remove peer review mode
+Removed from `unit.html`: the peer toggle and reviewer-name field, locked author
+fields, suggestion boxes, peer rubric comments, the peer checklist, "Copy review
+for Canvas", reviewer callouts in the rendered post, the `_reviewedby_` file
+name, and the "someone else's post" detection (`isPartnersPost`, `?peer=1`).
+- Old drafts and posts with peer data still load; the generator ignores it.
+- Posts already reviewed keep their reviewer callouts in their HTML.
+- `pair.html` and pairing/assigning in `tools/assign_peer_reviews.py` don't change.
+
+### Completion check (`--status`)
+`check_comment` in `tools/assign_peer_reviews.py` accepts the new format: the
+same `Peer review of …'s … post` header, plus `PEER SCORE` (matched as
+"Peer score"), `PROJECT UPDATE`, `REFLECTION`, and `FILE MANAGEMENT` in place of
+`RUBRIC FEEDBACK`. It keeps accepting the old format, so `--status` still works
+on past assignments.
+
+### Docs
+- README: rewrite the reviewer steps in **Peer review**, and the "Check it" rules.
+- Canvas: new reviewer instructions in the unit post assignment (drafted 2026-10-29).
+
