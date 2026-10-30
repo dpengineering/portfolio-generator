@@ -271,7 +271,7 @@ function ktStyle(){
 function wireKeyTermBank(opts){
   ktStyle();
   const el=document.createElement("div");
-  el.className=opts.panel.className+" kt";el.hidden=true;   // same look (and author-only) as the panel
+  el.className=opts.panel.className+" kt";el.hidden=true;   // same look as the panel
   opts.panel.after(el);
   let last=null, shown="", tab=null;
   document.addEventListener("focusin",e=>{if(opts.boxes().includes(e.target))last=e.target;});
