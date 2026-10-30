@@ -1,0 +1,62 @@
+name: Refresh key terms
+
+# Nightly: re-read the 9th-11th grade key terms pages on Google Sites and
+# publish any changes to keyterms.json, the word banks in the post generators.
+# See tools/scrape_keyterms.py. The run fails (and GitHub emails whoever last
+# edited the schedule below) when a line needs a person: an instruction written
+# as a term, an aside, or a page whose layout changed. Fix it by running the
+# script on a computer and committing tools/keyterms-decisions.json.
+on:
+  schedule:
+    - cron: "0 10 * * *"   # 3am Pacific in summer, 2am in winter
+  workflow_dispatch:         # "Run workflow" button on the Actions tab
+
+permissions:
+  contents: write            # commit keyterms.json
+  pages: write               # ask Pages to rebuild after the commit
+
+concurrency:
+  group: keyterms
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The typo check needs a dictionary; without one it's skipped.
+      - name: Install a word list
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends wamerican
+
+      - name: Read the key terms pages
+        id: scrape
+        run: |
+          set +e
+          python3 tools/scrape_keyterms.py --no-input --fail-on-review > scrape.log 2>&1
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+          cat scrape.log
+          { echo '## Key terms refresh'; echo '```'; cat scrape.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- keyterms.json; then echo "No changes to publish."; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add keyterms.json
+          git commit -m "Refresh key terms from Google Sites"
+          git push
+          # Pages builds from main; a push made with this token may not start
+          # one on its own, so ask for it.
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" > /dev/null || echo "::warning::Couldn't request a Pages build; the next push will publish it."
+
+      - name: Report anything that needs a person
+        if: steps.scrape.outputs.status != '0'
+        run: |
+          if [ "${{ steps.scrape.outputs.status }}" = "3" ]; then
+            echo "::error::Some key term lines need a look (listed in the run summary). The word banks were still updated. Run python3 tools/scrape_keyterms.py on a computer, answer its questions, and commit tools/keyterms-decisions.json."
+          else
+            echo "::error::Couldn't read the key terms pages, or their layout changed, so nothing was updated. See the run summary."
+          fi
+          exit 1
