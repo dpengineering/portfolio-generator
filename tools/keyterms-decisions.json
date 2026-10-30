@@ -1,0 +1,131 @@
+{
+  "10.2 Art: Light sculpture simultor": {
+    "action": "fix",
+    "to": "Light sculpture simulator",
+    "decided": "2026-10-29"
+  },
+  "10.4 Art: Potientiometer": {
+    "action": "fix",
+    "to": "Potentiometer",
+    "decided": "2026-10-29"
+  },
+  "10.5 Machine Shop: (describe how you know if you have correct pressure for drilling in aluminum)": {
+    "action": "note",
+    "decided": "2026-10-29"
+  },
+  "10.5 Machine Shop: Sanding and Polish (Counts 1 term)": {
+    "action": "fix",
+    "to": "Sanding and Polish",
+    "decided": "2026-10-29"
+  },
+  "10.5 Physics: Electromagneitc Wave": {
+    "action": "fix",
+    "to": "Electromagnetic Wave",
+    "decided": "2026-10-29"
+  },
+  "10.6 Machine Shop: (describe the relationship between drill size and drilling rotational speed)": {
+    "action": "note",
+    "decided": "2026-10-29"
+  },
+  "10.8 Art: Accordian fold": {
+    "action": "fix",
+    "to": "Accordion fold",
+    "decided": "2026-10-29"
+  },
+  "10.8 Machine Shop: 4-40, 6-32, 8-32 (Know what they are!)": {
+    "action": "fix",
+    "to": "4-40, 6-32, 8-32",
+    "decided": "2026-10-29"
+  },
+  "11.1 Machine Shop: 4-40, 6-32, 8-32 (Know what they are!)": {
+    "action": "fix",
+    "to": "4-40, 6-32, 8-32",
+    "decided": "2026-10-29"
+  },
+  "11.1 Physics: Soleniod": {
+    "action": "fix",
+    "to": "Solenoid",
+    "decided": "2026-10-29"
+  },
+  "11.2 Machine Shop: 4-40, 6-32, 8-32 (Know what they are!)": {
+    "action": "fix",
+    "to": "4-40, 6-32, 8-32",
+    "decided": "2026-10-29"
+  },
+  "11.3 Computer Lab: AI Chatbot": {
+    "action": "keep",
+    "decided": "2026-10-29"
+  },
+  "11.4 Machine Shop: 4-40, 6-32, 8-32 (Know what they are!)": {
+    "action": "fix",
+    "to": "4-40, 6-32, 8-32",
+    "decided": "2026-10-29"
+  },
+  "11.4 Machine Shop: Destructive Z Zero (on a lathe!)": {
+    "action": "fix",
+    "to": "Destructive Z Zero",
+    "decided": "2026-10-29"
+  },
+  "11.4 Machine Shop: Time managment": {
+    "action": "fix",
+    "to": "Time management",
+    "decided": "2026-10-29"
+  },
+  "11.5 Art: Fastners": {
+    "action": "fix",
+    "to": "Fasteners",
+    "decided": "2026-10-29"
+  },
+  "11.5 Machine Shop: (describe a machining technique or process you used in this roation which you noticed you have significantly improved from your freshman year) You may use this one up to 2 times as long you describe a completely different machining technique or process for each use": {
+    "action": "note",
+    "decided": "2026-10-29"
+  },
+  "11.5 Machine Shop: (describe deburring techniques that don't use a deburring whip or file)": {
+    "action": "note",
+    "decided": "2026-10-29"
+  },
+  "11.5 Machine Shop: (describe key elements of saftey while deburring)": {
+    "action": "note",
+    "decided": "2026-10-29"
+  },
+  "11.7 Machine Shop: (describe the facing tool positioning requirements for cutting a shoulder)": {
+    "action": "note",
+    "decided": "2026-10-29"
+  },
+  "11.8 Machine Shop: Please bold three terms/items of your own choosing to count as your key terms. The terms you select should be directly related to your senior shadowing experience. (If you pick something that is clearly non-relevant, you WILL lose points. This is NOT a challenge! Don't be moronic.)": {
+    "action": "note",
+    "decided": "2026-10-29"
+  },
+  "9.1 Physics: Critque": {
+    "action": "fix",
+    "to": "Critique",
+    "decided": "2026-10-29"
+  },
+  "9.2 Machine Shop: Thousandths of an inch (Use as a number)": {
+    "action": "keep",
+    "decided": "2026-10-29"
+  },
+  "9.3 Art: Auxillary view": {
+    "action": "fix",
+    "to": "Auxiliary view",
+    "decided": "2026-10-29"
+  },
+  "9.3 Art: Elipse": {
+    "action": "fix",
+    "to": "Ellipse",
+    "decided": "2026-10-29"
+  },
+  "9.4 Computer Lab: Specific names of tools/features, such as “conditional formatting” (List of tools/functions/features)": {
+    "action": "note",
+    "decided": "2026-10-29"
+  },
+  "9.6 Physics: Aruiono Uno": {
+    "action": "fix",
+    "to": "Arduino Uno",
+    "decided": "2026-10-29"
+  },
+  "9.7 Computer Lab: Hole callout": {
+    "action": "keep",
+    "decided": "2026-10-29"
+  }
+}
