@@ -84,6 +84,36 @@
   .commentbox{white-space:pre-wrap;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:.65rem .7rem;font-size:.88rem;line-height:1.5;min-height:3rem;overflow-wrap:anywhere}
   .cprow{display:flex;gap:.5rem;align-items:center;margin-top:.5rem}
   .cpmsg{font-size:.76rem;color:var(--muted)}
+  /* role choice (direct visits only) */
+  .roles{background:#fff;border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1rem;max-width:820px}
+  .roles h2{margin:0 0 .3rem;font-size:1.05rem}
+  .roles p{margin:0 0 .8rem;color:var(--muted);font-size:.85rem}
+  .roles .btn{margin-right:.5rem}
+  .roleline{font-size:.8rem;color:var(--muted);margin:0 0 .7rem}
+  .roleline button{background:none;border:0;padding:0;font:inherit;color:var(--accent);font-weight:600;cursor:pointer;text-decoration:underline}
+  .cmtoggle{display:inline-flex;align-items:center;gap:.4rem;font-size:.82rem;font-weight:600;margin:0 0 .4rem;cursor:pointer}
+  .seccomment{margin:.2rem 0 .6rem}
+  .seccomment label{display:block;font-size:.78rem;font-weight:700;color:#475569;margin-bottom:.3rem}
+  .seccomment textarea{width:100%;padding:.5rem .6rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.85rem;line-height:1.45;resize:vertical;min-height:60px;background:#fff}
+  .out input[type=text]{width:100%;max-width:360px;padding:.5rem .6rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.9rem;margin-bottom:.6rem}
+  .gate{font-size:.82rem;margin:.6rem 0 0}
+  .gate .req{margin:.15rem 0}
+  .gate .req.ok{color:#15803d}
+  .gate .req.no{color:#92400e}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  /* Peer mode: comment boxes always show; the student's self-grade stays
+     hidden until every criterion is scored (#grader.blind), so the peer
+     forms their own view first. Peers' changes from the self-grade aren't
+     "deviations" to justify, so those highlights are mentor-only. */
+  .comments-on .itemcomment{display:block!important}
+  body:not(.comments-on) .seccomment{display:none}
+  #grader.blind .selfnote,#grader.blind .lv .stu,#grader.blind .sb.self,#grader.blind #checkNote,#grader.blind .selfc{display:none!important}
+  /* an optional note is plain; amber is for a mentor's change from the self-grade */
+  .item:not(.dev) .itemcomment textarea,body.peer .itemcomment textarea{border-color:var(--border);background:#fff}
+  body.peer .item.dev{border-color:var(--border);box-shadow:none}
+  body.peer .item.dev .selfnote .badge{display:none}
+  body.peer .item.dev .selfnote .same{display:inline}
+  body.peer .mentor-only,body:not(.peer) .peer-only{display:none!important}
   [hidden]{display:none!important}
 </style>
 </head>
@@ -94,11 +124,21 @@
 </header>
 
 <div class="wrap">
+  <div class="roles" id="roleUI" hidden>
+    <h2>Grading as…</h2>
+    <p>Mentors usually arrive from the link in a student's post; peer reviewers from the Peer Review tile on the student hub.</p>
+    <button class="btn" type="button" data-role="mentor">Mentor</button>
+    <button class="btn" type="button" data-role="peer">Peer reviewer</button>
+  </div>
+
   <div class="paste" id="pasteUI" hidden>
-    <label for="pasteIn">Paste the grading link</label>
-    <input type="text" id="pasteIn" placeholder="Copy the grading link from the Self Grade Rubric at the bottom of the student's post in Canvas, then paste it here">
-    <button class="btn" id="pasteGo">Load</button>
-    <div class="drop" id="drop">No link (an older post)? Drop the student's downloaded post <b>.html</b> here, or click to choose it.<input type="file" id="fileIn" accept=".html,.htm,text/html" hidden></div>
+    <p class="roleline">Grading as <b id="roleName"></b> · <button type="button" id="switchRole"></button></p>
+    <div class="mentor-only">
+      <label for="pasteIn">Paste the grading link</label>
+      <input type="text" id="pasteIn" placeholder="Copy the grading link from the Self Grade Rubric at the bottom of the student's post in Canvas, then paste it here">
+      <button class="btn" id="pasteGo">Load</button>
+    </div>
+    <div class="drop" id="drop"><span class="mentor-only">No link (an older post)? Drop the student's downloaded post <b>.html</b> here, or click to choose it.</span><span class="peer-only">Drop your partner's post here — the <b>.html</b> file you downloaded from your Canvas peer review — or click to choose it. It stays on this device; nothing is uploaded.</span><input type="file" id="fileIn" accept=".html,.htm,text/html" hidden></div>
     <div class="err" id="err" hidden></div>
   </div>
 
@@ -114,23 +154,26 @@
     <div class="scoreband">
       <div class="sb self"><div class="sbnum" id="selfNum">—</div><div class="sblab">Student self-score</div></div>
       <div class="sb primary">
-        <div class="sbnum" id="mentorNum">—</div><div class="sblab">Mentor score</div>
-        <div class="sbcopy"><button id="copyScore">Copy score</button> <span class="cpmsg" id="scoreMsg"></span></div>
+        <div class="sbnum" id="mentorNum">—</div><div class="sblab"><span class="mentor-only">Mentor score</span><span class="peer-only">Your score</span></div>
+        <div class="sbcopy mentor-only"><button id="copyScore">Copy score</button> <span class="cpmsg" id="scoreMsg"></span></div>
       </div>
     </div>
     <div class="cats" id="cats"></div>
 
-    <div class="hint" style="max-width:820px">Every criterion starts at the student's self-grade. Change only where you disagree — changed criteria are highlighted, and each change is listed in the comment. <strong>Keyboard:</strong> click a criterion (or Tab to it), type <kbd>0</kbd>–<kbd>4</kbd>, then <kbd>Enter</kbd> for the next one. <span id="photoNote">Photos aren't in the link — check them in the post in Canvas.</span></div>
+    <div class="hint" style="max-width:820px"><span class="mentor-only">Every criterion starts at the student's self-grade. Change only where you disagree — changed criteria are highlighted, and each change is listed in the comment.</span><span class="peer-only">Read each section, pick the level that fits each criterion, and write a comment for each section. Once every criterion is scored, you'll see how your partner graded themselves.</span> <strong>Keyboard:</strong> click a criterion (or Tab to it), type <kbd>0</kbd>–<kbd>4</kbd>, then <kbd>Enter</kbd> for the next one. <span id="photoNote">Photos aren't in the link — check them in the post in Canvas.</span></div>
+    <label class="cmtoggle mentor-only"><input type="checkbox" id="cmToggle"> Comment boxes for every criterion and section</label>
 
     <div id="rubric"></div>
 
     <div class="out">
       <h3>For Canvas</h3>
-      <p class="subtle">Type the score into the points box, then paste the comment.</p>
-      <label for="notes">Notes / feedback (optional)</label>
-      <textarea id="notes" rows="3" placeholder="Anything you want the student to know…"></textarea>
+      <p class="subtle"><span class="mentor-only">Type the score into the points box, then paste the comment.</span><span class="peer-only">Copy your review and paste it as a comment on your partner's submission in Canvas, then press Save. That's what completes your peer review.</span></p>
+      <div class="peer-only"><label for="reviewer">Your name</label><input type="text" id="reviewer" placeholder="First Last"></div>
+      <div class="mentor-only"><label for="notes">Notes / feedback (optional)</label>
+      <textarea id="notes" rows="3" placeholder="Anything you want the student to know…"></textarea></div>
       <label style="margin-top:.8rem">Comment</label>
       <div class="commentbox" id="commentOut"></div>
+      <div class="gate peer-only" id="gate"></div>
       <div class="cprow"><button class="btn" id="copyComment">Copy comment</button><span class="cpmsg" id="copyMsg"></span></div>
     </div>
   </div>
@@ -153,6 +196,29 @@ let photos=null;      // {f1,f2,fr,fm: [dataUrl]} when graded from a dropped fil
 let selfLv={};        // student's self-levels {criterionId: 0-4}
 let mentorLv={};      // mentor's levels (start = selfLv)
 let keyEntry=false;   // true while a level is being set by keyboard
+// Who's grading comes from how the page was opened: the post's link (#u=) is a
+// mentor, the hub's Peer Review tile (?as=peer) is a peer; anything else asks.
+// Peer mode starts blank, hides the self-grade until every criterion is
+// scored, and requires a comment per section before the review can be copied.
+let role=null;        // "mentor" | "peer"
+const isPeer=()=>role==="peer";
+function setRole(r){
+  role=r;
+  document.body.classList.toggle("peer",isPeer());
+  $("roleName").textContent=isPeer()?"a peer reviewer":"a mentor";
+  $("switchRole").textContent=isPeer()?"I'm a mentor":"I'm a peer reviewer";
+  history.replaceState(null,"",location.pathname+(isPeer()?"?as=peer":"")+location.hash);
+  applyComments();
+}
+// Comment boxes for every criterion and section: a remembered choice for
+// mentors, always on for peers.
+const CM_KEY="gradeUnit.comments";
+function applyComments(){
+  let on=isPeer();
+  if(!on){try{on=localStorage.getItem(CM_KEY)==="1";}catch(e){}}
+  $("cmToggle").checked=on;
+  document.body.classList.toggle("comments-on",on);
+}
 
 function extractCode(input,key){
   input=(input||"").trim();
@@ -164,7 +230,7 @@ function start(p,imgs){
   post=p;photos=imgs||null;selfLv={};mentorLv={};
   UR_CRITERIA.forEach((c,i)=>{
     const l=p.sl[i];
-    if(Number.isInteger(l)){selfLv[c.id]=l;mentorLv[c.id]=l;}
+    if(Number.isInteger(l)){selfLv[c.id]=l;if(!isPeer())mentorLv[c.id]=l;}
   });
   showGrader();
   return true;
@@ -191,7 +257,7 @@ function loadFromFile(file){
         return;
       }
     }catch(e){}
-    showErr("That file doesn't look like a unit/monthly post. Download the student's post .html from Canvas and drop it here.");
+    showErr("That file doesn't look like a unit/monthly post. Download the post's .html file from Canvas and drop it here.");
   };
   fr.readAsText(file);
 }
@@ -234,14 +300,16 @@ function itemHTML(c){
   return `<div class="item" data-id="${c.id}" tabindex="0" role="group" aria-label="${esc(c.label)} — type 0 to 4; Enter for the next criterion">`+
     `<div class="ihead"><span class="itext">${esc(c.label)}</span><span class="selfnote"><span class="same">Student: ${selfTxt}</span>`+
     `<span class="badge">Changed from ${selfTxt}</span></span></div>${rows}`+
-    `<div class="itemcomment" hidden><textarea class="ic" data-id="${c.id}" placeholder="Why the change? (added to this criterion in the Canvas comment)"></textarea></div></div>`;
+    `<div class="itemcomment" hidden><textarea class="ic" data-id="${c.id}"></textarea></div></div>`;
 }
 function renderRubric(){
   const ctr={n:0};   // figure numbers run across the post, as they do in it
   $("rubric").innerHTML=UR_SECTIONS.map(s=>
     `<section class="gsec"><h3>${esc(s.label)} <span class="w">· ${Math.round(s.weight*100)}%</span></h3>`+
     `<div class="cols"><div class="post">${postHTML(s.key,ctr)}</div>`+
-    `<div class="crits">${UR_CRITERIA.filter(c=>c.sec===s.key).map(itemHTML).join("")}</div></div></section>`).join("");
+    `<div class="crits">${UR_CRITERIA.filter(c=>c.sec===s.key).map(itemHTML).join("")}`+
+    `<div class="seccomment"><label>Comments on ${esc(s.short)}<span class="peer-only"> (required)</span><textarea class="sc" data-sec="${s.key}" placeholder="What works, and what would you change?"></textarea></label></div>`+
+    `</div></div></section>`).join("");
 }
 $("rubric").addEventListener("change",e=>{
   const t=e.target;
@@ -250,8 +318,9 @@ $("rubric").addEventListener("change",e=>{
   mentorLv[id]=+t.value;
   refresh();
   // A mouse click that changed the student's level jumps to its comment box;
-  // skipped during keyboard entry so 0-4 → Enter keeps flowing.
-  if(!keyEntry&&mentorLv[id]!==selfLv[id]){
+  // skipped during keyboard entry so 0-4 → Enter keeps flowing. Mentors only:
+  // a peer's score isn't a change to justify.
+  if(!keyEntry&&!isPeer()&&mentorLv[id]!==selfLv[id]){
     const ic=$("rubric").querySelector(`.ic[data-id="${id}"]`);if(ic)ic.focus();
   }
 });
@@ -268,16 +337,42 @@ $("rubric").addEventListener("keydown",e=>{
   }else if(e.key==="Enter"){
     e.preventDefault();
     const items=[...$("rubric").querySelectorAll(".item")], i=items.indexOf(item);
-    if(i>=0&&i<items.length-1)items[i+1].focus();else $("notes").focus();
+    if(i>=0&&i<items.length-1)items[i+1].focus();else (isPeer()?$("rubric").querySelector(".sc"):$("notes")).focus();
   }
 });
-$("rubric").addEventListener("input",e=>{if(e.target.classList.contains("ic"))$("commentOut").textContent=formatComment();});
+$("rubric").addEventListener("input",e=>{if(e.target.matches(".ic,.sc"))refresh();});
 
 const fmt=v=>v===null?"—":v.toFixed(2);
 function deviations(){
   return UR_CRITERIA.filter(c=>Number.isInteger(mentorLv[c.id])&&mentorLv[c.id]!==selfLv[c.id]);
 }
-function formatComment(){
+const noteOf=id=>{const el=$("rubric").querySelector(`.ic[data-id="${id}"]`);return el?el.value.trim():"";};
+const secComment=k=>{const el=$("rubric").querySelector(`.sc[data-sec="${k}"]`);return el?el.value.trim():"";};
+const commentsOn=()=>document.body.classList.contains("comments-on");
+function formatComment(){return isPeer()?formatPeerComment():formatMentorComment();}
+// Keeps the header tools/assign_peer_reviews.py --status looks for ("Peer
+// review of <author>'s … post"), whose name catches a review pasted on the
+// wrong submission, and its section markers.
+function formatPeerComment(){
+  const res=urScore(mentorLv), p=post;
+  const period=p.g==="12"?(p.u||"monthly"):(p.u?"Unit "+p.u:"unit");
+  const out=[`Peer review of ${p.n||"this student"}'s ${period} post`];
+  const who=$("reviewer").value.trim();
+  if(who)out.push(`Reviewed by ${who}`);
+  out.push(`Peer score: ${fmt(res.overall)} / 4.00 (a classmate's estimate, not your grade)`,"");
+  UR_SECTIONS.forEach(s=>{
+    out.push(`${s.short.toUpperCase()} — ${fmt(res.sections[s.key])}`);
+    UR_CRITERIA.filter(c=>c.sec===s.key).forEach(c=>{
+      const lv=mentorLv[c.id], note=noteOf(c.id);
+      out.push(`• ${c.label}: ${Number.isInteger(lv)?"Level "+lv:"—"}${note?" — "+note:""}`);
+    });
+    const sc=secComment(s.key);
+    if(sc)out.push(`Comments: ${sc}`);
+    out.push("");
+  });
+  return out.join("\n").trim();
+}
+function formatMentorComment(){
   const res=urScore(mentorLv), kind=post.g==="12"?"Monthly Post":"Unit Post";
   let out=`${kind} — ${fmt(res.overall)} / 4.00\n`+
     UR_SECTIONS.map(s=>`${s.short} ${fmt(res.sections[s.key])}`).join(" · ")+"\n";
@@ -293,6 +388,18 @@ function formatComment(){
   }else{
     out+="\nScores match the student's self-assessment.\n";
   }
+  // With comment boxes on: each section's comment, plus notes on criteria the
+  // mentor didn't change (changed ones already carry theirs above).
+  if(commentsOn()){
+    const blocks=UR_SECTIONS.map(s=>{
+      const lines=UR_CRITERIA.filter(c=>c.sec===s.key&&!devs.includes(c)&&noteOf(c.id))
+        .map(c=>`• ${c.label} (Level ${mentorLv[c.id]}): ${noteOf(c.id)}`);
+      const sc=secComment(s.key);
+      if(sc)lines.unshift(sc);
+      return lines.length?`${s.short}:\n`+lines.join("\n"):"";
+    }).filter(Boolean);
+    if(blocks.length)out+="\n"+blocks.join("\n\n")+"\n";
+  }
   const notes=$("notes").value.trim();
   if(notes)out+="\nNotes:\n"+notes+"\n";
   return out.trim();
@@ -306,7 +413,25 @@ function refresh(){
     const dev=Number.isInteger(mentorLv[c.id])&&mentorLv[c.id]!==selfLv[c.id];
     el.classList.toggle("dev",dev);
     el.querySelector(".itemcomment").hidden=!dev;
+    el.querySelector(".ic").placeholder=dev&&!isPeer()
+      ?"Why the change? (added to this criterion in the Canvas comment)"
+      :"Note on this criterion (optional, added to the comment)";
   });
+  // Peers see the self-grade only once they've scored everything themselves.
+  const scored=UR_CRITERIA.filter(c=>Number.isInteger(mentorLv[c.id])).length;
+  $("grader").classList.toggle("blind",isPeer()&&scored<UR_CRITERIA.length);
+  if(isPeer()){
+    const secsDone=UR_SECTIONS.filter(s=>secComment(s.key)).length, named=!!$("reviewer").value.trim();
+    const row=(ok,txt)=>`<div class="req ${ok?"ok":"no"}">${ok?"✓":"○"} ${txt}</div>`;
+    $("gate").innerHTML=row(scored===UR_CRITERIA.length,`Score all ${UR_CRITERIA.length} criteria (${scored}/${UR_CRITERIA.length})`)+
+      row(secsDone===UR_SECTIONS.length,`Comment on each section (${secsDone}/${UR_SECTIONS.length})`)+
+      row(named,"Enter your name");
+    const ok=scored===UR_CRITERIA.length&&secsDone===UR_SECTIONS.length&&named;
+    $("copyComment").disabled=!ok;
+    $("copyComment").textContent=ok?"Copy review":"Finish the items above to copy";
+  }else{
+    $("copyComment").disabled=false;$("copyComment").textContent="Copy comment";
+  }
   $("commentOut").textContent=formatComment();
 }
 function showGrader(){
@@ -321,10 +446,19 @@ function showGrader(){
   $("checkNote").hidden=p.sm!=="check";
   $("photoNote").hidden=!!photos;
   $("selfNum").textContent=fmt(urScore(selfLv).overall);
-  $("notes").value=DEFAULT_NOTES;
+  $("notes").value=isPeer()?"":DEFAULT_NOTES;
+  if(isPeer()&&!$("reviewer").value)$("reviewer").value=hubName();
   renderRubric();refresh();
 }
-function showPaste(){$("grader").hidden=true;$("pasteUI").hidden=false;$("pasteIn").focus();}
+function showPaste(){
+  $("roleUI").hidden=true;$("grader").hidden=true;$("pasteUI").hidden=false;
+  if(!isPeer())$("pasteIn").focus();
+}
+// The reviewer's name, from the student hub's saved profile (shared.js's PROFILE_KEY).
+function hubName(){
+  try{const p=JSON.parse(localStorage.getItem("dpea.profile.v1"))||{};return [p.first,p.last].filter(Boolean).join(" ");}
+  catch(e){return "";}
+}
 
 // ===== copy ==========================================================
 function copyText(text,msgEl){
@@ -345,6 +479,13 @@ function copyText(text,msgEl){
 
 // ===== wiring ========================================================
 $("notes").addEventListener("input",()=>{$("commentOut").textContent=formatComment();});
+$("reviewer").addEventListener("input",refresh);
+$("cmToggle").addEventListener("change",()=>{
+  try{localStorage.setItem(CM_KEY,$("cmToggle").checked?"1":"0");}catch(e){}
+  applyComments();if(post)refresh();
+});
+document.querySelectorAll("#roleUI [data-role]").forEach(b=>b.addEventListener("click",()=>{setRole(b.dataset.role);showPaste();}));
+$("switchRole").addEventListener("click",()=>{setRole(isPeer()?"mentor":"peer");showPaste();});
 $("copyComment").addEventListener("click",()=>copyText(formatComment(),$("copyMsg")));
 $("copyScore").addEventListener("click",()=>{
   const v=urScore(mentorLv).overall;
@@ -368,7 +509,13 @@ drop.addEventListener("dragleave",()=>drop.classList.remove("over"));
 drop.addEventListener("drop",e=>{e.preventDefault();drop.classList.remove("over");if(e.dataTransfer.files[0])loadFromFile(e.dataTransfer.files[0]);});
 
 (function init(){
-  if(!loadFromCode(location.hash))showPaste();
+  const peer=new URLSearchParams(location.search).get("as")==="peer";
+  if(peer||/^#u=/.test(location.hash)){
+    setRole(peer?"peer":"mentor");
+    if(!loadFromCode(location.hash))showPaste();
+    return;
+  }
+  $("roleUI").hidden=false;   // a direct visit: ask who's grading
 })();
 </script>
 </body>

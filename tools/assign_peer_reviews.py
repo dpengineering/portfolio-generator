@@ -342,10 +342,17 @@ def preflight(base, token, course, assignment):
 # ---- status: who finished, and does the comment look like ours -------------
 # Canvas marks a peer review complete the moment the reviewer leaves ANY comment
 # on the author's submission, so "complete" alone says nothing about whether it
-# was the review the generator composed. These are the markers that composer
-# (buildReviewComment in unit.html) always writes. Matched as substrings, not
-# whole lines, so a paste that lost its line breaks still passes.
+# was a real review. These are the markers our composers always write. Matched
+# as substrings, not whole lines, so a paste that lost its line breaks still
+# passes. Two formats share the header:
+#   - the grader's peer mode (formatPeerComment in grade-unit.html), current;
+#   - the generator's old peer mode (buildReviewComment, since removed from
+#     unit.html), still recognized so --status works on past assignments.
 HEADER = re.compile(r"Peer review of (.+?)['’]s\s.*?post", re.S)
+GRADER_MARK = "Peer score:"
+GRADER_SECTIONS = (("PROJECT UPDATE", "project update scores"),
+                   ("REFLECTION", "reflection scores"),
+                   ("FILE MANAGEMENT", "file management scores"))
 SECTIONS = (("PROJECT UPDATE", "project update feedback"),
             ("REFLECTION", "reflection feedback"),
             ("RUBRIC FEEDBACK", "rubric feedback"))
@@ -364,12 +371,13 @@ def first_name_overlap(typed, canvas_name):
 
 
 def check_comment(text, author_name):
-    """Reasons a comment doesn't look like the generator made it ([] = looks right)."""
+    """Reasons a comment doesn't look like our tools made it ([] = looks right)."""
     text = (text or "").strip()
     head = HEADER.match(text)
     if not head:
-        return ["doesn't start with the generator's “Peer review of …” header"]
-    problems = [f"no {what}" for marker, what in SECTIONS if marker not in text]
+        return ["doesn't start with the “Peer review of …” header"]
+    sections = GRADER_SECTIONS if GRADER_MARK in text else SECTIONS
+    problems = [f"no {what}" for marker, what in sections if marker not in text]
     if not first_name_overlap(head.group(1), author_name):
         problems.append(f"header names “{head.group(1).strip()}”, not {author_name} "
                         "— review pasted on the wrong submission?")

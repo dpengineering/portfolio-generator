@@ -110,41 +110,11 @@
   .rub-lvtag{flex:none;font-weight:700;color:var(--accent);min-width:1.1rem}
   .selfscore{background:#fff;border:1px solid var(--border);border-radius:8px;padding:.5rem .7rem;margin:0 0 .7rem;font-size:.82rem;color:var(--muted)}
   .selfscore strong{color:var(--accent);font-size:1rem}
-  /* peer review (Grade 12): a reviewer annotates a classmate's post */
-  .peertoggle{align-items:center;gap:.4rem;font:inherit;font-size:.9rem;font-weight:600;color:var(--ink);
-    background:#fff;border:1px solid var(--border);border-radius:8px;padding:.55rem .9rem;cursor:pointer;
-    white-space:nowrap;user-select:none;margin:0}
-  .peertoggle:not([hidden]){display:inline-flex}
-  .peertoggle:hover{border-color:#1d4ed8}
-  .peertoggle input{flex:none;margin:0}
-  .peertoggle.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
-  #peerNameWrap{margin:0 0 .8rem;max-width:22rem}
-  .suggest-wrap{margin:.55rem 0 0}
-  .suggest-label{display:block;font-size:.82rem;font-weight:700;color:#1d4ed8}
-  .suggest-wrap textarea{min-height:70px;border-color:#bfdbfe;margin-top:.25rem}
-  textarea.locked{background:#f1f5f9;color:#64748b;cursor:not-allowed}
-  /* a reviewer sees the author's self-assessment greyed out and untouchable */
-  .rubric-row.peerlocked .rub-crit{opacity:.55}
-  .rubric-row.peerlocked .rub-check{cursor:not-allowed}
-  .rubric-row.peerlocked .rub-comment{background:#f1f5f9;color:#64748b;cursor:not-allowed}
   /* the two halves of the project update, visually separated in the form */
   .pu-part{border-top:2px solid var(--border);padding-top:.7rem;margin-top:1rem}
   .pu-part:first-of-type{border-top:0;padding-top:0;margin-top:0}
   .pu-head{font-weight:700;font-size:.92rem;color:var(--accent);margin-bottom:.3rem}
   .pu-head .pu-n{font-weight:400;color:var(--muted)}
-  /* Peer review: the author's own fields come off the page entirely. The
-     reviewer reads the finished post in the preview and the left column holds
-     nothing but their own feedback, so there's no second copy of the text to
-     wade through and nothing of the author's to edit by accident. */
-  body.peering .author-only{display:none !important}
-  body:not(.peering) .peer-only{display:none !important}
-  body.peering header.app{background:#1e3a8a}          /* reviewing someone else's work, not writing your own */
-  body.peering .pu-part{border-top-width:1px}
-  .peer-howto{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:.7rem .9rem;
-    margin:0 0 1rem;font-size:.85rem;color:#1d4ed8;line-height:1.5}
-  .peer-wrap{margin-top:.55rem;border-top:1px dashed var(--border);padding-top:.5rem}
-  .peer-wrap textarea{min-height:70px;border-color:#bfdbfe}
-  .locknote{font-size:.72rem;font-weight:700;color:#64748b;margin:.1rem 0 .35rem}
   .pubtoggle{display:flex;align-items:flex-start;gap:.45rem;font-size:.82rem;font-weight:600;color:var(--ink);margin:0 0 .9rem;cursor:pointer}
   .pubtoggle input{margin-top:.15rem;flex:none}
   /* Publish-ready toggle is hidden for now — students only need it at year-end.
@@ -176,8 +146,7 @@
   <div class="app-head">
     <div>
       <h1>📙 Unit / Monthly Post Generator</h1>
-      <p class="author-only">Write up your project update this unit/month, add captioned photos, and download a finished portfolio page.</p>
-      <p class="peer-only">Peer review — read your classmate's post on the right and write your feedback on the left.</p>
+      <p>Write up your project update this unit/month, add captioned photos, and download a finished portfolio page.</p>
     </div>
     <a class="switch-link" href="index.html">← All tools</a>
   </div>
@@ -187,10 +156,6 @@
   <div class="form">
     <div class="toolbar">
       <button class="btn" id="download">⬇ Download portfolio</button>
-      <button class="btn" id="copyReview" type="button" hidden>📋 Copy review for Canvas</button>
-      <!-- A mode switch belongs with the other controls, not inside the rubric
-           it reshapes. -->
-      <label class="peertoggle" id="peerToggleWrap" hidden><input type="checkbox" id="peer">🔍 Peer review</label>
       <button class="btn alt" id="save">💾 Save draft</button>
       <button class="btn alt" id="loadBtn">📂 Load draft or post</button>
       <input type="file" id="loadFile" accept=".json,.html,.htm,application/json,text/html" hidden>
@@ -199,29 +164,19 @@
       <span class="savednote" id="autonote"></span>
     </div>
 
-    <div class="tip author-only">⚠️ <strong>Your work isn't saved automatically.</strong> Tap <strong>💾 Save draft</strong> before you close this page, and <strong>📂 Load draft</strong> to pick up where you left off.
+    <div class="tip">⚠️ <strong>Your work isn't saved automatically.</strong> Tap <strong>💾 Save draft</strong> before you close this page, and <strong>📂 Load draft</strong> to pick up where you left off.
     You can also use <a href="https://docs.google.com/document/d/1iV-RUj3dHnWcRVB7tMuCfEqWDeEDLgmjhzk_8CkwKcI/copy" target="_blank">this Google Doc Template</a> to draft your writing.</div>
-
-    <div class="peer-howto" id="peerHowTo" hidden>
-      <strong>You're reviewing a classmate's post.</strong>
-      Fill in your feedback below, press <strong>📋 Copy review for Canvas</strong>, then go back to the
-      peer review in Canvas and paste it as a <strong>comment</strong> on their submission.
-      Leaving that comment is what marks your peer review complete — nothing you download here does.
-      <br>📱 <strong>On an iPad, use Canvas in Safari</strong> — the Canvas app doesn't show peer reviews.
-    </div>
-
-    <div id="peerNameWrap" hidden><label>Reviewer's name<input type="text" id="peerName" placeholder="Your name (the reviewer)"></label></div>
 
     <div class="gate" id="gate"></div>
 
-    <div class="help author-only">
+    <div class="help">
       <strong>How this works:</strong> Write up your project's progress over <em>this unit</em> in two parts
       (150–200 words each), add two captioned photos to each part,
       then click <em>Download portfolio</em> and submit to Canvas.
       <br><strong><a href="https://sites.google.com/dpengineering.org/dpea-portfolios/key-terms" target="_blank">Key terms:</a></strong> wrap a word in asterisks like *torque* to show it as a light-blue key term.
     </div>
 
-    <details class="fold author-only" data-fold="title" open>
+    <details class="fold" data-fold="title" open>
       <summary>Title Card<span class="fold-note"></span></summary>
       <div class="fold-body">
       <fieldset>
@@ -281,22 +236,17 @@
       <div class="fold-body">
       <fieldset>
       <legend>Personal Reflection/Synthesis</legend>
-      <div class="locknote" hidden>🔒 Read their Reflection in the preview, then add your feedback below.</div>
-      <textarea id="reflection" class="author-only" style="min-height:160px" placeholder="Text here..."></textarea>
-      <div class="starter author-only" id="reflection-starter"></div>
-      <div class="counter author-only" id="reflection-count"></div>
-      <label class="author-only">Images <span class="hint">(optional — up to 2, each with a brief caption)</span></label>
-      <div class="drop author-only" id="reflDrop">Drag images here, or click to choose</div>
-      <div class="thumbs author-only" id="reflThumbs"></div>
-      <div class="suggest-wrap" hidden>
-        <label class="suggest-label">✏️ Reviewer suggestion for the Reflection <span class="hint">(required)</span>
-        <textarea id="suggestReflection" placeholder="Suggest an edit or improvement for this section…"></textarea></label>
-      </div>
+      <textarea id="reflection" style="min-height:160px" placeholder="Text here..."></textarea>
+      <div class="starter" id="reflection-starter"></div>
+      <div class="counter" id="reflection-count"></div>
+      <label>Images <span class="hint">(optional — up to 2, each with a brief caption)</span></label>
+      <div class="drop" id="reflDrop">Drag images here, or click to choose</div>
+      <div class="thumbs" id="reflThumbs"></div>
     </fieldset>
       </div>
     </details>
 
-    <details class="fold author-only" data-fold="filemgmt" open>
+    <details class="fold" data-fold="filemgmt" open>
       <summary>File Management<span class="fold-note"></span></summary>
       <div class="fold-body">
       <fieldset>
@@ -314,8 +264,7 @@
       <fieldset class="rubricset" id="rubricSet">
       <legend id="rubricLegend">Self Grade Rubric</legend>
       <p class="hint" id="selfHint" style="margin:.2rem 0 .6rem">Grade your own work honestly against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a>. <span class="hint-check">Check the criteria that are truly met — your level is calculated automatically (Level 4 requires every Level 3 <em>and</em> Level 4 box) — and add a brief comment for each category (required).</span><span class="hint-lv">Pick the level that honestly describes your work for each criterion — the same scale your mentor grades on — and add a brief comment for each category (required). Your self-score is calculated the same way your mentor's is: each category averages its criteria, weighted Project Update 60%, Reflection 30%, File Management 10%.</span> This renders as a collapsible “Self Grade Rubric” section at the end of your post.</p>
-      <div class="selfscore author-only" id="selfScore"></div>
-      <p class="hint" id="peerHint" hidden style="margin:.2rem 0 .6rem">You're reviewing a classmate's post. Their own self-assessment is locked — read it against the <a href="https://docs.google.com/spreadsheets/d/12q8aC8uSB-IFD4VvdjaDjOh84WDcHf_IXs7MYRJzaYs/edit?usp=sharing" target="_blank" rel="noopener">full unit rubric</a> and add your feedback in the box under each category (required).</p>
+      <div class="selfscore" id="selfScore"></div>
       <div id="rubricRows"></div>
     </fieldset>
       </div>
@@ -357,76 +306,6 @@ function applyGradeMode(){
   // the current month (a convenience the student can still change), else leave blank.
   sel.value=opts.includes(prev)?prev:(monthly?MONTHS[new Date().getMonth()]:"");
   if($("rubricRows").children.length)updateRubricLevels();   // Grade 12 grades per criterion
-  // Peer review is a Grade 12 feature: show its toggle only then, and force it off otherwise.
-  const pt=$("peerToggleWrap");
-  if(pt){
-    pt.hidden=!monthly;
-    if(!monthly&&$("peer").checked){$("peer").checked=false;applyPeerMode();}
-  }
-}
-
-// Peer review turns the post into a review of a classmate's work: the author's
-// writing locks, a suggestion box opens under each locked section, the rubric
-// becomes peer feedback, and a reviewer-name field appears. Toggling it off keeps
-// everything (name/suggestions stay in the data) — it just stops rendering.
-function applyPeerMode(){
-  const on=$("peer").checked;
-  $("peerNameWrap").hidden=!on;
-  document.querySelectorAll(".suggest-wrap").forEach(el=>el.hidden=!on);
-  document.querySelectorAll(".locknote").forEach(el=>el.hidden=!on);
-  [...document.querySelectorAll(".w-text,.w-sub"),$("reflection")].forEach(t=>{
-    if(t){t.readOnly=on;t.classList.toggle("locked",on);}
-  });
-  // A reviewer must not be able to rewrite the author's own self-assessment —
-  // it's the thing they're reviewing. The boxes and comments grey out and lock,
-  // and a separate feedback box opens underneath for the peer's own words.
-  document.querySelectorAll(".rub-box,.rub-lvl").forEach(b=>{b.disabled=on;});
-  document.querySelectorAll(".rub-comment").forEach(c=>{c.readOnly=on;c.classList.toggle("locked",on);});
-  document.querySelectorAll(".peer-wrap").forEach(el=>{el.hidden=!on;});
-  document.querySelectorAll(".rubric-row").forEach(r=>r.classList.toggle("peerlocked",on));
-  $("rubricLegend").textContent=on?"Peer Review":"Self Grade Rubric";
-  $("selfHint").hidden=on;
-  $("peerHint").hidden=!on;
-  // A peer review is a comment on the author's Canvas submission -- that's what
-  // marks it complete -- so copying the text is the finishing move, not a
-  // download. The download stays available, demoted, for anyone who'd rather
-  // attach the rendered page as well.
-  // Hide every author-owned field rather than just locking it, and drop the
-  // page download: in peer review the only output is the Canvas comment.
-  document.body.classList.toggle("peering",on);
-  $("peerToggleWrap").classList.toggle("on",on);
-  $("copyReview").hidden=!on;
-  $("download").hidden=on;
-  $("peerHowTo").hidden=!on;
-}
-
-// ---- the comment a reviewer pastes into Canvas ----------------------------
-// Plain text, because the Canvas comment box is plain text. Sections are only
-// included when they have something in them, so a partial review still copies.
-function buildReviewComment(){
-  const d=collect(), pr=d.peer||{};
-  const author=(d.meta.student||"").trim()||"this post";
-  const period=(d.meta.unit||"").trim();
-  const out=[];
-  out.push(`Peer review of ${author}'s ${period||"unit"} post`);
-  if(pr.reviewer)out.push(`Reviewed by ${pr.reviewer}`);
-  out.push("");
-  const part=(n)=>{
-    const txt=(pr["sUpdate"+n]||"").trim();
-    if(!txt)return;
-    const sub=(d.weeks[0]&&d.weeks[0]["sub"+n]||"").trim();
-    out.push(`PROJECT UPDATE — ${sub||"pt. "+n}`);
-    out.push(txt,"");
-  };
-  part(1);part(2);
-  if((pr.sReflection||"").trim()){out.push("REFLECTION",pr.sReflection.trim(),"");}
-  const cats=(d.rubric||[]).filter(r=>(pr.comments||{})[r.key]);
-  if(cats.length){
-    out.push("RUBRIC FEEDBACK");
-    cats.forEach(r=>out.push(`${r.category}: ${pr.comments[r.key]}`));
-    out.push("");
-  }
-  return out.join("\n").trim()+"\n";
 }
 
 // ===== Sentence starters — EDIT THESE LISTS FREELY ===================
@@ -557,26 +436,21 @@ function addWeek(data={}){
   const part=n=>`
     <div class="pu-part" data-part="${n}">
       <div class="pu-head">Project Update <span class="pu-n">— pt. ${n}</span></div>
-      <label class="author-only">Subtitle <span class="hint">(optional — replaces “pt. ${n}” as the heading in your post)</span>
+      <label>Subtitle <span class="hint">(optional — replaces “pt. ${n}” as the heading in your post)</span>
         <input type="text" class="w-sub" data-lm="${n}" placeholder="e.g. Designing the gearbox"></label>
-      <div class="locknote" hidden>🔒 Read this part in the preview, then add your feedback below.</div>
-      <label class="author-only">Your progress <span class="hint">(${PART_MIN}–${PART_MAX} words)</span>
+      <label>Your progress <span class="hint">(${PART_MIN}–${PART_MAX} words)</span>
         <textarea class="w-text" data-lm="${n}" placeholder="Text here..."></textarea></label>
-      <div class="starter author-only" data-lm="${n}"></div>
-      <div class="counter w-count author-only" data-for="${n}"></div>
-      <div class="suggest-wrap" hidden>
-        <label class="suggest-label">✏️ Reviewer suggestion for Project Update pt. ${n} <span class="hint">(required)</span>
-        <textarea class="w-suggest" data-lm="${n}" placeholder="Suggest an edit or improvement for this section…"></textarea></label>
-      </div>
-      <label class="author-only">Images for part ${n} <span class="hint">(exactly ${IMAGES_PER_PART}, each with a brief caption)</span></label>
-      <div class="drop wdrop author-only" data-group="g${n}">Drag images here, or click to choose</div>
-      <div class="thumbs wthumbs author-only" data-group="g${n}"></div>
+      <div class="starter" data-lm="${n}"></div>
+      <div class="counter w-count" data-for="${n}"></div>
+      <label>Images for part ${n} <span class="hint">(exactly ${IMAGES_PER_PART}, each with a brief caption)</span></label>
+      <div class="drop wdrop" data-group="g${n}">Drag images here, or click to choose</div>
+      <div class="thumbs wthumbs" data-group="g${n}"></div>
     </div>`;
   fs.innerHTML=`
     <legend>Project Update</legend>
     ${part(1)}${part(2)}
-    <div class="tip author-only">💻 <strong>Want to show code?</strong> Use <a href="https://ray.so/#padding=32&amp;language=cpp&amp;theme=candy&amp;background=true&amp;darkMode=true&amp;lineNumbers=true" target="_blank" rel="noopener">ray.so</a> for generating images of code, then upload that image above (and caption it).</div>
-    <div class="tip green author-only">🎬 <strong>Have a video?</strong> Convert it to a GIF with <a href="https://hapaz.net/video2gif/" target="_blank" rel="noopener">video2gif</a>, then upload the GIF above — animated GIFs stay animated.</div>`;
+    <div class="tip">💻 <strong>Want to show code?</strong> Use <a href="https://ray.so/#padding=32&amp;language=cpp&amp;theme=candy&amp;background=true&amp;darkMode=true&amp;lineNumbers=true" target="_blank" rel="noopener">ray.so</a> for generating images of code, then upload that image above (and caption it).</div>
+    <div class="tip green">🎬 <strong>Have a video?</strong> Convert it to a GIF with <a href="https://hapaz.net/video2gif/" target="_blank" rel="noopener">video2gif</a>, then upload the GIF above — animated GIFs stay animated.</div>`;
   foldBody.appendChild(fs);fold.appendChild(foldBody);
   $("weeks").appendChild(fold);
   wireFolds(FOLD_NS,fold);
@@ -649,19 +523,6 @@ function collect(){
     reflectionImgs:state.reflectionImgs.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl})),
     fileMgmt:state.fileMgmt.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl})),
     rubric:getRubric(),
-    peer:(()=>{
-      const sugOf=n=>{const el=document.querySelector(`.w-suggest[data-lm="${n}"]`);return el?el.value:"";};
-      // Peer feedback is kept separate from the author's own rubric comments so
-      // a review never overwrites the work it is reviewing.
-      const comments={};
-      document.querySelectorAll(".rubric-row").forEach(r=>{
-        const v=r.querySelector(".peer-comment").value.trim();
-        if(v)comments[r.dataset.key]=v;
-      });
-      return {on:$("peer").checked,reviewer:val("peerName"),
-        sUpdate1:sugOf(1),sUpdate2:sugOf(2),
-        sReflection:val("suggestReflection"),comments};
-    })(),
     publicView:$("publicView").checked,
     gradient:currentGrad()
   };
@@ -690,10 +551,6 @@ body[data-public="true"] details.filemgmt,body[data-public="true"] details.rubri
 .mentorbox .mb-h{font-weight:700;font-size:.9rem;color:#334155;margin-bottom:.25rem}
 .mentorbox .mb-p{margin:0 0 .55rem;font-size:.8rem;color:#64748b;line-height:1.45}
 .mentorbox .mb-url{display:block;font-family:"SF Mono",Consolas,monospace;font-size:.78rem;color:#4f46e5;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:.5rem .6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:all;-webkit-user-select:all;cursor:text}
-.peer-banner{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-family:system-ui,sans-serif;font-weight:700;border-radius:10px;padding:.6rem .95rem;margin:0 0 2rem;display:flex;align-items:center;gap:.5rem}
-.peer-note{background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #3b82f6;border-radius:8px;padding:.8rem 1.1rem;margin:-1.5rem 0 3rem}
-.peer-note-h{font-family:system-ui,sans-serif;font-weight:700;color:#1d4ed8;font-size:.92rem;margin-bottom:.4rem}
-.peer-note p{margin:.4rem 0}
 `;
 const PORTFOLIO_CSS=postCSS({accent:"#ea580c",gradFrom:"#f97316",gradTo:"#7c2d12",overlay:"rgba(67,20,7,.8)"},POST_EXTRA);
 
@@ -725,15 +582,6 @@ function buildHTML(d){
   const gradeTxt=d.meta.grade?`Grade ${d.meta.grade}`:"";
   const unitTxt=d.meta.unit?(monthly?d.meta.unit:`Unit ${d.meta.unit}`):"";
   const sub=[d.meta.project, gradeTxt, unitTxt].filter(Boolean).map(esc).join(" · ");
-  // Peer review: a classmate's suggestions render as callouts after each section,
-  // the rubric becomes "Peer Review", and a banner names the reviewer.
-  const peer=d.peer||{}, peerOn=!!peer.on;
-  const peerBanner=peerOn
-    ? `<div class="peer-banner">🔍 Peer reviewed${peer.reviewer?` by ${esc(peer.reviewer)}`:""}</div>` : "";
-  const peerNote=(label,text)=>(peerOn&&text&&text.trim())
-    ? `<aside class="peer-note"><div class="peer-note-h">✏️ Reviewer suggestion${peer.reviewer?` — ${esc(peer.reviewer)}`:""} · ${esc(label)}</div>\n${paras(text)}\n</aside>` : "";
-  // The author's self-assessment keeps its own name even on a reviewed post —
-  // the peer's words go in a section of their own below it.
   const rubricTitle="Self Grade Rubric";
   const figCtr={n:0};  // figure numbers run across the whole post
   // Two parts, each its own section so the post reads in chunks. The heading
@@ -747,7 +595,7 @@ function buildHTML(d){
     if(text)html+=paras(text)+"\n";
     if(imgs.length)html+=gallery(imgs,figCtr,n)+"\n";
     html+="</section>";
-    return html+(peerNote(`Project Update pt. ${n}`,peer[`sUpdate${n}`])||"");
+    return html;
   }).filter(Boolean).join("\n\n")).join("\n\n");
   const reflImgs=(d.reflectionImgs||[]).filter(i=>i.dataUrl);
   const reflection=(d.reflection||reflImgs.length)
@@ -781,11 +629,6 @@ function buildHTML(d){
         const note=r.comments?`<p class="rub-note">${esc(r.comments)}</p>`:"";
         return `<div class="rub-block">\n<h3>${esc(r.category)} <span class="lvl">${esc(r.level)}</span></h3>\n${lis}\n${note}\n</div>`;
       }).join("\n")+`\n${selfScore}${mentorBox}\n</details>`:"";
-  const peerCats=peerOn?(d.rubric||[]).filter(r=>(peer.comments||{})[r.key]):[];
-  const peerRubric=peerCats.length
-    ? `<details class="rubric peer">\n<summary>Peer Review${peer.reviewer?` — ${esc(peer.reviewer)}`:""}</summary>\n`+peerCats.map(r=>
-        `<div class="rub-block">\n<h3>${esc(r.category)}</h3>\n<p class="rub-note">${esc(peer.comments[r.key])}</p>\n</div>`
-      ).join("\n")+`\n</details>`:"";
   // Embedded editable state so this page can be re-opened in the generator.
   // Photos are omitted here (they're already inline above) to avoid doubling
   // the file size; they're recovered from the rendered <img> tags on load.
@@ -795,7 +638,7 @@ function buildHTML(d){
     text2:w.text2,sub2:w.sub2,
     images2:(w.images2||[]).map(i=>({name:i.name,caption:i.caption}))
   })),reflectionImgs:(d.reflectionImgs||[]).map(i=>({name:i.name,caption:i.caption})),
-  fileMgmt:(d.fileMgmt||[]).map(i=>({name:i.name,caption:i.caption})),rubric:d.rubric||[],peer:d.peer||null,publicView:!!d.publicView,gradient:d.gradient};
+  fileMgmt:(d.fileMgmt||[]).map(i=>({name:i.name,caption:i.caption})),rubric:d.rubric||[],publicView:!!d.publicView,gradient:d.gradient};
   const dataJson=JSON.stringify(editData).replace(/</g,"\\u003c");
   return `<!doctype html>
 <html lang="en">
@@ -809,13 +652,10 @@ function buildHTML(d){
 <body data-public="${d.publicView?'true':'false'}">
 ${coverHeader(d,name,sub)}
 <main>
-${peerBanner}
 ${sections||"<p>Fill in your project update to see your portfolio here.</p>"}
 ${reflection}
-${peerNote("Reflection",peer.sReflection)}
 ${fileMgmt}
 ${rubric}
-${peerRubric}
 </main>
 <footer><p>${esc(name)} · ${monthYear}</p></footer>
 <script type="application/json" id="portfolio-data">${dataJson}<\/script>
@@ -848,9 +688,8 @@ function keyTermCount(){
 function renderCounter(el,words,min,max){
   const ok=words>=min&&words<=max;
   if(el){
-    // Swap only the state class. Rebuilding className wholesale used to drop
-    // whatever else the element carried -- which silently un-hid the counters
-    // in peer review, since that's driven by an `author-only` class.
+    // Swap only the state class; rebuilding className wholesale would drop
+    // whatever else the element carries.
     el.classList.remove("ok","lo","hi");
     el.classList.add(ok?"ok":words<min?"lo":"hi");
     el.textContent=words+` / ${min}–${max} words`+(words<min?` — ${min-words} more to go`
@@ -887,32 +726,6 @@ function validate(){
   const grOK=!!$("grade").value, unOK=!!$("unit").value;
   const kt=keyTermCount(), ktOK=kt>=MIN_KEYTERMS;
   const row=(ok,label)=>`<div class="req ${ok?'ok':'no'}"><span class="mark">${ok?'✓':'○'}</span>${label}</div>`;
-  // Peer review mode: the reviewer can't change the (locked) author content, so the
-  // checklist is their own — name, a suggestion per section, and full rubric feedback.
-  if($("peer")&&$("peer").checked){
-    // Count the REVIEWER's boxes, not the author's. The .rub-comment fields hold
-    // the author's own self-assessment and are locked in peer mode, so gating on
-    // them would make the review impossible to finish whenever the author left a
-    // category blank.
-    const peerDone=rubRows.filter(r=>r.querySelector(".peer-comment").value.trim()).length;
-    const peerRubOK=rubRows.length>0&&peerDone===rubRows.length;
-    const revOK=!!$("peerName").value.trim();
-    const sug=n=>{const el=document.querySelector(`.w-suggest[data-lm="${n}"]`);return !!(el&&el.value.trim());};
-    const suU1OK=sug(1), suU2OK=sug(2), suUOK=suU1OK&&suU2OK;
-    const suROK=!!$("suggestReflection").value.trim();
-    $("gate").innerHTML='<div class="ghead">To finish your review, complete these, then copy it into a Canvas comment:</div>'+
-      row(revOK,`Enter your name (the reviewer)`)+
-      row(suU1OK,`Suggest an edit for Project Update pt. 1`)+
-      row(suU2OK,`Suggest an edit for Project Update pt. 2`)+
-      row(suROK,`Suggest an edit for the Reflection`)+
-      row(peerRubOK,`Add your feedback for all ${rubRows.length} rubric categories (${peerDone}/${rubRows.length})`);
-    const okP=revOK&&suUOK&&suROK&&peerRubOK;
-    $("copyReview").disabled=!okP;
-    $("copyReview").title=okP?"":"Finish the peer-review items above";
-    $("download").disabled=!okP;
-    $("download").title=okP?"":"Finish the peer-review items above";
-    return okP;
-  }
   $("gate").innerHTML='<div class="ghead">To download, finish these:</div>'+
     row(nameOK,`Enter your first and last name`)+
     row(grOK,`Choose your grade`)+
@@ -962,26 +775,10 @@ function postFileName(){
   const monthly=m.grade==="12";
   const grade=`Grade${alnum(m.grade)||"X"}`;
   const period=monthly?(alnum(m.unit)||"X"):`Unit${alnum(m.unit)||"X"}`;
-  // A peer review is the author's post plus the reviewer's marks — tag it so the two are distinguishable.
-  const rev=(c.peer&&c.peer.on&&c.peer.reviewer)?`_reviewedby_${alnum(c.peer.reviewer)||"Reviewer"}`:"";
-  return `${who}_${monthly?"MonthlyPost":"UnitPost"}_${grade}_${period}${rev}.html`;
+  return `${who}_${monthly?"MonthlyPost":"UnitPost"}_${grade}_${period}.html`;
 }
 $("download").onclick=()=>{if(!validate())return;downloadBlob(postFileName(),buildHTML(collect()),"text/html");};
 $("save").onclick=()=>downloadBlob(slug()+"-journal.json",JSON.stringify(collect()),"application/json");
-$("copyReview").onclick=async()=>{
-  if(!validate())return;
-  const text=buildReviewComment();
-  try{
-    await navigator.clipboard.writeText(text);
-    $("copyReview").textContent="📋 Copied — paste it into Canvas";
-    setTimeout(()=>{$("copyReview").textContent="📋 Copy review for Canvas";},2500);
-    notify("Copied. Open your partner's submission in Canvas (in Safari on an iPad — the Canvas app doesn't show peer reviews), paste this as a comment, and submit it — that's what marks your peer review complete.","info");
-  }catch(e){
-    // clipboard blocked (iframe, old Safari): hand them the text as a file
-    downloadBlob("peer-review.txt",text,"text/plain");
-    notify("Couldn't reach the clipboard, so your review downloaded as a text file. Open it, copy the text, and paste it into a Canvas comment.","warn");
-  }
-};
 $("loadBtn").onclick=()=>$("loadFile").click();
 function parsePortfolioHTML(txt){
   const doc=new DOMParser().parseFromString(txt,"text/html");
@@ -1049,16 +846,14 @@ $("clear").onclick=()=>{
   state.reflectionImgs=[];renderReflectionImgs();
   state.fileMgmt=[];renderFileMgmt();
   setRubric([]);
-  $("peer").checked=false;$("peerName").value="";$("suggestReflection").value="";
-  setPeerComments({});
   $("weeks").innerHTML="";state.images={};
   addWeek();
-  applyPeerMode();
   updatePreview();
 };
 
-// restoring: reloading this browser's own draft (on refresh), not opening a file.
-function loadData(d,restoring){
+// Peer review now happens in grade-unit.html; any peer data in an older draft or
+// post (d.peer) is ignored.
+function loadData(d){
   const meta=d.meta||{};
   let first=meta.first||"", last=meta.last||"";
   if(!first&&!last&&meta.student){        // legacy draft/HTML: split the old single name field
@@ -1082,50 +877,7 @@ function loadData(d,restoring){
   setRubric(d.rubric);
   $("weeks").innerHTML="";state.images={};
   addWeek((d.weeks&&d.weeks[0])||{});
-  // Peer review (Grade 12 only): restore after the week exists so the update suggestion has a home.
-  // Opening someone else's post turns peer review on. A restored draft keeps
-  // whatever was saved, so unchecking the box survives a refresh.
-  const pr=d.peer||{}, partners=!restoring&&isPartnersPost(meta);
-  $("peer").checked=(!!pr.on||partners)&&isMonthly();
-  $("peerName").value=pr.reviewer||reviewerDefault();
-  $("suggestReflection").value=pr.sReflection||"";
-  [1,2].forEach(n=>{
-    const el=document.querySelector(`.w-suggest[data-lm="${n}"]`);
-    // sUpdate is the pre-split single suggestion; fold it into part 1.
-    if(el)el.value=(n===1?(pr.sUpdate1||pr.sUpdate):pr.sUpdate2)||"";
-  });
-  setPeerComments(pr.comments);
-  applyPeerMode();
-  if(partners&&!pr.on){
-    notify(`This is ${esc(meta.student||"someone else")}'s post — peer review is on. Their writing and self-assessment are locked; add your feedback in the boxes that opened up.`,"info");
-  }
   updatePreview();
-}
-
-// ---- whose post is this? -------------------------------------------------
-// Opening a classmate's post should land you straight in peer review rather
-// than making you remember to flip a toggle — and, once posts are handed
-// around by something other than email, this is the hook that tells us the
-// file didn't come from the person sitting here.
-//
-// Three signals, cheapest first: an explicit ?peer=1 in the URL (what a future
-// LTI / Drive handoff would set), then a name that doesn't match the profile.
-// Anything we can't tell is treated as your own post, so a student is never
-// locked out of their own writing.
-function peerParam(){
-  const v=new URLSearchParams(location.search).get("peer");
-  return v==="1"||v==="true";
-}
-function isPartnersPost(meta){
-  if(peerParam())return true;
-  const me=getProfile(), mine=[me.first,me.last].filter(Boolean).join(" ").trim().toLowerCase();
-  const theirs=((meta&&meta.student)||"").trim().toLowerCase();
-  if(!mine||!theirs)return false;          // don't guess without both names
-  return mine!==theirs;
-}
-function reviewerDefault(){
-  const me=getProfile();
-  return [me.first,me.last].filter(Boolean).join(" ").trim();
 }
 
 // Drafts are capped by localStorage (~5MB) and photos are what overflows it.
@@ -1143,10 +895,9 @@ function collectLight(){
 }
 
 // autosave() now lives in shared.js (persists collect() under DRAFT_KEY)
-["firstName","lastName","project","grade","unit","reflection","peerName","suggestReflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
+["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
 $("grade").addEventListener("change",()=>{applyGradeMode();fillGradeProject($("grade").value);refGradeChanged();autosave();schedulePreview();validate();});
 wireRefCover({grade:()=>$("grade").value,onChange:()=>{renderCover();autosave();updatePreview();}});
-$("peer").addEventListener("change",()=>{applyPeerMode();autosave();schedulePreview();validate();});
 $("publicView").addEventListener("change",()=>{autosave();schedulePreview();});
 // ---- self grade rubric (students check the criteria they meet; level is computed) ----
 // Cumulative per the unit rubric: Level 4 = every Level 3 AND every Level 4 box.
@@ -1169,19 +920,16 @@ function buildRubric(){
       `<label class="rub-check"><input type="checkbox" class="rub-box" data-tier="${name}" value="${esc(t)}"> ${esc(t)}</label>`).join(""):"";
     row.innerHTML=
       `<div class="rub-cathead"><span class="rub-cat">${esc(cat.label)}</span><span class="rub-level" data-level="Level 1">Level 1</span></div>`+
-      `<div class="rub-crit author-only">`+tier("l3",cat.l3,"Level 3 criteria")+
+      `<div class="rub-crit">`+tier("l3",cat.l3,"Level 3 criteria")+
         tier("l4",cat.l4,cat.l3.length?"Level 4 criteria (in addition to Level 3)":"Level 4 criteria")+`</div>`+
-      `<div class="rub-levels author-only">`+UR_CRITERIA.filter(c=>c.sec===cat.key).map(c=>
+      `<div class="rub-levels">`+UR_CRITERIA.filter(c=>c.sec===cat.key).map(c=>
         `<div class="rub-critlv" data-crit="${c.id}"><div class="rub-critname">${esc(c.label)}</div>`+
         urLevelsOf(c).map(l=>`<label class="rub-lv"><input type="radio" class="rub-lvl" name="lvl_${c.id}" value="${l}"><span class="rub-lvtag">${l}</span><span>${esc(c.levels[l])}</span></label>`).join("")+
         `</div>`).join("")+`</div>`+
-      `<label class="rub-comment-label author-only">Comments<textarea class="rub-comment" placeholder="Explain your self-assessment for this category…"></textarea></label>`+
-      `<div class="peer-wrap" hidden><div class="locknote">🔒 The author's self-assessment. Add your feedback below.</div>`+
-      `<label class="rub-comment-label">Your feedback<textarea class="peer-comment" placeholder="What did they do well in this category, and what would you change?…"></textarea></label></div>`;
+      `<label class="rub-comment-label">Comments<textarea class="rub-comment" placeholder="Explain your self-assessment for this category…"></textarea></label>`;
     box.appendChild(row);
     row.querySelectorAll(".rub-box,.rub-lvl").forEach(b=>b.addEventListener("change",()=>{updateRubricLevels();autosave();schedulePreview();validate();}));
     row.querySelector(".rub-comment").addEventListener("input",()=>{autosave();schedulePreview();validate();});
-    row.querySelector(".peer-comment").addEventListener("input",()=>{autosave();schedulePreview();validate();});
   });
   updateRubricLevels();
 }
@@ -1228,12 +976,6 @@ function getRubric(){
     return r;
   });
 }
-function setPeerComments(map){
-  map=map||{};
-  document.querySelectorAll(".rubric-row").forEach(r=>{
-    r.querySelector(".peer-comment").value=map[r.dataset.key]||"";
-  });
-}
 function setRubric(arr){
   arr=arr||[];
   RUBRIC.forEach(cat=>{
@@ -1276,10 +1018,9 @@ trackProfile(PROFILE_FIELDS);
 // ---- boot ----
 (function init(){
   const saved=localStorage.getItem(DRAFT_KEY);
-  if(saved){try{loadData(JSON.parse(saved),true);hydrateProfile();schedulePreview();return;}catch(e){}}
+  if(saved){try{loadData(JSON.parse(saved));hydrateProfile();schedulePreview();return;}catch(e){}}
   hydrateProfile();
   addWeek();
-  applyPeerMode();
   updatePreview();
 })();
 </script>

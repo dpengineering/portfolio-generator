@@ -15,7 +15,7 @@ each tool runs entirely in the browser and produces a **self-contained
 | `/onepager` (`onepager.html`) | One-pager — a printable intro page for an exhibit | grade 12 | per project |
 | `/review` (`review.html`) | Standalone performance review — kept as a fallback, no longer linked | — | — |
 | `/grade` (`grade.html`) | Mentor grading tool (performance reviews; hands unit-post links to `/grade-unit`) | mentors | weekly |
-| `/grade-unit` (`grade-unit.html`) | Mentor grading tool for unit/monthly posts | mentors | per unit / month |
+| `/grade-unit` (`grade-unit.html`) | Unit/monthly post grader — mentors, and peer reviewers via the hub's Peer Review tile | mentors, grade 12 | per unit / month |
 | `/pair` (`pair.html`) | Peer-review pairing tool | teachers | per unit / month |
 
 Students in grades 9–11 use the two post generators. Grade 12 fills in a weekly
@@ -190,6 +190,11 @@ grader load, so the student's self-score and the mentor's score can't drift apar
   `/grade-unit` as an `.html` file, photos included.
 - **Rubric changes.** Bump `UR_VERSION` in `unitrubric.js`; the grader shows the
   version a post was written to and warns on a mismatch.
+- **Who's grading** comes from how it was opened: the post's link is a mentor,
+  the hub's **Peer Review** tile (`/grade-unit?as=peer`, Grade 12) is a peer,
+  and a direct visit asks. See [Peer review](#peer-review) for peer mode.
+- **Comment boxes.** A toggle adds a comment box to every section and an
+  optional note to every criterion; mentors' choice is remembered per browser.
 
 Full design: [`docs/PLAN-unit-grading.md`](docs/PLAN-unit-grading.md).
 
@@ -263,16 +268,24 @@ group* switch for exactly that case, so an existing batch of submissions can be
 run end to end. It's a visible switch rather than a silent fallback, because
 left on during a real cycle it would pair a 9th grader with a senior.
 
-Reviewers then download their partner's file from Canvas and load it into
-`/unit`, where peer-review mode switches itself on because the post's author
-isn't them. They write their feedback, press **Copy review for Canvas**, and
-paste it as a **comment** on their partner's submission.
+Reviewers then download their partner's file from Canvas (the peer-review page
+offers only the download and a comment box) and open the hub's **Peer Review**
+tile, which is `/grade-unit` in peer mode. They drop the file in and:
+
+- score every criterion from a **blank start**; the author's self-grade, their
+  comments, and self-score stay hidden until all 8 are scored, then appear
+  beside each criterion for comparison;
+- write a **comment for each section** (required), plus optional notes per criterion;
+- press **Copy review** (enabled once that's all done, with their name filled in
+  from the hub profile) and paste it as a **comment** on their partner's submission.
 
 That last step is the one that matters: **Canvas marks a peer review complete
-when the reviewer leaves a comment.** Nothing downloaded from the generator
-completes anything, so peer mode makes copying the comment the primary action
-and demotes the download to an optional extra for anyone who also wants to
-attach the rendered page.
+when the reviewer leaves a comment.** The comment includes the peer's score,
+labeled as a classmate's estimate rather than a grade.
+
+Peer review used to happen in a mode of the generator itself; that's gone. Peer
+data in older drafts and posts is ignored, and posts already reviewed that way
+keep the reviewer notes baked into their HTML.
 
 > **iPads: use Canvas in Safari, not the Canvas app.** The app notifies students
 > that a peer review is assigned but never shows it. In Safari they can open the
@@ -296,8 +309,10 @@ Given the `pairings.json`, it also labels each review by rotation/period and
 lists pairings that were planned but never assigned.
 
 "Check it" means the reviewer commented but the comment doesn't look like the
-one the generator composes: no `Peer review of …'s … post` header, a missing
-`PROJECT UPDATE` / `REFLECTION` / `RUBRIC FEEDBACK` section, a header naming
+one the grader composes: no `Peer review of …'s … post` header, a missing
+`PROJECT UPDATE` / `REFLECTION` / `FILE MANAGEMENT` section (or, for reviews
+from the old generator peer mode, `PROJECT UPDATE` / `REFLECTION` /
+`RUBRIC FEEDBACK`), a header naming
 someone other than the author (pasted on the wrong submission), the same text
 as another reviewer, or only an attachment. It's a heuristic for where to look,
 not proof: someone could type the header by hand. Canvas marks a review
