@@ -1,7 +1,7 @@
 # DPEA Portfolios
 
 The student-facing portfolio tools for DPEngineering. Everything is plain
-HTML/CSS/JS with no build step, no server, no accounts, and no database —
+HTML/CSS/JS with no build step, no server, no required accounts, and no database —
 each tool runs entirely in the browser and produces a **self-contained
 `.html` file** the student submits through Canvas.
 
@@ -324,6 +324,52 @@ completion report is made by the script and only *displayed* by `pair.html`: a
 web page can't call the Canvas API, and shouldn't hold your token. Nothing is sent to
 any third party, and deliberately nothing to an AI service — rosters and student
 work shouldn't go there.
+
+## Google Drive (optional)
+
+Students can **Sign in with Google** on the hub, and from then on the generators
+file their work into one folder in their own Drive:
+
+```
+DPEA Portfolio Data/
+  Drafts/                one draft per tool, autosaved as they work, photos included
+  Rotation Posts/        each download is saved here too, under the same name
+  Unit Posts/
+  Performance Reviews/
+  One-Pagers/
+```
+
+It's a **bonus, never a requirement.** Downloads still download and drafts still
+autosave to the browser, signed in or not, so a student whose sign-in is blocked
+loses nothing. Everything lives in [`drive.js`](drive.js); `shared.js`'s
+`autosave()` calls one hook in it, and each generator calls `driveTool()` at the
+end of its script and `driveSavePost()` after each download.
+
+- **Permission:** `drive.file` only, so the site can see the files it created and
+  nothing else. Folders are found by an `appProperties` tag, not their name, so
+  students can rename or move them. A trashed folder is recreated.
+- **No server, so no refresh token.** A sign-in lasts about an hour. It's kept for
+  the browser tab, and when it lapses the toolbar shows **☁️ Reconnect Drive**.
+  Saves made in the meantime wait for it.
+- **Drafts across devices.** On a device with no draft, the Drive draft opens on
+  its own. If this device has a draft but Drive's is newer, the student chooses
+  which to keep, and nothing is written to Drive until they do.
+- **Clear trashes the Drive draft** (restorable from Drive's Trash for 30 days).
+  Otherwise a reload would find no draft on the device and reopen the cleared
+  one from Drive. Downloaded posts are never touched.
+- **Same name, same file.** Re-downloading a fixed post replaces it in Drive
+  rather than adding a copy. Drive's version history keeps the old one.
+- **Not offered** on `file://` pages or inside the Google Sites embed.
+- Bump `drive.js?v=N` in the hub and all three generators when it changes, same
+  as `shared.js`.
+
+**Setup:** Google Cloud project `dpea-portfolio` (owned by a dpengineering.org
+account), External consent screen, web client with origins
+`https://portfolio.dpeacl.org` and `http://localhost:8000`. The client ID is
+public by design and sits at the top of `drive.js`. While the consent screen is
+in **Testing**, only the listed test users can sign in. Publishing it needs the
+[privacy page](privacy.html) and a verified `dpeacl.org`. sbunified.org students
+also need district IT to mark the client ID **Trusted** for the student OU.
 
 ## Running it locally
 

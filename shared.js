@@ -563,6 +563,9 @@ function warnOnce(msg){
 function autosave(){
   clearTimeout(autoTimer);
   autoTimer=setTimeout(()=>{
+    // Signed in to Google Drive (drive.js)? Queue a copy there too. Drive has no
+    // 5MB ceiling, so it gets the full draft even when the browser can't hold it.
+    if(typeof driveDraftChanged==="function")driveDraftChanged();
     if(tryStore(collect())){savedNote("✓ saved in this browser");return;}
     const light=(typeof collectLight==="function")?collectLight():null;
     if(light&&tryStore(light)){

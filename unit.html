@@ -280,8 +280,9 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=13"></script>
+<script src="shared.js?v=15"></script>
 <script src="unitrubric.js?v=1"></script>
+<script src="drive.js?v=2"></script>
 <script>
 const state={images:{},cover:null,fileMgmt:[],reflectionImgs:[]};
 const DRAFT_KEY="unitPostDraft";
@@ -777,7 +778,12 @@ function postFileName(){
   const period=monthly?(alnum(m.unit)||"X"):`Unit${alnum(m.unit)||"X"}`;
   return `${who}_${monthly?"MonthlyPost":"UnitPost"}_${grade}_${period}.html`;
 }
-$("download").onclick=()=>{if(!validate())return;downloadBlob(postFileName(),buildHTML(collect()),"text/html");};
+$("download").onclick=()=>{
+  if(!validate())return;
+  const name=postFileName(), html=buildHTML(collect());
+  downloadBlob(name,html,"text/html");
+  driveSavePost("unit",name,html);
+};
 $("save").onclick=()=>downloadBlob(slug()+"-journal.json",JSON.stringify(collect()),"application/json");
 $("loadBtn").onclick=()=>$("loadFile").click();
 function parsePortfolioHTML(txt){
@@ -808,15 +814,19 @@ function parsePortfolioHTML(txt){
   data.publicView=doc.body.getAttribute("data-public")==="true";
   return data;
 }
+// A saved .json draft or a downloaded post. Throws if it's neither; shared with
+// drive.js's Open from Drive.
+function openText(txt){
+  const data=/^\s*[{[]/.test(txt)?JSON.parse(txt):parsePortfolioHTML(txt);
+  if(!data)throw new Error("no embedded data");
+  loadData(data);
+}
 $("loadFile").onchange=e=>{
   const f=e.target.files[0];if(!f)return;
   const fr=new FileReader();
   fr.onload=()=>{
     try{
-      const txt=fr.result;
-      const data=/^\s*[{[]/.test(txt)?JSON.parse(txt):parsePortfolioHTML(txt);
-      if(!data)throw new Error("no embedded data");
-      loadData(data);
+      openText(fr.result);
     }catch(err){
       notify("Couldn't open that file. Choose a portfolio page (.html) made by this tool, or a saved .json draft.","error");
     }
@@ -838,6 +848,7 @@ $("clear").onclick=()=>{
   }
   disarmClear();
   localStorage.removeItem(DRAFT_KEY);
+  driveDraftCleared();          // and the Drive copy, for a signed-in student
   ["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).value="");
   applyGradeMode();                       // grade is back to blank → restore the Unit picker
   $("publicView").checked=false;
@@ -1023,6 +1034,9 @@ trackProfile(PROFILE_FIELDS);
   addWeek();
   updatePreview();
 })();
+// Optional: also file drafts and downloads in Google Drive (drive.js). Only
+// does anything for a student who signed in on the hub.
+driveTool({tool:"unit",label:"Unit post",draftKey:DRAFT_KEY,posts:"unit",collect,openText});
 </script>
 </body>
 </html>

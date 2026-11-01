@@ -178,7 +178,8 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=13"></script>
+<script src="shared.js?v=15"></script>
+<script src="drive.js?v=2"></script>
 <script>
 const DRAFT_KEY="onePagerDraft";
 const FOLD_NS="onepager";
@@ -438,7 +439,12 @@ $("frame").addEventListener("load",measureFit);
 // Named for the project, URL-style, since these are meant to be hosted:
 // "Schlieren Effect" -> schlieren-effect.html
 function slug(){return (val("project")||"one-pager").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"one-pager";}
-$("download").onclick=()=>{if(!validate())return;downloadBlob(slug()+".html",buildHTML(collect()),"text/html");};
+$("download").onclick=()=>{
+  if(!validate())return;
+  const html=buildHTML(collect());
+  downloadBlob(slug()+".html",html,"text/html");
+  driveSavePost("onepager",slug()+".html",html);
+};
 // PDF goes through the browser's print dialog ("Save as PDF"): the preview is
 // already a true Letter page, and printing keeps the text as text. The PDF is
 // named from the page <title>, the project name. A pending edit is rendered
@@ -466,15 +472,19 @@ function parseOnePagerHTML(txt){
   });
   return data;
 }
+// A saved .json draft or a downloaded one-pager. Throws if it's neither; shared with
+// drive.js's Open from Drive.
+function openText(txt){
+  const data=/^\s*[{[]/.test(txt)?JSON.parse(txt):parseOnePagerHTML(txt);
+  if(!data)throw new Error("no embedded data");
+  loadData(data);
+}
 $("loadFile").onchange=e=>{
   const f=e.target.files[0];if(!f)return;
   const fr=new FileReader();
   fr.onload=()=>{
     try{
-      const txt=fr.result;
-      const data=/^\s*[{[]/.test(txt)?JSON.parse(txt):parseOnePagerHTML(txt);
-      if(!data)throw new Error("no embedded data");
-      loadData(data);
+      openText(fr.result);
     }catch(err){
       notify("Couldn't open that file. Choose a one-pager (.html) made by this tool, or a saved .json draft.","error");
     }
@@ -493,6 +503,7 @@ $("clear").onclick=()=>{
   }
   disarmClear();
   localStorage.removeItem(DRAFT_KEY);
+  driveDraftCleared();          // and the Drive copy, for a signed-in student
   loadData({});
 };
 
@@ -524,6 +535,9 @@ SECTIONS.forEach(({key})=>{
   if(saved){try{loadData(JSON.parse(saved));return;}catch(e){}}
   loadData({});
 })();
+// Optional: also file drafts and downloads in Google Drive (drive.js). Only
+// does anything for a student who signed in on the hub.
+driveTool({tool:"onepager",label:"One-pager",draftKey:DRAFT_KEY,posts:"onepager",collect,openText});
 </script>
 </body>
 </html>

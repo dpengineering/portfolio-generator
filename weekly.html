@@ -311,8 +311,9 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=13"></script>
+<script src="shared.js?v=15"></script>
 <script src="perfreview.js?v=1"></script>
+<script src="drive.js?v=2"></script>
 <script>
 const state={images:{},cover:null};
 const DRAFT_KEY="portfolioDraft";
@@ -700,7 +701,12 @@ function postFileName(){
   const unit=`Unit${alnum(m.unit)||"X"}`;
   return `${who}_${cls}_${grade}_${unit}.html`;
 }
-$("download").onclick=()=>{if(!validate())return;downloadBlob(postFileName(),buildHTML(collect()),"text/html");};
+$("download").onclick=()=>{
+  if(!validate())return;
+  const name=postFileName(), html=buildHTML(collect());
+  downloadBlob(name,html,"text/html");
+  driveSavePost("rotation",name,html);
+};
 
 // Two files, two buttons, two Canvas assignments. Deliberately NOT one click
 // that fires both downloads: iPad Safari drops the second of two programmatic
@@ -722,6 +728,7 @@ $("downloadPerf").onclick=async()=>{
     const html=prBuildArtifact({meta,codes:d.perf.codes,notes:d.perf.notes,
       deltas:d.perf.deltas,portfolio});
     downloadBlob(prFileName(meta),html,"text/html");
+    driveSavePost("perf",prFileName(meta),html);
     notify("Performance review downloaded. Submit it to the performance review assignment — your portfolio post is a separate download and a separate assignment.","info");
   }catch(e){
     notify("Couldn't build the performance review: "+(e&&e.message||e),"error");
@@ -752,15 +759,19 @@ function parsePortfolioHTML(txt){
   });
   return data;
 }
+// A saved .json draft or a downloaded post. Throws if it's neither; shared with
+// drive.js's Open from Drive.
+function openText(txt){
+  const data=/^\s*[{[]/.test(txt)?JSON.parse(txt):parsePortfolioHTML(txt);
+  if(!data)throw new Error("no embedded data");
+  loadData(data);
+}
 $("loadFile").onchange=e=>{
   const f=e.target.files[0];if(!f)return;
   const fr=new FileReader();
   fr.onload=()=>{
     try{
-      const txt=fr.result;
-      const data=/^\s*[{[]/.test(txt)?JSON.parse(txt):parsePortfolioHTML(txt);
-      if(!data)throw new Error("no embedded data");
-      loadData(data);
+      openText(fr.result);
     }catch(err){
       notify("Couldn't open that file. Choose a portfolio page (.html) made by this tool, or a saved .json draft.","error");
     }
@@ -782,6 +793,7 @@ $("clear").onclick=()=>{
   }
   disarmClear();
   localStorage.removeItem(DRAFT_KEY);
+  driveDraftCleared();          // and the Drive copy, for a signed-in student
   ["firstName","lastName","project","classroom","grade","unit","reflection"].forEach(id=>$(id).value="");
   $("personalMode").checked=false;
   ["prWeek","prMentor","prNotes"].forEach(id=>{if($(id))$(id).value="";});
@@ -923,6 +935,9 @@ trackProfile(PROFILE_FIELDS);
   addWeek();
   updatePreview();
 })();
+// Optional: also file drafts and downloads in Google Drive (drive.js). Only
+// does anything for a student who signed in on the hub.
+driveTool({tool:"rotation",label:"Rotation post",draftKey:DRAFT_KEY,posts:"rotation",collect,openText});
 </script>
 </body>
 </html>
