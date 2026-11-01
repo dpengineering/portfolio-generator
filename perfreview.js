@@ -386,14 +386,8 @@ function prBuildArtifact(d){
 
 // <Initials+Last4>_PerfReview_<YYYY-MM-DD>.html — matches the post generator's
 // naming so the two files sort together.
-function prFileName(meta){
-  var alnum=function(s){return (s||"").replace(/[^A-Za-z0-9]/g,"");};
-  var fi=(alnum(meta.first)[0]||"").toUpperCase();
-  var ln=alnum(meta.last).slice(0,4);
-  var lnCased=ln?ln[0].toUpperCase()+ln.slice(1).toLowerCase():"";
-  var who=(fi+lnCased)||"XX";
-  return who+"_PerfReview_"+(meta.week||"draft")+".html";
-}
+// The standard name lives in shared.js, so Drive filing names it the same way.
+function prFileName(meta){return perfReviewName(meta);}
 
 // What still has to be done before the review can be downloaded. The post's own
 // requirements are checked separately by the generator — the review additionally

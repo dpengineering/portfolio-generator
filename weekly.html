@@ -311,9 +311,9 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=15"></script>
-<script src="perfreview.js?v=1"></script>
-<script src="drive.js?v=4"></script>
+<script src="shared.js?v=16"></script>
+<script src="perfreview.js?v=2"></script>
+<script src="drive.js?v=5"></script>
 <script>
 const state={images:{},cover:null};
 const DRAFT_KEY="portfolioDraft";
@@ -677,29 +677,11 @@ function updatePreview(){
 // ---- download / draft ----
 // downloadBlob() now lives in shared.js
 function slug(){const m=collect().meta;return ((m.student||"portfolio")+"-"+(m.month||"")).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"portfolio";}
-// Organizable filename. School posts: <first-initial><last-name-first-4>_<classroom>_Grade<N>_Unit<N>.html
-// e.g. Ada Lovelace, Computer Lab, Grade 10, Unit 4 -> ALove_COMP_Grade10_Unit4.html
-// Personal posts: <who>_<CamelProject>_<CamelFocus>.html, e.g. ALove_SolarTracker_MotorMount.html
-// (the required fields for each mode are enforced before download, so these are always present.)
-const CLASS_SHORT={"Art":"ART","Physics":"PHYS","Machine Shop":"SHOP","Computer Lab":"COMP"};
-// CamelCase, letters only: "Solar Tracker 2" -> "SolarTracker"
-function camelLetters(s){return ((s||"").split(/[^A-Za-z]+/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1)).join(""));}
+// Standard name (see rotationPostName in shared.js). The required fields for
+// each mode are enforced before download, so these are always present.
 function postFileName(){
-  const m=collect().meta;
-  const alnum=s=>((s||"").replace(/[^A-Za-z0-9]/g,""));
-  const fi=(alnum(m.first)[0]||"").toUpperCase();
-  const ln=alnum(m.last).slice(0,4);
-  const lnCased=ln?ln[0].toUpperCase()+ln.slice(1).toLowerCase():"";
-  const who=(fi+lnCased)||"XX";
-  if(m.personal||m.grade==="12"){   // 12th graders use the personal naming convention
-    const proj=camelLetters(m.project)||"Project";
-    const focus=camelLetters(theWeek()?theWeek().querySelector(".w-title").value:"")||"Focus";
-    return `${who}_${proj}_${focus}.html`;
-  }
-  const cls=CLASS_SHORT[m.classroom]||"CLASS";
-  const grade=`Grade${alnum(m.grade)||"X"}`;
-  const unit=`Unit${alnum(m.unit)||"X"}`;
-  return `${who}_${cls}_${grade}_${unit}.html`;
+  const w=theWeek();
+  return rotationPostName(collect().meta,w?w.querySelector(".w-title").value:"");
 }
 $("download").onclick=()=>{
   if(!validate())return;
@@ -937,7 +919,8 @@ trackProfile(PROFILE_FIELDS);
 })();
 // Optional: also file drafts and downloads in Google Drive (drive.js). Only
 // does anything for a student who signed in on the hub.
-driveTool({tool:"rotation",label:"Rotation post",draftKey:DRAFT_KEY,posts:"rotation",collect,openText});
+driveTool({tool:"rotation",label:"Rotation post",draftKey:DRAFT_KEY,posts:"rotation",collect,openText,
+  ownCover:()=>!!state.cover&&!state.coverRef});
 </script>
 </body>
 </html>

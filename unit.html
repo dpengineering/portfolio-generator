@@ -280,9 +280,9 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=15"></script>
+<script src="shared.js?v=16"></script>
 <script src="unitrubric.js?v=1"></script>
-<script src="drive.js?v=4"></script>
+<script src="drive.js?v=5"></script>
 <script>
 const state={images:{},cover:null,fileMgmt:[],reflectionImgs:[]};
 const DRAFT_KEY="unitPostDraft";
@@ -760,24 +760,9 @@ function updatePreview(){
 // ---- download / draft ----
 // downloadBlob() now lives in shared.js
 function slug(){const m=collect().meta;return ((m.student||"portfolio")+"-"+(m.month||"")).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"portfolio";}
-// Organizable filename:
-//   Grades 9–11: <first-initial><last-name-first-4>_UnitPost_Grade<N>_Unit<N>.html
-//     e.g. Ada Lovelace, Grade 10, Unit 4 -> ALove_UnitPost_Grade10_Unit4.html
-//   Grade 12 (monthly): ..._MonthlyPost_Grade12_<Month>.html
-//     e.g. Ada Lovelace, Grade 12, September -> ALove_MonthlyPost_Grade12_September.html
-// (name, grade and unit/month are all required before download, so these are always present.)
-function postFileName(){
-  const c=collect(), m=c.meta;
-  const alnum=s=>((s||"").replace(/[^A-Za-z0-9]/g,""));
-  const fi=(alnum(m.first)[0]||"").toUpperCase();
-  const ln=alnum(m.last).slice(0,4);
-  const lnCased=ln?ln[0].toUpperCase()+ln.slice(1).toLowerCase():"";
-  const who=(fi+lnCased)||"XX";
-  const monthly=m.grade==="12";
-  const grade=`Grade${alnum(m.grade)||"X"}`;
-  const period=monthly?(alnum(m.unit)||"X"):`Unit${alnum(m.unit)||"X"}`;
-  return `${who}_${monthly?"MonthlyPost":"UnitPost"}_${grade}_${period}.html`;
-}
+// Standard name (see unitPostName in shared.js). Name, grade and unit/month are
+// all required before download, so these are always present.
+function postFileName(){return unitPostName(collect().meta);}
 $("download").onclick=()=>{
   if(!validate())return;
   const name=postFileName(), html=buildHTML(collect());
@@ -1036,7 +1021,8 @@ trackProfile(PROFILE_FIELDS);
 })();
 // Optional: also file drafts and downloads in Google Drive (drive.js). Only
 // does anything for a student who signed in on the hub.
-driveTool({tool:"unit",label:"Unit post",draftKey:DRAFT_KEY,posts:"unit",collect,openText});
+driveTool({tool:"unit",label:"Unit post",draftKey:DRAFT_KEY,posts:"unit",collect,openText,
+  ownCover:()=>!!state.cover&&!state.coverRef});
 </script>
 </body>
 </html>

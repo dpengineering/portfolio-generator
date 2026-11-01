@@ -19,6 +19,10 @@
 //     Unit Posts/
 //     Performance Reviews/
 //     One-Pagers/
+//     Photos/
+//       ALove_COMP_Grade10_Unit4/   one folder per post, named like the post
+//         01 - Soldering the motor mount.jpg    numbered in post order,
+//         02 - Testing the gear ratio.jpg       named for their captions
 //
 // There's no server, so no refresh token: Google hands the page an access token
 // that lasts about an hour. It's kept in sessionStorage so moving between the
@@ -37,7 +41,7 @@ const DRIVE_FOLDER_MIME="application/vnd.google-apps.folder";
 const DRIVE_ROOT_NAME="DPEA Portfolio Data";
 // key -> folder name. The key is what's stored in each folder's appProperties,
 // so these names can change without losing anyone's folders.
-const DRIVE_FOLDERS={drafts:"Drafts",rotation:"Rotation Posts",unit:"Unit Posts",perf:"Performance Reviews",onepager:"One-Pagers"};
+const DRIVE_FOLDERS={drafts:"Drafts",rotation:"Rotation Posts",unit:"Unit Posts",perf:"Performance Reviews",onepager:"One-Pagers",photos:"Photos"};
 const DRIVE_STATE_KEY="dpea.drive.v1";      // localStorage: {email, folders:{root, drafts, ...}}
 const DRIVE_TOKEN_KEY="dpea.drive.token";   // sessionStorage: {token, exp}
 const DRIVE_MULTIPART_MAX=4*1024*1024;      // above this, upload in two steps (resumable)
@@ -213,8 +217,10 @@ async function driveFindOrMakeFolders(){
     const ok=JSON.parse(sessionStorage.getItem(DRIVE_STATE_KEY+".checked")||"null");
     if(ok&&st.folders&&ok===st.folders.root&&Object.keys(DRIVE_FOLDERS).every(k=>st.folders[k]))return st.folders;
   }catch(e){}
-  // drive.file only ever lists folders this app made, so this is a short list.
-  const q=`mimeType='${DRIVE_FOLDER_MIME}' and trashed=false`;
+  // drive.file only ever lists folders this app made; of those, ask only for
+  // the tagged top-level ones, not the (many) per-post photo folders.
+  const tags=["root",...Object.keys(DRIVE_FOLDERS)].map(k=>`appProperties has { key='dpea' and value='${k}' }`).join(" or ");
+  const q=`mimeType='${DRIVE_FOLDER_MIME}' and trashed=false and (${tags})`;
   const r=await driveJSON(DRIVE_API+"/files?pageSize=100&fields=files(id,name,parents,appProperties)&q="+encodeURIComponent(q));
   const tagged={};
   (r.files||[]).forEach(f=>{const k=f.appProperties&&f.appProperties.dpea;if(k&&!tagged[k])tagged[k]=f;});
@@ -248,6 +254,78 @@ async function driveReadText(fileId){
   return (await driveFetch(DRIVE_API+"/files/"+fileId+"?alt=media")).text();
 }
 function driveFolderUrl(id){return "https://drive.google.com/drive/folders/"+id;}
+
+// ---- photos ------------------------------------------------------------------
+// A post's photos, in page order, with their captions. Read from the finished
+// post's HTML rather than any one tool's data, so it works the same for every
+// tool and for posts made before Drive existed: each renders a photo as
+// <figure><img alt="caption">. The cover is included only when the caller knows
+// it's the student's own photo, not one of the stock reference covers.
+function drivePostPhotos(html,withCover){
+  const doc=new DOMParser().parseFromString(html,"text/html");
+  const isData=s=>/^data:image\//.test(s||"");
+  const out=[];
+  if(withCover){
+    const c=doc.querySelector(".cover img:not(.cover-logo)");
+    if(c&&isData(c.getAttribute("src")))out.push({src:c.getAttribute("src"),caption:"Cover",cover:true});
+  }
+  doc.querySelectorAll("figure img").forEach(img=>{
+    const src=img.getAttribute("src");
+    if(!isData(src))return;
+    let cap=(img.getAttribute("alt")||"").trim();
+    if(/^Figure \d+$/.test(cap)||cap==="File management screenshot")cap="";   // the alt text's stand-ins for "no caption"
+    out.push({src,caption:cap});
+  });
+  return out;
+}
+// "03 - Testing the gear ratio.jpg". Characters Drive and the desktop sync
+// apps choke on are dropped, and long captions are cut at a word.
+function drivePhotoName(i,photo){
+  const ext=({"image/jpeg":"jpg","image/png":"png","image/gif":"gif","image/webp":"webp"})[(photo.src.match(/^data:([^;,]+)/)||[])[1]]||"jpg";
+  let cap=(photo.caption||"").replace(/[\\/:*?"<>|\u0000-\u001f]+/g," ").replace(/\s+/g," ").trim().replace(/[. ]+$/,"");
+  if(cap.length>80)cap=cap.slice(0,80).replace(/\s+\S*$/,"");
+  const num=photo.cover?"00":String(i).padStart(2,"0");
+  return `${num} - ${cap||"Photo"}.${ext}`;
+}
+// A cheap fingerprint of a photo's data, so re-saving a post skips the photos
+// that haven't changed instead of uploading them all again.
+function drivePhotoSig(src){
+  let h=0x811c9dc5;
+  for(let i=0;i<src.length;i+=7)h=Math.imul(h^src.charCodeAt(i),0x01000193)>>>0;
+  return h.toString(36)+"."+src.length.toString(36);
+}
+// Mirror a post's photos into Photos/<post name>/: upload new and changed ones,
+// leave unchanged ones alone, and trash any the post no longer has (a photo
+// removed, or renamed because its caption changed). Returns how many there are.
+async function driveSavePhotos(postName,html,withCover,onProgress){
+  const photos=drivePostPhotos(html,withCover);
+  const folders=await driveFolders();
+  const setName=postName.replace(/\.html?$/i,"");
+  let set=await driveFindFile(folders.photos,setName);
+  if(!set&&!photos.length)return 0;
+  if(!set)set=await driveJSON(DRIVE_API+"/files?fields=id,name",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name:setName,mimeType:DRIVE_FOLDER_MIME,parents:[folders.photos],appProperties:{dpeaPhotos:setName}})});
+  const r=await driveJSON(DRIVE_API+"/files?pageSize=200&fields=files(id,name,appProperties)&q="+
+    encodeURIComponent(`'${set.id}' in parents and trashed=false`));
+  const have={};(r.files||[]).forEach(f=>{have[f.name]=f;});
+  const keep=new Set();
+  let n=0;
+  for(const ph of photos){
+    if(!ph.cover)n++;
+    const name=drivePhotoName(n,ph), sig=drivePhotoSig(ph.src);
+    keep.add(name);
+    const old=have[name];
+    if(old&&old.appProperties&&old.appProperties.sig===sig)continue;
+    if(onProgress)onProgress(keep.size,photos.length);
+    const blob=await (await fetch(ph.src)).blob();
+    await driveUpload(old&&old.id,{name,mimeType:blob.type,parents:[set.id],appProperties:{dpea:"photo",sig}},blob,blob.type);
+  }
+  for(const name of Object.keys(have)){
+    if(!keep.has(name))await driveFetch(DRIVE_API+"/files/"+have[name].id,{method:"PATCH",
+      headers:{"Content-Type":"application/json"},body:JSON.stringify({trashed:true})});
+  }
+  return photos.length;
+}
 
 // ---- shared styles -----------------------------------------------------------
 function driveStyles(){
@@ -294,6 +372,7 @@ function driveWhen(iso){
 //   posts:     folder key for this tool's downloads, also listed by Open from Drive
 //   collect:   () => draft object (the page's collect())
 //   openText:  (text) => opens a .json draft or a downloaded .html post; throws if it can't
+//   ownCover:  () => true when the post's cover is the student's own photo (optional)
 // }
 let driveCfg=null, driveChip=null;
 let draftDirty=false, draftTimer=null, draftBusy=false, draftLastPush=0;
@@ -526,8 +605,16 @@ async function driveSavePost(folderKey,name,html){
   driveChipState("busy","☁️ Saving…");
   try{
     await driveSaveFile(folderKey,name,html,"text/html",{tool:driveCfg.tool});
+    // The performance review embeds a shrunken copy of the post, so its photos
+    // are the post's photos again; they're filed with the post, not twice.
+    let count=0;
+    if(folderKey!=="perf"){
+      const own=typeof driveCfg.ownCover==="function"&&driveCfg.ownCover();
+      count=await driveSavePhotos(name,html,own,(i,total)=>driveChipState("busy",`☁️ Saving photos ${i}/${total}…`));
+    }
     driveChipState("ok","☁️ Saved to Drive");
-    notify(`Saved a copy to Drive › ${DRIVE_ROOT_NAME} › ${DRIVE_FOLDERS[folderKey]}.`,"info");
+    notify(`Saved a copy to Drive › ${DRIVE_FOLDERS[folderKey]}`+
+      (count?`, and ${count} photo${count>1?"s":""} to Photos › ${name.replace(/\.html?$/i,"")}.`:"."),"info");
   }catch(e){
     if(driveLapsed(e)){drivePendingPosts.push({folder:folderKey,name,html});return;}
     driveChipState("busy","☁️ Drive save failed");
@@ -592,12 +679,15 @@ function driveHubPaint(msg){
   }else{
     const live=!!driveToken(), f=st.folders||{};
     card.innerHTML=`<div class="dc-top"><span class="dc-title">☁️ Saving to Google Drive</span>${testChip}</div>
-      <p>Signed in as <strong></strong>. Drafts save to your <strong>${DRIVE_ROOT_NAME}</strong> folder as you work, and each download is filed there too.</p>
+      <p>Signed in as <strong></strong>. Drafts save to your <strong>${DRIVE_ROOT_NAME}</strong> folder as you work, and each download is filed there too, with its photos named to match their captions.</p>
       <div class="dc-actions">
         ${live?"":driveGoogleButton("driveSignIn","Continue with Google")}
         ${f.root?`<a class="dc-link" href="${driveFolderUrl(f.root)}" target="_blank" rel="noopener">Open my folder ↗</a>`:""}
+        ${live?btn("driveImport","📥 Add earlier work","dc-ghost"):""}
         ${btn("driveSignOut","Sign out","dc-ghost")}
-      </div>`;
+      </div>
+      ${live?`<input type="file" id="driveImportFile" accept=".html,.htm,text/html" multiple hidden>
+      <p class="dc-hint">Made posts before you signed in? Add them here: pick the <strong>.html</strong> files you downloaded (or download them again from your Canvas submissions) and each one is renamed and filed in the right folder, photos too.</p>`:""}`;
     card.querySelector("p strong").textContent=st.email||"your Google account";
   }
   if(msg){const p=document.createElement("p");p.className="dc-msg "+(msg.type||"");p.textContent=msg.text;(card.querySelector(".dc-fold")||card).appendChild(p);}
@@ -609,6 +699,11 @@ function driveHubPaint(msg){
       catch(e){const m=driveSignInMessage(e);driveHubPaint(m?{type:"error",text:m}:null);return;}
       await driveHubRefresh(true);
     };
+  }
+  const imp=$("driveImport");
+  if(imp){
+    imp.onclick=()=>$("driveImportFile").click();
+    $("driveImportFile").onchange=e=>{const files=[...e.target.files];e.target.value="";if(files.length)driveImport(files);};
   }
   const so=$("driveSignOut");
   if(so)so.onclick=()=>{
@@ -636,4 +731,72 @@ async function driveHubRefresh(justSignedIn){
     if(e instanceof DriveAuthError){driveHubPaint();return;}
     driveHubPaint({type:"error",text:"Signed in, but couldn't reach Google Drive. Try again in a minute."});
   }
+}
+
+// ---- adding earlier work ---------------------------------------------------------
+// Posts made before a student signed in can't just be dragged into the folder:
+// drive.file only lets this site see files it created itself. So the student
+// picks their old downloads here, and the site saves its own copy of each,
+// under the standard name, in the right folder, with its photos. Anything
+// it doesn't recognize is listed as skipped, never guessed at.
+
+// What kind of file this is and what it should be called, from the data every
+// tool embeds in its posts. null if it isn't one of ours.
+function driveClassify(html){
+  const doc=new DOMParser().parseFromString(html,"text/html");
+  const read=id=>{const el=doc.getElementById(id);if(!el)return null;try{return JSON.parse(el.textContent);}catch(e){return null;}};
+  const pr=read("pr-data");
+  if(pr)return {folder:"perf",meta:pr.meta||{},name:perfReviewName(pr.meta||{})};
+  const d=read("portfolio-data");
+  if(!d)return null;
+  const m=d.meta||{};
+  if(d.concept||d.exhibit)return {folder:"onepager",meta:m,name:projectSlug(m.project)+".html"};
+  if(d.rubric)return {folder:"unit",meta:m,name:unitPostName(m)};
+  if(d.weeks)return {folder:"rotation",meta:m,name:rotationPostName(m,(d.weeks[0]||{}).title)};
+  return null;
+}
+async function driveImport(files){
+  const card=$("driveCard");
+  const old=$("driveImportLog");if(old)old.remove();
+  const log=document.createElement("div");log.id="driveImportLog";log.className="dc-log";
+  card.appendChild(log);
+  const status=document.createElement("p");status.className="dc-msg";log.appendChild(status);
+  const btn=$("driveImport");if(btn)btn.disabled=true;
+  // Peer reviewers download a classmate's post from Canvas, so one of those
+  // could easily be in the pile. A one-pager carries no name, so it can't be checked.
+  const me=getProfile(), myTag=(me.first||me.last)?fileWho(me):"";
+  const added=[], skipped=[];
+  let lapsed=false;
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    status.textContent=`Adding ${i+1} of ${files.length}: ${f.name}…`;
+    try{
+      const html=await f.text();
+      const c=driveClassify(html);
+      if(!c){skipped.push([f.name,"not a post made with these tools"]);continue;}
+      if(myTag&&c.folder!=="onepager"&&fileWho(c.meta)!==myTag){
+        skipped.push([f.name,`looks like ${c.meta.student||[c.meta.first,c.meta.last].filter(Boolean).join(" ")||"someone else"}'s, not yours`]);continue;
+      }
+      await driveSaveFile(c.folder,c.name,html,"text/html",{tool:c.folder,imported:"1"});
+      const n=c.folder==="perf"?0:await driveSavePhotos(c.name,html,false,
+        (k,total)=>{status.textContent=`Adding ${i+1} of ${files.length}: ${f.name} (photo ${k} of ${total})…`;});
+      added.push([f.name,`${DRIVE_FOLDERS[c.folder]} › ${c.name}`+(n?` + ${n} photo${n>1?"s":""}`:"")]);
+    }catch(e){
+      if(e instanceof DriveAuthError){lapsed=true;skipped.push(...files.slice(i).map(x=>[x.name,"not added: your Google sign-in timed out"]));break;}
+      skipped.push([f.name,e.reason==="storageQuotaExceeded"?"your Google Drive is full":"couldn't save it to Drive"]);
+    }
+  }
+  status.className="dc-msg "+(added.length?"ok":"error");
+  status.textContent=`Added ${added.length} file${added.length===1?"":"s"}`+(skipped.length?`, skipped ${skipped.length}.`:".")+
+    (lapsed?" Sign in again to add the rest.":"");
+  const list=(rows,cls)=>{
+    if(!rows.length)return;
+    const ul=document.createElement("ul");ul.className=cls;
+    rows.forEach(([file,what])=>{const li=document.createElement("li");const b=document.createElement("strong");b.textContent=file;li.append(b," → "+what);ul.appendChild(li);});
+    log.appendChild(ul);
+  };
+  list(added,"dc-added");
+  list(skipped,"dc-skipped");
+  if(lapsed){driveSetToken(null);driveHubPaint();card.appendChild(log);}
+  else if(btn)btn.disabled=false;
 }

@@ -532,6 +532,55 @@ function wireRefCover(opts){
   syncRefToggle();
 }
 
+// ---- standard file names ---------------------------------------------------
+// One naming scheme for each kind of file, used by the generators when a post
+// downloads and by drive.js when it files a student's earlier work, so both
+// end up with the same name. Each takes a post's meta, which is the same
+// whether it comes from collect() or from a downloaded post's embedded
+// #portfolio-data.
+const CLASS_SHORT={"Art":"ART","Physics":"PHYS","Machine Shop":"SHOP","Computer Lab":"COMP"};
+const fileAlnum=s=>((s||"").replace(/[^A-Za-z0-9]/g,""));
+// CamelCase, letters only: "Solar Tracker 2" -> "SolarTracker"
+function camelLetters(s){return ((s||"").split(/[^A-Za-z]+/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1)).join(""));}
+// <first-initial><last-name-first-4>: Ada Lovelace -> ALove. Very old posts only
+// have a single `student` name, so fall back to splitting that.
+function fileWho(meta){
+  let first=meta.first, last=meta.last;
+  if(!first&&!last&&meta.student){const parts=meta.student.trim().split(/\s+/);first=parts.shift()||"";last=parts.join(" ");}
+  const fi=(fileAlnum(first)[0]||"").toUpperCase();
+  const ln=fileAlnum(last).slice(0,4);
+  const lnCased=ln?ln[0].toUpperCase()+ln.slice(1).toLowerCase():"";
+  return (fi+lnCased)||"XX";
+}
+// Rotation post. School posts: <who>_<classroom>_Grade<N>_Unit<N>.html
+//   e.g. Ada Lovelace, Computer Lab, Grade 10, Unit 4 -> ALove_COMP_Grade10_Unit4.html
+// Personal posts, and every 12th-grade post: <who>_<CamelProject>_<CamelFocus>.html
+//   e.g. ALove_SolarTracker_MotorMount.html. focus is the week's title.
+function rotationPostName(meta,focus){
+  const who=fileWho(meta);
+  if(meta.personal||meta.grade==="12"){
+    return `${who}_${camelLetters(meta.project)||"Project"}_${camelLetters(focus)||"Focus"}.html`;
+  }
+  const cls=CLASS_SHORT[meta.classroom]||"CLASS";
+  return `${who}_${cls}_Grade${fileAlnum(meta.grade)||"X"}_Unit${fileAlnum(meta.unit)||"X"}.html`;
+}
+// Unit post. Grades 9-11: <who>_UnitPost_Grade<N>_Unit<N>.html
+//   e.g. ALove_UnitPost_Grade10_Unit4.html
+// Grade 12 posts monthly: <who>_MonthlyPost_Grade12_<Month>.html
+//   e.g. ALove_MonthlyPost_Grade12_September.html
+function unitPostName(meta){
+  const monthly=meta.grade==="12";
+  const period=monthly?(fileAlnum(meta.unit)||"X"):`Unit${fileAlnum(meta.unit)||"X"}`;
+  return `${fileWho(meta)}_${monthly?"MonthlyPost":"UnitPost"}_Grade${fileAlnum(meta.grade)||"X"}_${period}.html`;
+}
+// One-pagers are hosted, so they're named for the project, URL-style:
+// "Schlieren Effect" -> schlieren-effect
+function projectSlug(project){
+  return (project||"one-pager").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"one-pager";
+}
+// Performance review: <who>_PerfReview_<week date>.html
+function perfReviewName(meta){return fileWho(meta)+"_PerfReview_"+(meta.week||"draft")+".html";}
+
 // ---- draft persistence ----
 // downloadBlob triggers a file download. autosave persists collect() to
 // localStorage; each page sets its own DRAFT_KEY and provides collect().

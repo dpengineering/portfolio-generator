@@ -337,6 +337,10 @@ DPEA Portfolio Data/
   Unit Posts/
   Performance Reviews/
   One-Pagers/
+  Photos/
+    ALove_COMP_Grade10_Unit4/   one folder per post, named like the post
+      01 - Soldering the motor mount.jpg      numbered in post order,
+      02 - Testing the gear ratio.jpg         named for their captions
 ```
 
 It's a **bonus, never a requirement.** Downloads still download and drafts still
@@ -357,6 +361,25 @@ end of its script and `driveSavePost()` after each download.
 - **Clear trashes the Drive draft** (restorable from Drive's Trash for 30 days).
   Otherwise a reload would find no draft on the device and reopen the cleared
   one from Drive. Downloaded posts are never touched.
+- **Photos are copied out of each saved post** into `Photos/<post name>/`. They
+  stay in the post too, so this doubles the storage, on purpose: students get
+  photos they can find and reuse. They're read from the post's HTML (every tool
+  renders `<figure><img alt="caption">`), so imported posts work the same way.
+  Re-saving a post uploads only new or changed photos, and trashes any the post
+  no longer has. The cover is included only when it's the student's own photo,
+  not a stock reference cover. Performance reviews add no photos, since they
+  embed the post's.
+- **Add earlier work** (hub, signed in). Posts made before signing in can't
+  just be dragged into the folder, because `drive.file` can't see files the site
+  didn't create. Instead the student picks their old `.html` downloads, and each
+  one is sorted by its embedded data (`#pr-data`: performance review;
+  `concept`/`exhibit`: one-pager; `rubric`: unit post; `weeks`: rotation post),
+  renamed with the standard name, and saved with its photos. Files that aren't
+  ours, and posts whose name doesn't match the student's profile (a classmate's
+  post downloaded for peer review), are listed as skipped.
+- **One naming scheme.** The standard file names (`rotationPostName`,
+  `unitPostName`, `projectSlug`, `perfReviewName` in `shared.js`) are shared by
+  downloads and Drive, so a filed copy always has the same name a download gets.
 - **Same name, same file.** Re-downloading a fixed post replaces it in Drive
   rather than adding a copy. Drive's version history keeps the old one.
 - **Not offered** on `file://` pages or inside the Google Sites embed.

@@ -178,8 +178,8 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=15"></script>
-<script src="drive.js?v=4"></script>
+<script src="shared.js?v=16"></script>
+<script src="drive.js?v=5"></script>
 <script>
 const DRAFT_KEY="onePagerDraft";
 const FOLD_NS="onepager";
@@ -438,7 +438,7 @@ $("frame").addEventListener("load",measureFit);
 // ---- download / draft ----
 // Named for the project, URL-style, since these are meant to be hosted:
 // "Schlieren Effect" -> schlieren-effect.html
-function slug(){return (val("project")||"one-pager").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"one-pager";}
+function slug(){return projectSlug(val("project"));}
 $("download").onclick=()=>{
   if(!validate())return;
   const html=buildHTML(collect());
