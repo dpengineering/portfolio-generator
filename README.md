@@ -371,6 +371,13 @@ in **Testing**, only the listed test users can sign in. Publishing it needs the
 [privacy page](privacy.html) and a verified `dpeacl.org`. sbunified.org students
 also need district IT to mark the client ID **Trusted** for the student OU.
 
+While it's in Testing, `DRIVE_TESTING` at the top of `drive.js` labels the hub
+card **In testing** and warns that only test accounts can sign in. Set it to
+`false` when the app is published and approved. The sign-in button follows
+[Google's branding guidelines](https://developers.google.com/identity/branding-guidelines)
+(official "G" logo, Roboto Medium, light theme), so don't restyle it to match
+the site.
+
 ## Running it locally
 
 Open any of the HTML files directly (`file://`) or serve the folder:

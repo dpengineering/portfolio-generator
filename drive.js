@@ -41,6 +41,11 @@ const DRIVE_FOLDERS={drafts:"Drafts",rotation:"Rotation Posts",unit:"Unit Posts"
 const DRIVE_STATE_KEY="dpea.drive.v1";      // localStorage: {email, folders:{root, drafts, ...}}
 const DRIVE_TOKEN_KEY="dpea.drive.token";   // sessionStorage: {token, exp}
 const DRIVE_MULTIPART_MAX=4*1024*1024;      // above this, upload in two steps (resumable)
+// While the OAuth consent screen is in Testing, only listed test users can sign
+// in; everyone else hits Google's "Access blocked" page. The hub card says so
+// up front. Set to false once the app is published and the district has
+// approved it.
+const DRIVE_TESTING=true;
 
 // ---- availability -----------------------------------------------------------
 // Google sign-in needs a real https origin registered on the OAuth client
@@ -138,7 +143,9 @@ function driveSignInMessage(e){
   if(m==="popup_failed_to_open")return "Your browser blocked the Google sign-in window. Allow pop-ups for this site and try again.";
   if(m==="no_drive_scope")return "Google Drive access wasn't allowed, so there's nowhere to save. Sign in again and leave the Drive box checked.";
   if(m==="gsi_not_ready"||m==="gsi_load_failed")return "Google sign-in couldn't load. Check your connection and try again.";
-  return "Google didn't allow sign-in. Your school may not have approved this yet. Everything still works without it.";
+  return DRIVE_TESTING
+    ?"Google didn't allow sign-in. Right now only test accounts can sign in. Everything still works without it."
+    :"Google didn't allow sign-in. Your school may not have approved this yet. Everything still works without it.";
 }
 
 // ---- Drive REST --------------------------------------------------------------
@@ -533,6 +540,26 @@ async function driveSavePost(folderKey,name,html){
 // ============================================================================
 // Hub
 // ============================================================================
+// The sign-in button follows Google's branding guidelines
+// (developers.google.com/identity/branding-guidelines): the four-colour "G"
+// exactly as published, Roboto Medium, and their light-theme colours. That's
+// what students are taught to trust, so it's worth not improvising.
+const DRIVE_G_LOGO=`<svg viewBox="0 0 48 48" aria-hidden="true" style="display:block">
+<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+<path fill="none" d="M0 0h48v48H0z"/></svg>`;
+function driveGoogleButton(id,label){
+  return `<button type="button" class="gsi-btn" id="${id}"><span class="gsi-state"></span>`+
+    `<span class="gsi-wrap"><span class="gsi-icon">${DRIVE_G_LOGO}</span><span class="gsi-text">${label}</span></span></button>`;
+}
+function driveLoadRoboto(){
+  if($("drive-roboto"))return;
+  const l=document.createElement("link");l.id="drive-roboto";l.rel="stylesheet";
+  l.href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap";
+  document.head.appendChild(l);
+}
 // A card under the tiles: a sign-in button, or who's signed in with a link to
 // the folder. Lives in #driveCard, which the hub shows alongside the tiles.
 function driveHub(){
@@ -540,6 +567,7 @@ function driveHub(){
   if(!card)return;
   if(!driveAvailable()){card.remove();return;}
   driveStyles();
+  driveLoadRoboto();
   driveLoadGsi().then(()=>driveHubPaint()).catch(()=>{});
   driveHubPaint();
   if(driveConnected()&&driveToken())driveHubRefresh();
@@ -548,17 +576,19 @@ function driveHubPaint(msg){
   const card=$("driveCard"), st=driveState();
   if(!card)return;
   const btn=(id,label,cls)=>`<button type="button" class="${cls||"btn"}" id="${id}">${label}</button>`;
+  const testChip=DRIVE_TESTING?`<span class="dc-test">In testing</span>`:"";
   if(!st){
-    card.innerHTML=`<div class="dc-top"><span class="dc-title">☁️ Keep your work organized in Google Drive</span><span class="dc-opt">Optional</span></div>
+    card.innerHTML=`<div class="dc-top"><span class="dc-title">☁️ Keep your work organized in Google Drive</span><span class="dc-opt">Optional</span>${testChip}</div>
+      ${DRIVE_TESTING?`<p class="dc-testnote">🚧 <strong>Still being tested.</strong> Right now sign-in only works for a few test accounts. If Google says access is blocked, that's expected. Keep using the tools as normal, and save and download your work like always.</p>`:""}
       <p>Sign in with your school Google account and we'll make one folder, <strong>${DRIVE_ROOT_NAME}</strong>, and file your drafts and downloaded posts into it for you, named and sorted. This site can only see the files it creates. Nothing else in your Drive.</p>
-      <div class="dc-actions">${btn("driveSignIn","Sign in with Google")}</div>`;
+      <div class="dc-actions">${driveGoogleButton("driveSignIn","Sign in with Google")}</div>`;
   }else{
     const live=!!driveToken(), f=st.folders||{};
-    card.innerHTML=`<div class="dc-top"><span class="dc-title">☁️ Saving to Google Drive</span></div>
+    card.innerHTML=`<div class="dc-top"><span class="dc-title">☁️ Saving to Google Drive</span>${testChip}</div>
       <p>Signed in as <strong></strong>. Drafts save to your <strong>${DRIVE_ROOT_NAME}</strong> folder as you work, and each download is filed there too.</p>
       <div class="dc-actions">
+        ${live?"":driveGoogleButton("driveSignIn","Continue with Google")}
         ${f.root?`<a class="dc-link" href="${driveFolderUrl(f.root)}" target="_blank" rel="noopener">Open my folder ↗</a>`:""}
-        ${live?"":btn("driveSignIn","Reconnect","btn")}
         ${btn("driveSignOut","Sign out","dc-ghost")}
       </div>`;
     card.querySelector("p strong").textContent=st.email||"your Google account";

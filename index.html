@@ -93,7 +93,25 @@
   .drive-card .dc-link{font-weight:600;color:var(--accent);text-decoration:none}
   .drive-card .dc-link:hover{text-decoration:underline}
   .drive-card .dc-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+  .drive-card .dc-test{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#9a3412;
+    background:#fff7ed;border:1px solid #fed7aa;border-radius:999px;padding:.15rem .5rem}
+  .drive-card .dc-testnote{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:.55rem .7rem;color:#9a3412}
+  .drive-card .dc-testnote strong{color:#9a3412}
   .drive-card .dc-msg{font-weight:600}
+  /* Google's "Sign in with Google" button, light theme, per
+     developers.google.com/identity/branding-guidelines */
+  .gsi-btn{position:relative;overflow:hidden;box-sizing:border-box;height:40px;max-width:400px;padding:0 12px;
+    background:#fff;border:1px solid #747775;border-radius:4px;color:#1f1f1f;cursor:pointer;white-space:nowrap;
+    font-family:"Roboto",arial,sans-serif;font-size:14px;font-weight:500;letter-spacing:.25px;
+    transition:background-color .218s,border-color .218s,box-shadow .218s}
+  .gsi-btn .gsi-wrap{position:relative;display:flex;align-items:center;height:100%}
+  .gsi-btn .gsi-icon{width:20px;height:20px;min-width:20px;margin-right:10px}
+  .gsi-btn .gsi-state{position:absolute;inset:0;opacity:0;background:#303030;transition:opacity .218s}
+  .gsi-btn:not(:disabled):hover{box-shadow:0 1px 2px 0 rgba(60,64,67,.30),0 1px 3px 1px rgba(60,64,67,.15)}
+  .gsi-btn:not(:disabled):hover .gsi-state{opacity:.08}
+  .gsi-btn:not(:disabled):active .gsi-state,.gsi-btn:not(:disabled):focus-visible .gsi-state{opacity:.12}
+  .gsi-btn:disabled{opacity:1;cursor:default;background:#ffffff61;border-color:#1f1f1f1f}
+  .gsi-btn:disabled .gsi-wrap{opacity:.38}
   .drive-card .dc-msg.ok{color:var(--ok)}
   .drive-card .dc-msg.error{color:#b91c1c}
 
@@ -217,7 +235,7 @@
 </footer>
 
 <script src="shared.js?v=15"></script>
-<script src="drive.js?v=2"></script>
+<script src="drive.js?v=3"></script>
 <script>
 // The hub is the one place a student states their grade; the tools pre-fill
 // from it (see applyProfile/trackProfile in shared.js). Tiles stay hidden until
