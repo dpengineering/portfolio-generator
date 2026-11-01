@@ -98,6 +98,11 @@
   .drive-card .dc-testnote{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:.55rem .7rem;color:#9a3412}
   .drive-card .dc-testnote strong{color:#9a3412}
   .drive-card .dc-msg{font-weight:600}
+  /* folded shut while sign-in is in testing (drive.js) */
+  .drive-card .dc-fold>summary{cursor:pointer;list-style:none}
+  .drive-card .dc-fold>summary::-webkit-details-marker{display:none}
+  .drive-card .dc-fold>summary::before{content:"▸";font-size:1.1rem;line-height:1;flex:none;color:var(--ink)}
+  .drive-card .dc-fold[open]>summary::before{content:"▾"}
   /* Google's "Sign in with Google" button, light theme, per
      developers.google.com/identity/branding-guidelines */
   .gsi-btn{position:relative;overflow:hidden;box-sizing:border-box;height:40px;max-width:400px;padding:0 12px;
@@ -235,7 +240,7 @@
 </footer>
 
 <script src="shared.js?v=15"></script>
-<script src="drive.js?v=3"></script>
+<script src="drive.js?v=4"></script>
 <script>
 // The hub is the one place a student states their grade; the tools pre-fill
 // from it (see applyProfile/trackProfile in shared.js). Tiles stay hidden until

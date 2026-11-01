@@ -578,10 +578,17 @@ function driveHubPaint(msg){
   const btn=(id,label,cls)=>`<button type="button" class="${cls||"btn"}" id="${id}">${label}</button>`;
   const testChip=DRIVE_TESTING?`<span class="dc-test">In testing</span>`:"";
   if(!st){
-    card.innerHTML=`<div class="dc-top"><span class="dc-title">☁️ Keep your work organized in Google Drive</span><span class="dc-opt">Optional</span>${testChip}</div>
-      ${DRIVE_TESTING?`<p class="dc-testnote">🚧 <strong>Still being tested.</strong> Right now sign-in only works for a few test accounts. If Google says access is blocked, that's expected. Keep using the tools as normal, and save and download your work like always.</p>`:""}
+    const top=`<span class="dc-title">☁️ Keep your work organized in Google Drive</span><span class="dc-opt">Optional</span>${testChip}`;
+    const body=`${DRIVE_TESTING?`<p class="dc-testnote">🚧 <strong>Still being tested.</strong> Right now sign-in only works for a few test accounts. If Google says access is blocked, that's expected. Keep using the tools as normal, and save and download your work like always.</p>`:""}
       <p>Sign in with your school Google account and we'll make one folder, <strong>${DRIVE_ROOT_NAME}</strong>, and file your drafts and downloaded posts into it for you, named and sorted. This site can only see the files it creates. Nothing else in your Drive.</p>
       <div class="dc-actions">${driveGoogleButton("driveSignIn","Sign in with Google")}</div>`;
+    // While it's in testing, keep it folded shut so students aren't tempted
+    // into a sign-in that will be blocked. Test users open it; once they've
+    // signed in, the signed-in card below is never folded. A message (a
+    // sign-in error, "signed out") opens it so it isn't hidden.
+    card.innerHTML=DRIVE_TESTING
+      ?`<details class="dc-fold"${msg?" open":""}><summary class="dc-top">${top}</summary>${body}</details>`
+      :`<div class="dc-top">${top}</div>${body}`;
   }else{
     const live=!!driveToken(), f=st.folders||{};
     card.innerHTML=`<div class="dc-top"><span class="dc-title">☁️ Saving to Google Drive</span>${testChip}</div>
@@ -593,7 +600,7 @@ function driveHubPaint(msg){
       </div>`;
     card.querySelector("p strong").textContent=st.email||"your Google account";
   }
-  if(msg){const p=document.createElement("p");p.className="dc-msg "+(msg.type||"");p.textContent=msg.text;card.appendChild(p);}
+  if(msg){const p=document.createElement("p");p.className="dc-msg "+(msg.type||"");p.textContent=msg.text;(card.querySelector(".dc-fold")||card).appendChild(p);}
   const si=$("driveSignIn");
   if(si){
     si.disabled=!driveClient;
