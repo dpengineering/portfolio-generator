@@ -282,7 +282,7 @@
 <script src="heic2any.min.js"></script>
 <script src="shared.js?v=16"></script>
 <script src="unitrubric.js?v=1"></script>
-<script src="drive.js?v=5"></script>
+<script src="drive.js?v=6"></script>
 <script>
 const state={images:{},cover:null,fileMgmt:[],reflectionImgs:[]};
 const DRAFT_KEY="unitPostDraft";
@@ -1021,7 +1021,7 @@ trackProfile(PROFILE_FIELDS);
 })();
 // Optional: also file drafts and downloads in Google Drive (drive.js). Only
 // does anything for a student who signed in on the hub.
-driveTool({tool:"unit",label:"Unit post",draftKey:DRAFT_KEY,posts:"unit",collect,openText,
+driveTool({tool:"unit",label:"Unit post",draftKey:DRAFT_KEY,posts:["unit","monthly"],collect,openText,
   ownCover:()=>!!state.cover&&!state.coverRef});
 </script>
 </body>

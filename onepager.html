@@ -179,7 +179,7 @@
 
 <script src="heic2any.min.js"></script>
 <script src="shared.js?v=16"></script>
-<script src="drive.js?v=5"></script>
+<script src="drive.js?v=6"></script>
 <script>
 const DRAFT_KEY="onePagerDraft";
 const FOLD_NS="onepager";
@@ -537,7 +537,7 @@ SECTIONS.forEach(({key})=>{
 })();
 // Optional: also file drafts and downloads in Google Drive (drive.js). Only
 // does anything for a student who signed in on the hub.
-driveTool({tool:"onepager",label:"One-pager",draftKey:DRAFT_KEY,posts:"onepager",collect,openText});
+driveTool({tool:"onepager",label:"One-pager",draftKey:DRAFT_KEY,posts:["onepager"],collect,openText});
 </script>
 </body>
 </html>

@@ -313,7 +313,7 @@
 <script src="heic2any.min.js"></script>
 <script src="shared.js?v=16"></script>
 <script src="perfreview.js?v=2"></script>
-<script src="drive.js?v=5"></script>
+<script src="drive.js?v=6"></script>
 <script>
 const state={images:{},cover:null};
 const DRAFT_KEY="portfolioDraft";
@@ -710,8 +710,17 @@ $("downloadPerf").onclick=async()=>{
     const html=prBuildArtifact({meta,codes:d.perf.codes,notes:d.perf.notes,
       deltas:d.perf.deltas,portfolio});
     downloadBlob(prFileName(meta),html,"text/html");
-    driveSavePost("perf",prFileName(meta),html);
-    notify("Performance review downloaded. Submit it to the performance review assignment — your portfolio post is a separate download and a separate assignment.","info");
+    if(driveOn()){
+      // Signed in to Drive: the review files itself, and so does the full post
+      // it was built from (original photos, not the review's shrunken copies),
+      // so a senior doesn't need a second download just to keep it organized.
+      notify("Performance review downloaded. Your weekly post is being saved to Drive › Weekly Posts too. Submit each one to its own assignment.","info");
+      // In the background, one after the other, so the button frees up now.
+      const post=buildHTML(d), postName=postFileName();
+      driveSavePost("perf",prFileName(meta),html).then(()=>driveSavePost("rotation",postName,post));
+    }else{
+      notify("Performance review downloaded. Submit it to the performance review assignment — your portfolio post is a separate download and a separate assignment.","info");
+    }
   }catch(e){
     notify("Couldn't build the performance review: "+(e&&e.message||e),"error");
   }finally{
@@ -919,7 +928,7 @@ trackProfile(PROFILE_FIELDS);
 })();
 // Optional: also file drafts and downloads in Google Drive (drive.js). Only
 // does anything for a student who signed in on the hub.
-driveTool({tool:"rotation",label:"Rotation post",draftKey:DRAFT_KEY,posts:"rotation",collect,openText,
+driveTool({tool:"rotation",label:"Rotation post",draftKey:DRAFT_KEY,posts:["rotation","weekly"],collect,openText,
   ownCover:()=>!!state.cover&&!state.coverRef});
 </script>
 </body>

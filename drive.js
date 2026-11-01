@@ -41,7 +41,26 @@ const DRIVE_FOLDER_MIME="application/vnd.google-apps.folder";
 const DRIVE_ROOT_NAME="DPEA Portfolio Data";
 // key -> folder name. The key is what's stored in each folder's appProperties,
 // so these names can change without losing anyone's folders.
-const DRIVE_FOLDERS={drafts:"Drafts",rotation:"Rotation Posts",unit:"Unit Posts",perf:"Performance Reviews",onepager:"One-Pagers",photos:"Photos"};
+const DRIVE_FOLDERS={drafts:"Drafts",photos:"Photos",
+  rotation:"Rotation Posts",unit:"Unit Posts",                                 // grades 9-11
+  weekly:"Weekly Posts",monthly:"Monthly Posts",perf:"Performance Reviews",   // grade 12
+  onepager:"One-Pagers"};
+// Made at sign-in: the folders this student's grade uses. Any other folder is
+// made the first time something is saved to it -- a senior's first one-pager,
+// or a post from an earlier grade added with Add earlier work -- so nobody sees
+// empty folders for work they don't do.
+function driveStartFolders(){
+  return ["drafts","photos",...(isSenior(getProfile().grade)?["weekly","monthly","perf"]:["rotation","unit"])];
+}
+// The folder a post belongs in, by the grade it was written in (from the post
+// itself, not the profile, so a junior-year post a senior adds still lands in
+// Rotation Posts). kind is the tool: "rotation", "unit", "perf" or "onepager".
+function drivePostFolder(kind,meta){
+  const senior=isSenior((meta||{}).grade);
+  if(kind==="rotation")return senior?"weekly":"rotation";
+  if(kind==="unit")return senior?"monthly":"unit";
+  return kind;
+}
 const DRIVE_STATE_KEY="dpea.drive.v1";      // localStorage: {email, folders:{root, drafts, ...}}
 const DRIVE_TOKEN_KEY="dpea.drive.token";   // sessionStorage: {token, exp}
 const DRIVE_MULTIPART_MAX=4*1024*1024;      // above this, upload in two steps (resumable)
@@ -211,30 +230,44 @@ function driveFolders(){
   if(!driveFoldersReady)driveFoldersReady=driveFindOrMakeFolders().catch(e=>{driveFoldersReady=null;throw e;});
   return driveFoldersReady;
 }
+function driveMakeFolder(name,key,parent){
+  return driveJSON(DRIVE_API+"/files?fields=id,name,parents",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name,mimeType:DRIVE_FOLDER_MIME,appProperties:{dpea:key},...(parent?{parents:[parent]}:{})})});
+}
 async function driveFindOrMakeFolders(){
-  const st=driveState()||{};
+  const st=driveState()||{}, start=driveStartFolders();
   try{
     const ok=JSON.parse(sessionStorage.getItem(DRIVE_STATE_KEY+".checked")||"null");
-    if(ok&&st.folders&&ok===st.folders.root&&Object.keys(DRIVE_FOLDERS).every(k=>st.folders[k]))return st.folders;
+    if(ok&&st.folders&&ok===st.folders.root&&start.every(k=>st.folders[k]))return st.folders;
   }catch(e){}
   // drive.file only ever lists folders this app made; of those, ask only for
   // the tagged top-level ones, not the (many) per-post photo folders.
   const tags=["root",...Object.keys(DRIVE_FOLDERS)].map(k=>`appProperties has { key='dpea' and value='${k}' }`).join(" or ");
   const q=`mimeType='${DRIVE_FOLDER_MIME}' and trashed=false and (${tags})`;
   const r=await driveJSON(DRIVE_API+"/files?pageSize=100&fields=files(id,name,parents,appProperties)&q="+encodeURIComponent(q));
-  const tagged={};
-  (r.files||[]).forEach(f=>{const k=f.appProperties&&f.appProperties.dpea;if(k&&!tagged[k])tagged[k]=f;});
-  const mk=(name,key,parent)=>driveJSON(DRIVE_API+"/files?fields=id,name,parents",{method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({name,mimeType:DRIVE_FOLDER_MIME,appProperties:{dpea:key},...(parent?{parents:[parent]}:{})})});
-  const root=tagged.root||await mk(DRIVE_ROOT_NAME,"root",null);
-  const folders={root:root.id};
-  for(const k of Object.keys(DRIVE_FOLDERS)){
-    folders[k]=(tagged[k]||await mk(DRIVE_FOLDERS[k],k,root.id)).id;
+  const folders={};
+  (r.files||[]).forEach(f=>{const k=f.appProperties&&f.appProperties.dpea;if(k&&!folders[k])folders[k]=f.id;});
+  if(!folders.root)folders.root=(await driveMakeFolder(DRIVE_ROOT_NAME,"root",null)).id;
+  for(const k of start){
+    if(!folders[k])folders[k]=(await driveMakeFolder(DRIVE_FOLDERS[k],k,folders.root)).id;
   }
   driveSaveState({...st,folders});
   try{sessionStorage.setItem(DRIVE_STATE_KEY+".checked",JSON.stringify(folders.root));}catch(e){}
   return folders;
+}
+// One folder's id, making it on first use. Saves only ever go through here, so
+// a folder appears the first time it has something in it.
+const driveMaking={};
+async function driveFolder(key){
+  const folders=await driveFolders();
+  if(folders[key])return folders[key];
+  if(!driveMaking[key])driveMaking[key]=driveMakeFolder(DRIVE_FOLDERS[key],key,folders.root).then(f=>{
+    folders[key]=f.id;
+    driveSaveState({...(driveState()||{}),folders});
+    return f.id;
+  }).finally(()=>{delete driveMaking[key];});
+  return driveMaking[key];
 }
 async function driveFindFile(folderId,name){
   const q=`name='${driveQ(name)}' and '${folderId}' in parents and trashed=false`;
@@ -245,9 +278,9 @@ async function driveFindFile(folderId,name){
 // a fixed post updates it in place instead of piling up copies; Drive's own
 // version history keeps the earlier one if it's ever needed.
 async function driveSaveFile(folderKey,name,content,mime,props){
-  const folders=await driveFolders();
-  const existing=await driveFindFile(folders[folderKey],name);
-  return driveUpload(existing&&existing.id,{name,mimeType:mime,parents:[folders[folderKey]],
+  const folderId=await driveFolder(folderKey);
+  const existing=await driveFindFile(folderId,name);
+  return driveUpload(existing&&existing.id,{name,mimeType:mime,parents:[folderId],
     appProperties:{dpea:folderKey,...(props||{})}},content,mime);
 }
 async function driveReadText(fileId){
@@ -299,12 +332,12 @@ function drivePhotoSig(src){
 // removed, or renamed because its caption changed). Returns how many there are.
 async function driveSavePhotos(postName,html,withCover,onProgress){
   const photos=drivePostPhotos(html,withCover);
-  const folders=await driveFolders();
+  const photosId=await driveFolder("photos");
   const setName=postName.replace(/\.html?$/i,"");
-  let set=await driveFindFile(folders.photos,setName);
+  let set=await driveFindFile(photosId,setName);
   if(!set&&!photos.length)return 0;
   if(!set)set=await driveJSON(DRIVE_API+"/files?fields=id,name",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({name:setName,mimeType:DRIVE_FOLDER_MIME,parents:[folders.photos],appProperties:{dpeaPhotos:setName}})});
+    body:JSON.stringify({name:setName,mimeType:DRIVE_FOLDER_MIME,parents:[photosId],appProperties:{dpeaPhotos:setName}})});
   const r=await driveJSON(DRIVE_API+"/files?pageSize=200&fields=files(id,name,appProperties)&q="+
     encodeURIComponent(`'${set.id}' in parents and trashed=false`));
   const have={};(r.files||[]).forEach(f=>{have[f.name]=f;});
@@ -369,7 +402,7 @@ function driveWhen(iso){
 //   tool:      "rotation" | "unit" | "onepager" — names the draft file
 //   label:     "Rotation post" — shown to the student, and the draft's file name
 //   draftKey:  the page's DRAFT_KEY (to tell whether this device has a draft)
-//   posts:     folder key for this tool's downloads, also listed by Open from Drive
+//   posts:     the folder keys this tool's downloads can land in (by grade), listed by Open from Drive
 //   collect:   () => draft object (the page's collect())
 //   openText:  (text) => opens a .json draft or a downloaded .html post; throws if it can't
 //   ownCover:  () => true when the post's cover is the student's own photo (optional)
@@ -431,7 +464,7 @@ async function driveReconnect(){
     return;
   }
   driveChipState("ok","☁️ Drive");
-  while(drivePendingPosts.length){const p=drivePendingPosts.shift();driveSavePost(p.folder,p.name,p.html);}
+  while(drivePendingPosts.length){const p=drivePendingPosts.shift();await driveSavePost(p.kind,p.name,p.html);}
   if(draftDirty)drivePushDraft();
   else driveCheckNewerDraft();
 }
@@ -568,7 +601,8 @@ async function driveToggleList(){
     const folders=await driveFolders();
     const list=async id=>(await driveJSON(DRIVE_API+"/files?pageSize=50&orderBy=modifiedTime desc&fields=files(id,name,modifiedTime)&q="+
       encodeURIComponent(`'${id}' in parents and trashed=false`))).files||[];
-    const [drafts,posts]=await Promise.all([list(folders.drafts),list(folders[driveCfg.posts])]);
+    const postKeys=driveCfg.posts.filter(k=>folders[k]);   // only folders that exist; listing never makes one
+    const [drafts,...posts]=await Promise.all([list(folders.drafts),...postKeys.map(k=>list(folders[k]))]);
     const mine=drafts.filter(f=>f.name===driveDraftName());
     box.querySelector(".dl-empty").remove();
     const group=(title,files,isDraft)=>{
@@ -584,7 +618,8 @@ async function driveToggleList(){
       });
     };
     group("Draft",mine,true);
-    group(DRIVE_FOLDERS[driveCfg.posts],posts,false);
+    if(!postKeys.length)group(DRIVE_FOLDERS[driveCfg.posts[0]],[],false);
+    postKeys.forEach((k,i)=>group(DRIVE_FOLDERS[k],posts[i],false));
   }catch(e){
     box.remove();
     if(driveLapsed(e))notify("Your Google sign-in timed out. Tap ☁️ Reconnect Drive first.","warn");
@@ -592,12 +627,17 @@ async function driveToggleList(){
   }
 }
 
-// Call right after downloadBlob() with the same name and contents. Does nothing
-// for a student who never signed in.
-async function driveSavePost(folderKey,name,html){
+// True on a generator page for a student who signed in to Drive.
+function driveOn(){return !!driveCfg;}
+// Call right after downloadBlob() with the same name and contents. kind is the
+// tool ("rotation", "unit", "perf", "onepager"); the folder follows from it and
+// the post's grade. Does nothing for a student who never signed in.
+async function driveSavePost(kind,name,html){
   if(!driveCfg)return;
+  const c=driveClassify(html);
+  const folderKey=drivePostFolder(kind,c&&c.meta);
   if(!driveToken()){
-    drivePendingPosts.push({folder:folderKey,name,html});
+    drivePendingPosts.push({kind,name,html});
     driveChipState("reconnect");
     notify("Downloaded. To also save it to Drive, tap ☁️ Reconnect Drive.","warn");
     return;
@@ -616,7 +656,7 @@ async function driveSavePost(folderKey,name,html){
     notify(`Saved a copy to Drive › ${DRIVE_FOLDERS[folderKey]}`+
       (count?`, and ${count} photo${count>1?"s":""} to Photos › ${name.replace(/\.html?$/i,"")}.`:"."),"info");
   }catch(e){
-    if(driveLapsed(e)){drivePendingPosts.push({folder:folderKey,name,html});return;}
+    if(driveLapsed(e)){drivePendingPosts.push({kind,name,html});return;}
     driveChipState("busy","☁️ Drive save failed");
     notify(e.reason==="storageQuotaExceeded"
       ?"Your Google Drive is full, so this post wasn't saved there. Your download worked."
@@ -751,8 +791,8 @@ function driveClassify(html){
   if(!d)return null;
   const m=d.meta||{};
   if(d.concept||d.exhibit)return {folder:"onepager",meta:m,name:projectSlug(m.project)+".html"};
-  if(d.rubric)return {folder:"unit",meta:m,name:unitPostName(m)};
-  if(d.weeks)return {folder:"rotation",meta:m,name:rotationPostName(m,(d.weeks[0]||{}).title)};
+  if(d.rubric)return {folder:drivePostFolder("unit",m),meta:m,name:unitPostName(m)};
+  if(d.weeks)return {folder:drivePostFolder("rotation",m),meta:m,name:rotationPostName(m,(d.weeks[0]||{}).title)};
   return null;
 }
 async function driveImport(files){

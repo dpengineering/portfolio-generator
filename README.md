@@ -333,14 +333,16 @@ file their work into one folder in their own Drive:
 ```
 DPEA Portfolio Data/
   Drafts/                one draft per tool, autosaved as they work, photos included
-  Rotation Posts/        each download is saved here too, under the same name
-  Unit Posts/
-  Performance Reviews/
-  One-Pagers/
   Photos/
     ALove_COMP_Grade10_Unit4/   one folder per post, named like the post
       01 - Soldering the motor mount.jpg      numbered in post order,
       02 - Testing the gear ratio.jpg         named for their captions
+  Rotation Posts/        grades 9-11
+  Unit Posts/
+  Weekly Posts/          grade 12
+  Monthly Posts/
+  Performance Reviews/
+  One-Pagers/            made with the first one-pager
 ```
 
 It's a **bonus, never a requirement.** Downloads still download and drafts still
@@ -361,6 +363,16 @@ end of its script and `driveSavePost()` after each download.
 - **Clear trashes the Drive draft** (restorable from Drive's Trash for 30 days).
   Otherwise a reload would find no draft on the device and reopen the cleared
   one from Drive. Downloaded posts are never touched.
+- **Folders follow the grade.** Sign-in makes Drafts and Photos, plus Rotation
+  and Unit Posts for grades 9-11, or Weekly Posts, Monthly Posts and
+  Performance Reviews for grade 12 (from the hub profile). Any other folder is
+  made the first time something is saved to it: a senior's first one-pager, or
+  a junior-year post added with Add earlier work. A post is filed by the grade
+  *in the post*, not the profile, so old work lands where it was made.
+- **Seniors' performance review files the post too.** Signed in, the
+  performance review download also saves the full weekly post (original
+  photos, not the review's shrunken copies) to Weekly Posts. Download portfolio
+  still works, for students who aren't signed in.
 - **Photos are copied out of each saved post** into `Photos/<post name>/`. They
   stay in the post too, so this doubles the storage, on purpose: students get
   photos they can find and reuse. They're read from the post's HTML (every tool
