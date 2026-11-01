@@ -5,8 +5,9 @@
 // can use shared.js's helpers ($, val, esc, paras, notify, downloadBlob,
 // coverHeader) and weekly.html's gallery() at call time.
 //
-// Seniors fill this in alongside their rotation post and download two files:
-// the post itself, and this submission, which embeds the post. Before the
+// Seniors fill this in alongside their rotation post. This submission, which
+// embeds the post, goes to Canvas; the post itself is kept for their
+// end-of-year site (downloaded, or filed in Drive by drive.js). Before the
 // merge the student had to download the post and re-upload it here; now the
 // data is handed over in memory.
 //

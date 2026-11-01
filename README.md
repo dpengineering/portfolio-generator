@@ -19,8 +19,9 @@ each tool runs entirely in the browser and produces a **self-contained
 | `/pair` (`pair.html`) | Peer-review pairing tool | teachers | per unit / month |
 
 Students in grades 9–11 use the two post generators. Grade 12 fills in a weekly
-performance review **inside the rotation post generator** and downloads two
-files, one per Canvas assignment. Canvas is the system of record for every
+performance review **inside the rotation post generator**. The review is
+submitted on Canvas; the weekly post itself isn't submitted, it's kept for the
+senior's end-of-year portfolio site. Canvas is the system of record for every
 grade; **no Canvas rubric is used for any assignment.**
 
 ### The hub
@@ -142,10 +143,12 @@ their DOM and the download checklist can't deadlock on fields they can't see.
 
 **Two files, two buttons.** The rotation post and the review download
 separately, and they are gated separately: an unfinished rubric never blocks the
-portfolio post, which is its own assignment. The review additionally requires the
-post, because it embeds it. The two downloads are deliberately *not* one click —
-iPad Safari drops the second of two programmatic downloads, and a silently
-missing submission is the worst failure available here.
+portfolio post, which seniors keep for their end-of-year site. The review
+additionally requires the post, because it embeds it. The two downloads are
+deliberately *not* one click — iPad Safari drops the second of two programmatic
+downloads, and a silently missing file is the worst failure available here. A
+senior signed in to Google Drive sees only the review's button: it files the
+post in Drive itself.
 
 The review's copy of the photos is re-encoded smaller (≤1000px, JPEG q0.7); the
 rotation post keeps the originals.
@@ -371,8 +374,8 @@ end of its script and `driveSavePost()` after each download.
   *in the post*, not the profile, so old work lands where it was made.
 - **Seniors' performance review files the post too.** Signed in, the
   performance review download also saves the full weekly post (original
-  photos, not the review's shrunken copies) to Weekly Posts. Download portfolio
-  still works, for students who aren't signed in.
+  photos, not the review's shrunken copies) to Weekly Posts, and the separate
+  Download portfolio button is hidden. Not signed in, both buttons stay.
 - **Photos are copied out of each saved post** into `Photos/<post name>/`. They
   stay in the post too, so this doubles the storage, on purpose: students get
   photos they can find and reuse. They're read from the post's HTML (every tool

@@ -189,7 +189,6 @@
         <div><label>First name<input type="text" id="firstName" placeholder="Ada"></label></div>
         <div><label>Last name<input type="text" id="lastName" placeholder="Lovelace"></label></div>
       </div>
-      <label>Project name<input type="text" id="project" placeholder="Proj"></label>
       <div id="schoolFields">
       <label>Grade
         <select id="grade">
@@ -225,6 +224,7 @@
       </div>
       </div>
       </div>
+      <label>Project name<input type="text" id="project" placeholder="Proj"></label>
       <label>Cover color <span class="hint">(used when no photo is added)</span></label>
       <div class="gradpick" id="gradPick"></div>
       <div class="grad-custom-inputs" id="gradCustom" hidden>
@@ -690,10 +690,11 @@ $("download").onclick=()=>{
   driveSavePost("rotation",name,html);
 };
 
-// Two files, two buttons, two Canvas assignments. Deliberately NOT one click
-// that fires both downloads: iPad Safari drops the second of two programmatic
-// downloads, and a silently missing submission is the worst possible failure
-// here. Pressing each button is cheap; losing a week's review is not.
+// Two files, two buttons: the review is submitted on Canvas; the post is kept
+// for the senior's end-of-year site. Deliberately NOT one click that fires both
+// downloads: iPad Safari drops the second of two programmatic downloads, and a
+// silently missing file is the worst possible failure here. Signed in to Drive,
+// the review's button files the post itself and the post's button is hidden.
 $("downloadPerf").onclick=async()=>{
   if(!validate())return;
   const d=collect();
@@ -714,12 +715,12 @@ $("downloadPerf").onclick=async()=>{
       // Signed in to Drive: the review files itself, and so does the full post
       // it was built from (original photos, not the review's shrunken copies),
       // so a senior doesn't need a second download just to keep it organized.
-      notify("Performance review downloaded. Your weekly post is being saved to Drive › Weekly Posts too. Submit each one to its own assignment.","info");
+      notify("Performance review downloaded. Submit it to the performance review assignment. Your weekly post is being saved to Drive › Weekly Posts for your end-of-year site.","info");
       // In the background, one after the other, so the button frees up now.
       const post=buildHTML(d), postName=postFileName();
       driveSavePost("perf",prFileName(meta),html).then(()=>driveSavePost("rotation",postName,post));
     }else{
-      notify("Performance review downloaded. Submit it to the performance review assignment — your portfolio post is a separate download and a separate assignment.","info");
+      notify("Performance review downloaded. Submit it to the performance review assignment. Download your portfolio post too and keep it for your end-of-year site.","info");
     }
   }catch(e){
     notify("Couldn't build the performance review: "+(e&&e.message||e),"error");
@@ -785,7 +786,10 @@ $("clear").onclick=()=>{
   disarmClear();
   localStorage.removeItem(DRAFT_KEY);
   driveDraftCleared();          // and the Drive copy, for a signed-in student
-  ["firstName","lastName","project","classroom","grade","unit","reflection"].forEach(id=>$(id).value="");
+  // Who they are and what they're building carry over to the next post; the
+  // rest starts fresh. Blanks are refilled from the hub profile.
+  ["classroom","unit","reflection"].forEach(id=>$(id).value="");
+  applyProfile(PROFILE_FIELDS);
   $("personalMode").checked=false;
   ["prWeek","prMentor","prNotes"].forEach(id=>{if($(id))$(id).value="";});
   prSetCodes({});
@@ -795,7 +799,9 @@ $("clear").onclick=()=>{
   setGrad(COVER_GRADIENTS[DEFAULT_GRAD]);
   $("weeks").innerHTML="";state.images={};
   addWeek();
+  fillGradeProject(schoolGrade());
   updatePreview();
+  validate();
 };
 
 function loadData(d){
@@ -864,6 +870,10 @@ function prApplyVisibility(){
   const on=prIsOn();
   $("perfSection").hidden=!on;
   $("downloadPerf").hidden=!on;
+  // Seniors don't submit the post itself; it's kept for their end-of-year site.
+  // Signed in to Drive, the review's download files it there, so the separate
+  // download goes away. Not signed in, it's still the only way to keep it.
+  $("download").hidden=on&&typeof driveOn==="function"&&driveOn();
   if(!on)return;
   prRenderRubric("prRubric","prDeltaSuggestions",prOnEdit);
   wireFolds(FOLD_NS);
@@ -930,6 +940,7 @@ trackProfile(PROFILE_FIELDS);
 // does anything for a student who signed in on the hub.
 driveTool({tool:"rotation",label:"Rotation post",draftKey:DRAFT_KEY,posts:["rotation","weekly"],collect,openText,
   ownCover:()=>!!state.cover&&!state.coverRef});
+prApplyVisibility();   // now that Drive is known, hide the post download for a signed-in senior
 </script>
 </body>
 </html>

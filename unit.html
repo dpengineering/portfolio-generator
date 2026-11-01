@@ -185,7 +185,6 @@
         <div><label>First name<input type="text" id="firstName" placeholder="Ada"></label></div>
         <div><label>Last name<input type="text" id="lastName" placeholder="Lovelace"></label></div>
       </div>
-      <label>Project name<input type="text" id="project" placeholder="Proj"></label>
       <div class="row">
         <div><label>Grade
           <select id="grade">
@@ -208,6 +207,7 @@
             <option value="8">8</option>
           </select></label></div>
       </div>
+      <label>Project name<input type="text" id="project" placeholder="Proj"></label>
       <label>Cover color <span class="hint">(used when no photo is added)</span></label>
       <div class="gradpick" id="gradPick"></div>
       <div class="grad-custom-inputs" id="gradCustom" hidden>
@@ -834,8 +834,11 @@ $("clear").onclick=()=>{
   disarmClear();
   localStorage.removeItem(DRAFT_KEY);
   driveDraftCleared();          // and the Drive copy, for a signed-in student
-  ["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).value="");
-  applyGradeMode();                       // grade is back to blank → restore the Unit picker
+  // Who they are and what they're building carry over to the next post; the
+  // rest starts fresh. Blanks are refilled from the hub profile.
+  ["unit","reflection"].forEach(id=>$(id).value="");
+  applyProfile(PROFILE_FIELDS);
+  applyGradeMode();
   $("publicView").checked=false;
   state.cover=null;state.coverRef=null;renderCover();syncRefToggle();
   setGrad(COVER_GRADIENTS[DEFAULT_GRAD]);
@@ -844,7 +847,9 @@ $("clear").onclick=()=>{
   setRubric([]);
   $("weeks").innerHTML="";state.images={};
   addWeek();
+  fillGradeProject($("grade").value);
   updatePreview();
+  validate();
 };
 
 // Peer review now happens in grade-unit.html; any peer data in an older draft or
