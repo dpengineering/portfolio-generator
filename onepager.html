@@ -35,6 +35,8 @@
   .hint{font-weight:400;color:var(--muted);font-size:.78rem}
   input[type=text],textarea{width:100%;padding:.55rem .65rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.9rem}
   textarea{resize:vertical;line-height:1.5;min-height:200px}
+  select{padding:.45rem .55rem;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:.85rem;background:#fff;color:var(--ink)}
+  .placement{display:flex;align-items:center;gap:.5rem;margin:.6rem 0 .25rem;font-size:.82rem;font-weight:600}
   button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:.55rem .9rem;cursor:pointer}
   .btn{background:var(--accent);color:#fff}
   .btn.alt{background:#fff;color:var(--ink);border:1px solid var(--border)}
@@ -149,6 +151,8 @@
       <div class="starter" id="concept-starter"></div>
       <div class="counter" id="concept-count"></div>
       <label>Figures <span class="hint">(1 or 2, each with a caption — diagrams work great here)</span></label>
+      <div class="placement"><label for="conceptLayout" style="margin:0">Figure placement</label>
+        <select id="conceptLayout"><option value="below">Below the text</option><option value="left">Left of the text</option><option value="right">Right of the text</option></select></div>
       <div class="drop" id="conceptDrop">Drag images here, or click to choose</div>
       <div class="thumbs" id="conceptThumbs"></div>
     </fieldset>
@@ -165,6 +169,8 @@
       <div class="starter" id="exhibit-starter"></div>
       <div class="counter" id="exhibit-count"></div>
       <label>Figures <span class="hint">(1 or 2, each with a caption — a CAD model or photo of the exhibit)</span></label>
+      <div class="placement"><label for="exhibitLayout" style="margin:0">Figure placement</label>
+        <select id="exhibitLayout"><option value="below">Below the text</option><option value="left">Left of the text</option><option value="right">Right of the text</option></select></div>
       <div class="drop" id="exhibitDrop">Drag images here, or click to choose</div>
       <div class="thumbs" id="exhibitThumbs"></div>
     </fieldset>
@@ -191,7 +197,10 @@ const SECTIONS=[
   {key:"exhibit",title:"Exhibit Description"},
 ];
 const MIN_WORDS=120, AIM_MIN=150, AIM_MAX=200, MAX_FIGS=2;
-const state={images:{concept:[],exhibit:[]}};
+// layout: where each section's figures sit — "below" the text (the original
+// layout), or in a column to its "left" or "right".
+const LAYOUTS=["below","left","right"];
+const state={images:{concept:[],exhibit:[]},layout:{concept:"below",exhibit:"below"}};
 let fitOver=null;          // px the page overflows by; null until the preview has been measured
 
 // ===== Sentence starters — EDIT THESE LISTS FREELY ===================
@@ -256,8 +265,8 @@ const imgsOut=a=>a.map(i=>({name:i.name,caption:i.caption,dataUrl:i.dataUrl}));
 function collect(){
   return {
     meta:{project:val("project"),concepts:val("concepts")},
-    concept:{text:$("conceptText").value,images:imgsOut(state.images.concept)},
-    exhibit:{text:$("exhibitText").value,images:imgsOut(state.images.exhibit)},
+    concept:{text:$("conceptText").value,layout:state.layout.concept,images:imgsOut(state.images.concept)},
+    exhibit:{text:$("exhibitText").value,layout:state.layout.exhibit,images:imgsOut(state.images.exhibit)},
   };
 }
 function collectLight(){
@@ -305,6 +314,17 @@ figcaption{font-size:9.5pt;line-height:1.3;color:#333;text-align:center}
 .figs.n1 figure img{object-position:center}
 .figs.n1 figcaption{font-size:10.5pt;text-align:left}
 .empty{color:#9ca3af;font-style:italic}
+/* figures beside the text: text and a figure column share the section's row.
+   The column stretches to the section's height (never under the floor), and
+   two figures stack in it rather than sitting side by side. */
+.beside{flex:1 1 auto;display:flex;gap:.25in;min-height:0}
+.left .beside{flex-direction:row-reverse}
+.beside .text{flex:1 1 0;min-width:0}
+.beside .figs{flex:0 0 40%;padding:.04in 0}
+.beside .figs.n2{grid-template-columns:none;grid-template-rows:1fr 1fr}
+.beside .figs.n1 figure{grid-template-columns:none;grid-template-rows:minmax(0,1fr) auto;gap:.05in}
+.beside figure img{object-position:center}
+.beside .figs.n1 figcaption{font-size:9.5pt;text-align:center}
 /* print undoes the screen fit in CSS rather than relying on a print event,
    which not every browser fires. A hair under 11in so rounding never spills
    a blank second page. */
@@ -337,13 +357,16 @@ function buildHTML(d){
   const body=SECTIONS.map(({key,title})=>{
     const s=d[key]||{};
     const text=(s.text||"").trim()?plainParas(s.text):`<p class="empty">Your ${title.toLowerCase()} goes here.</p>`;
-    return `<section>\n<h2>${title}</h2>\n<div class="text">${text}</div>\n${figures(s.images||[],ctr,key)}\n</section>`;
+    const figs=figures(s.images||[],ctr,key), side=figs&&(s.layout==="left"||s.layout==="right");
+    return side
+      ? `<section class="${s.layout}">\n<h2>${title}</h2>\n<div class="beside">\n<div class="text">${text}</div>\n${figs}\n</div>\n</section>`
+      : `<section>\n<h2>${title}</h2>\n<div class="text">${text}</div>\n${figs}\n</section>`;
   }).join("\n");
   // Embedded editable state so this page can be re-opened in the generator.
   // Photos are omitted (they're already inline above) and recovered from the
   // rendered <img> tags on load.
   const editData={v:1,meta:d.meta};
-  SECTIONS.forEach(({key})=>{editData[key]={text:d[key].text,images:d[key].images.map(i=>({name:i.name,caption:i.caption}))};});
+  SECTIONS.forEach(({key})=>{editData[key]={text:d[key].text,layout:d[key].layout,images:d[key].images.map(i=>({name:i.name,caption:i.caption}))};});
   const dataJson=JSON.stringify(editData).replace(/</g,"\\u003c");
   return `<!doctype html>
 <html lang="en">
@@ -515,6 +538,8 @@ function loadData(d){
   SECTIONS.forEach(({key})=>{
     const s=d[key]||{};
     $(key+"Text").value=s.text||"";
+    state.layout[key]=LAYOUTS.includes(s.layout)?s.layout:"below";
+    $(key+"Layout").value=state.layout[key];
     state.images[key]=(s.images||[]).filter(i=>i.dataUrl).slice(0,MAX_FIGS)
       .map(i=>({name:i.name||"",caption:i.caption||"",dataUrl:i.dataUrl}));
   });
@@ -525,6 +550,7 @@ function loadData(d){
 ["project","concepts","conceptText","exhibitText"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
 SECTIONS.forEach(({key})=>{
   wireFigures(key);
+  $(key+"Layout").addEventListener("change",e=>{state.layout[key]=e.target.value;autosave();updatePreview();});
   wireStarter($(key+"Text"),$(key+"-starter"),STARTERS[key],Math.floor(Math.random()*STARTERS[key].length));
 });
 
