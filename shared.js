@@ -794,3 +794,31 @@ function trackProfile(map){
     });
   });
 }
+
+// Swap the live preview's HTML without losing the student's place in it.
+// Setting srcdoc reloads the frame at the top, so remember where it was
+// scrolled and go back there once the new page (and its images) has loaded.
+// If an update lands while the previous one is still loading, keep the
+// position from before that one rather than the half-loaded page's 0.
+function setPreviewHTML(frame,html){
+  if(!frame._pvPending){try{frame._pvY=frame.contentWindow.scrollY||0;}catch(e){frame._pvY=0;}}
+  frame._pvPending=true;
+  frame.onload=()=>{
+    frame._pvPending=false;
+    try{if(frame._pvY)frame.contentWindow.scrollTo(0,frame._pvY);}catch(e){}
+  };
+  frame.srcdoc=html;
+}
+
+// Two-click confirm for small destructive buttons (photo "remove"), the same
+// way Clear works: native confirm() is suppressed inside a sandboxed iframe
+// (the Google Sites embed). The first click arms the button — relabels it and
+// adds .armed — for a few seconds; only a second click inside that window acts.
+function armedClick(btn,armedLabel,action,ms=4000){
+  const label=btn.textContent;let timer=null;
+  const disarm=()=>{clearTimeout(timer);timer=null;btn.textContent=label;btn.classList.remove("armed");};
+  btn.addEventListener("click",e=>{
+    if(!timer){btn.textContent=armedLabel;btn.classList.add("armed");timer=setTimeout(disarm,ms);return;}
+    disarm();action(e);
+  });
+}

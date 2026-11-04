@@ -53,6 +53,7 @@
   .thumb img{display:block;width:100%;height:80px;object-fit:cover}
   .thumb input{border:0;border-top:1px solid var(--border);border-radius:0;font-size:.75rem;padding:.35rem .4rem}
   .thumb .rm{display:block;width:100%;background:#fee2e2;color:#b91c1c;border:0;font-size:.72rem;padding:.25rem;cursor:pointer}
+  .thumb .rm.armed{background:#b91c1c;color:#fff}
   .thumb .fignum{font-size:.68rem;font-weight:700;color:var(--accent);padding:.2rem .4rem;border-top:1px solid var(--border)}
   .week .whead{display:flex;justify-content:space-between;align-items:center}
   .savednote{font-size:.78rem;color:var(--ok)}
@@ -280,7 +281,7 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=16"></script>
+<script src="shared.js?v=17"></script>
 <script src="unitrubric.js?v=1"></script>
 <script src="drive.js?v=6"></script>
 <script>
@@ -362,7 +363,7 @@ function renderCover(){
   if(!state.cover)return;
   const t=document.createElement("div");t.className="thumb";
   t.innerHTML=`<img src="${state.cover}"><button class="rm">Remove cover</button>`;
-  t.querySelector(".rm").onclick=()=>{state.cover=null;state.coverRef=null;syncRefToggle();renderCover();autosave();updatePreview();};
+  armedClick(t.querySelector(".rm"),"Click again to remove",()=>{state.cover=null;state.coverRef=null;syncRefToggle();renderCover();autosave();updatePreview();});
   box.appendChild(t);
 }
 
@@ -380,7 +381,7 @@ function renderFileMgmt(){
     const t=document.createElement("div");t.className="thumb";
     t.innerHTML=`<img src="${im.dataUrl}"><input type="text" placeholder="Caption (optional)..." value="${esc(im.caption)}"><button class="rm">remove</button>`;
     t.querySelector("input").addEventListener("input",e=>{im.caption=e.target.value;autosave();schedulePreview();});
-    t.querySelector(".rm").onclick=()=>{state.fileMgmt.splice(idx,1);renderFileMgmt();autosave();updatePreview();validate();};
+    armedClick(t.querySelector(".rm"),"Click again to remove",()=>{state.fileMgmt.splice(idx,1);renderFileMgmt();autosave();updatePreview();validate();});
     box.appendChild(t);
   });
 }
@@ -405,7 +406,7 @@ function renderReflectionImgs(){
     const t=document.createElement("div");t.className="thumb";
     t.innerHTML=`<img src="${im.dataUrl}"><input type="text" placeholder="Caption..." value="${esc(im.caption)}"><button class="rm">remove</button>`;
     t.querySelector("input").addEventListener("input",e=>{im.caption=e.target.value;autosave();schedulePreview();validate();});
-    t.querySelector(".rm").onclick=()=>{state.reflectionImgs.splice(idx,1);renderReflectionImgs();autosave();updatePreview();validate();};
+    armedClick(t.querySelector(".rm"),"Click again to remove",()=>{state.reflectionImgs.splice(idx,1);renderReflectionImgs();autosave();updatePreview();validate();});
     box.appendChild(t);
   });
   $("reflDrop").textContent=state.reflectionImgs.length>=REFLECT_IMAGES
@@ -495,7 +496,7 @@ function renderThumbs(id){
       const t=document.createElement("div");t.className="thumb";
       t.innerHTML=`<img src="${im.dataUrl}"><div class="fignum">Figure ${num}</div><input type="text" placeholder="Caption..." value="${esc(im.caption)}"><button class="rm">remove</button>`;
       t.querySelector("input").addEventListener("input",e=>{im.caption=e.target.value;autosave();schedulePreview();validate();});
-      t.querySelector(".rm").onclick=()=>{state.images[id][g].splice(idx,1);renderThumbs(id);autosave();updatePreview();validate();};
+      armedClick(t.querySelector(".rm"),"Click again to remove",()=>{state.images[id][g].splice(idx,1);renderThumbs(id);autosave();updatePreview();validate();});
       box.appendChild(t);
     });
   });
@@ -751,7 +752,7 @@ let previewTimer=null;
 function schedulePreview(){clearTimeout(previewTimer);previewTimer=setTimeout(updatePreview,400);}
 function updatePreview(){
   const html=buildHTML(collect());
-  $("frame").srcdoc=html;
+  setPreviewHTML($("frame"),html);
   const kb=Math.round(new Blob([html]).size/1024);
   $("size").textContent=kb>1024?(kb/1024).toFixed(1)+" MB":kb+" KB";
   validate();

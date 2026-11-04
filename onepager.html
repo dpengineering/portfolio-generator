@@ -51,6 +51,7 @@
   .thumb img{display:block;width:100%;height:80px;object-fit:contain;background:#f8fafc}
   .thumb input{border:0;border-top:1px solid var(--border);border-radius:0;font-size:.75rem;padding:.35rem .4rem}
   .thumb .rm{display:block;width:100%;background:#fee2e2;color:#b91c1c;border:0;font-size:.72rem;padding:.25rem;cursor:pointer}
+  .thumb .rm.armed{background:#b91c1c;color:#fff}
   .thumb .fignum{font-size:.68rem;font-weight:700;color:var(--accent);padding:.2rem .4rem;border-top:1px solid var(--border)}
   .savednote{font-size:.78rem;color:var(--ok)}
   .help{background:var(--panel);border:1px solid #a7f3d0;border-radius:8px;padding:.6rem .75rem;font-size:.82rem;color:#065f46;margin-bottom:1rem;line-height:1.5}
@@ -178,7 +179,7 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=16"></script>
+<script src="shared.js?v=17"></script>
 <script src="drive.js?v=6"></script>
 <script>
 const DRAFT_KEY="onePagerDraft";
@@ -241,7 +242,7 @@ function renderThumbs(){
       const t=document.createElement("div");t.className="thumb";
       t.innerHTML=`<img src="${im.dataUrl}"><div class="fignum">Figure ${num}</div><input type="text" placeholder="Caption..." value="${esc(im.caption)}"><button class="rm">remove</button>`;
       t.querySelector("input").addEventListener("input",e=>{im.caption=e.target.value;autosave();schedulePreview();});
-      t.querySelector(".rm").onclick=()=>{list.splice(idx,1);renderThumbs();autosave();updatePreview();};
+      armedClick(t.querySelector(".rm"),"Click again to remove",()=>{list.splice(idx,1);renderThumbs();autosave();updatePreview();});
       box.appendChild(t);
     });
     $(key+"Drop").textContent=list.length>=MAX_FIGS?`${MAX_FIGS} figures added`:"Drag images here, or click to choose";
@@ -428,7 +429,7 @@ function updatePreview(){
   previewTimer=null;
   const html=buildHTML(collect());
   fitOver=null;                    // unknown until the new page has laid out
-  $("frame").srcdoc=html;
+  setPreviewHTML($("frame"),html);
   const kb=Math.round(new Blob([html]).size/1024);
   $("size").textContent=kb>1024?(kb/1024).toFixed(1)+" MB":kb+" KB";
   validate();
