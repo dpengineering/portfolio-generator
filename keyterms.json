@@ -5,7 +5,7 @@
     "10": "https://sites.google.com/dpengineering.org/dpea-portfolios/key-terms/10th-grade-key-terms",
     "11": "https://sites.google.com/dpengineering.org/dpea-portfolios/key-terms/11th-grade-key-terms"
   },
-  "updated": "2026-10-30T05:17:40Z",
+  "updated": "2026-11-05T10:06:22Z",
   "grades": {
     "9": {
       "1": {
@@ -662,7 +662,8 @@
             "array elements",
             "data types",
             "array indexing",
-            "pseudocode"
+            "pseudocode",
+            "pair programming"
           ]
         },
         "Physics": {
@@ -671,7 +672,8 @@
             "Voltage Divider",
             "Derived Equation",
             "Formulas",
-            "Constraints"
+            "Constraints",
+            "Google Sheets"
           ]
         },
         "Machine Shop": {
