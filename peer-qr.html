@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Peer Review QR</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+[hidden]{display:none!important}
+/* Layout: a classroom-TV slide. Big QR tile left, three numbered steps right; a slim setup bar under it for the teacher. */
+:root{
+  --bg:#f3f3fb; --fg:#16163a; --muted:#5b5b80; --line:#d9d9ee;
+  --accent:#4f46e5; --accent-ink:#ffffff; --tile:#ffffff; --panel:#ffffff;
+  --warn:#9a5b00; --warn-bg:#fff4dd;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f0f24; --fg:#ececff; --muted:#a3a3c8; --line:#2b2b52;
+  --accent:#8b84ff; --accent-ink:#0f0f24; --panel:#17173a; --warn:#ffcf7a; --warn-bg:#3a2a08; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f0f24; --fg:#ececff; --muted:#a3a3c8; --line:#2b2b52;
+  --accent:#8b84ff; --accent-ink:#0f0f24; --panel:#17173a; --warn:#ffcf7a; --warn-bg:#3a2a08; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px}
+.wrap{max-width:1280px;margin:0 auto;padding-block:clamp(16px,3vw,40px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:clamp(16px,2.5vw,32px)}
+.eyebrow{font-family:var(--mono);font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(2rem,5vw,4.2rem);line-height:1.02;margin:.25rem 0 0;text-wrap:balance;letter-spacing:-.02em}
+.slide{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:clamp(20px,4vw,64px);align-items:center}
+@media (max-width:760px){.slide{grid-template-columns:1fr}}
+.qrtile{background:var(--tile);border-radius:22px;padding:clamp(14px,2vw,26px);display:flex;flex-direction:column;align-items:center;gap:12px;
+  box-shadow:0 1px 0 var(--line),0 18px 50px -24px rgba(40,30,140,.45);justify-self:center;max-width:100%}
+#qr{width:min(56vh,440px,80vw);aspect-ratio:1;max-width:100%}
+#qr img,#qr canvas{width:100%!important;height:auto!important;display:block;image-rendering:pixelated}
+.qrcap{font-family:var(--mono);font-size:.78rem;color:#4a4a6a;text-align:center;word-break:break-all;max-width:min(56vh,440px,80vw)}
+.empty{width:min(56vh,440px,80vw);aspect-ratio:1;display:grid;place-items:center;text-align:center;color:#6a6a8a;border:2px dashed #c9c9e3;border-radius:12px;padding:16px;font-size:1rem}
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:clamp(14px,2vw,26px);counter-reset:s;min-width:0}
+ol.steps li{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start;counter-increment:s}
+ol.steps li::before{content:counter(s);font-family:var(--display);font-weight:800;font-size:clamp(1.3rem,2.4vw,2rem);
+  width:1.8em;height:1.8em;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink)}
+.st{font-family:var(--display);font-weight:600;font-size:clamp(1.25rem,2.6vw,2.1rem);line-height:1.15;text-wrap:balance}
+.sd{color:var(--muted);font-size:clamp(.95rem,1.5vw,1.25rem);margin-top:.3rem;line-height:1.4;max-width:42ch}
+.sd b{color:var(--fg)}
+.setup{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.setup h2{font-family:var(--mono);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0;font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+label{font-weight:700;font-size:.92rem}
+input[type=url]{flex:1 1 360px;min-width:0;font:inherit;font-family:var(--mono);font-size:.9rem;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+input[type=url]:focus-visible,button:focus-visible,input[type=checkbox]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button{font:inherit;font-weight:700;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:.92rem;line-height:1.4;color:var(--muted)}
+.check b{color:var(--fg)}
+.msg{font-size:.9rem;padding:8px 12px;border-radius:8px;background:var(--warn-bg);color:var(--warn)}
+.encoded{font-family:var(--mono);font-size:.8rem;color:var(--muted);word-break:break-all}
+body.present .setup{display:none}
+.right{display:flex;flex-direction:column;gap:clamp(14px,2vw,26px);min-width:0}
+.clever{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;padding:14px;border:2px dashed var(--line);border-radius:16px}
+.clever .mini{background:var(--tile);padding:8px;border-radius:10px;width:clamp(110px,14vw,170px)}
+.clever .mini img,.clever .mini canvas{width:100%!important;height:auto!important;display:block;image-rendering:pixelated}
+.clever .tag{font-family:var(--mono);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:600}
+input.wide{flex:1 1 360px;min-width:0;font:inherit;font-family:var(--mono);font-size:.8rem;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+@media (prefers-reduced-motion:no-preference){ol.steps li{transition:opacity .2s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Seniors · Monthly post rough draft</div>
+    <h1>Scan to open your peer review</h1>
+  </header>
+
+  <section class="slide">
+    <div class="qrtile">
+      <div id="qr" aria-label="QR code for the Canvas assignment"></div>
+      <div class="qrcap" id="qrcap"></div>
+    </div>
+    <div class="right">
+    <div class="clever" id="cleverStep" hidden>
+      <div class="mini" id="cleverQr" aria-label="QR code for Clever sign-in"></div>
+      <div><div class="tag">First time on this iPad?</div><div class="st">Scan this to sign in with Clever</div><div class="sd">Open Canvas from Clever once, then scan the big code.</div></div>
+    </div>
+    <ol class="steps">
+      <li><div><div class="st">Scan with your iPad camera</div><div class="sd">It opens the assignment in <b>Safari</b>, not the Canvas app. Sign in to Canvas if it asks.</div></div></li>
+      <li><div><div class="st">Tap your classmate under <b>Peer Reviews</b></div><div class="sd">Download the <b>.html file</b> they submitted.</div></div></li>
+      <li><div><div class="st">Open the <b>Peer Review</b> tool</div><div class="sd">Go to <b>portfolio.dpeacl.org</b>, tap Peer Review, and drop in the file. Paste your review into a Canvas comment.</div></div></li>
+    </ol>
+    </div>
+  </section>
+
+  <section class="setup" aria-labelledby="setup-h">
+    <h2 id="setup-h">Teacher setup · hidden in present mode</h2>
+    <div class="row">
+      <label for="url">Canvas assignment link</label>
+      <input type="url" id="url" placeholder="https://yourschool.instructure.com/courses/1234/assignments/5678" autocomplete="off" spellcheck="false">
+    </div>
+    <label class="check" for="safari"><input type="checkbox" id="safari" checked>
+      <span><b>Force Safari.</b> Wraps the link as <code>x-safari-https://</code> so iPads with the Canvas app still open Safari (iPadOS 17+). Turn off for Android or Chromebooks.</span></label>
+    <label class="check" for="cleverOn"><input type="checkbox" id="cleverOn">
+      <span><b>Show a Clever sign-in code.</b> Turn on if opening the assignment in a private Safari window doesn't send you through Clever and back to the assignment.</span></label>
+    <div class="row"><label for="cleverUrl">Clever link</label><input class="wide" type="url" id="cleverUrl" autocomplete="off" spellcheck="false"></div>
+    <div class="msg" id="msg" hidden></div>
+    <div class="encoded" id="encoded"></div>
+    <div class="row">
+      <button class="primary" id="present">Present full screen</button>
+      <button id="copy">Copy encoded link</button>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var urlEl=$("url"), safariEl=$("safari"), qrEl=$("qr"), cap=$("qrcap"), msg=$("msg"), enc=$("encoded");
+  var KEY="peer-qr-v2";
+  var cleverOn=$("cleverOn"), cleverUrl=$("cleverUrl"), cleverStep=$("cleverStep"), cleverQr=$("cleverQr");
+  // Defaults for a browser that hasn't saved its own. Update the assignment
+  // link each month (or just paste the new one into the setup box on the TV).
+  urlEl.value="https://sbunified.instructure.com/courses/52726/assignments/925113";
+  cleverUrl.value="https://clever.com/oauth/authorize?channel=clever-portal&client_id=edf6b13d6c0376d46bba&confirmed=true&district_id=53e285b1db3d922445003078&redirect_uri=https%3A%2F%2Fsamlidp.clever.com%2Fsaml-canvas%2Foauth&response_type=code";
+  try{var s=JSON.parse(localStorage.getItem(KEY)||"{}");if(s.url)urlEl.value=s.url;if(s.safari===false)safariEl.checked=false;if(s.clever)cleverOn.checked=true;if(s.cleverUrl)cleverUrl.value=s.cleverUrl;}catch(e){}
+
+  function save(){try{localStorage.setItem(KEY,JSON.stringify({url:urlEl.value.trim(),safari:safariEl.checked,clever:cleverOn.checked,cleverUrl:cleverUrl.value.trim()}))}catch(e){}}
+  function renderClever(){
+    cleverQr.innerHTML=""; var c=cleverUrl.value.trim();
+    cleverStep.hidden=!(cleverOn.checked&&c);
+    if(cleverStep.hidden)return;
+    new QRCode(cleverQr,{text:encoded(c),width:384,height:384,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.L});
+  }
+  function encoded(raw){
+    if(!safariEl.checked)return raw;
+    return raw.replace(/^https:\/\//i,"x-safari-https://").replace(/^http:\/\//i,"x-safari-http://");
+  }
+  function render(){
+    var raw=urlEl.value.trim(); qrEl.innerHTML=""; msg.hidden=true;
+    if(!raw){
+      qrEl.innerHTML='<div class="empty">Paste the Canvas assignment link below to make the code.</div>';
+      cap.textContent=""; enc.textContent=""; return;
+    }
+    var u; try{u=new URL(raw)}catch(e){u=null}
+    if(!u||!/^https?:$/.test(u.protocol)){msg.textContent="That doesn't look like a web link. Copy it from the address bar of the assignment page.";msg.hidden=false;cap.textContent="";enc.textContent="";return}
+    if(!/\/courses\/\d+\/assignments\/\d+/.test(u.pathname)){msg.textContent="This link isn't an assignment page. It should contain /courses/…/assignments/….";msg.hidden=false}
+    var clean=u.origin+u.pathname.replace(/\/$/,"");
+    var out=encoded(clean);
+    new QRCode(qrEl,{text:out,width:512,height:512,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+    cap.textContent=u.host+u.pathname;
+    enc.textContent="Encoded: "+out;
+  }
+  urlEl.addEventListener("input",function(){save();render()});
+  safariEl.addEventListener("change",function(){save();render();renderClever()});
+  cleverOn.addEventListener("change",function(){save();renderClever()});
+  cleverUrl.addEventListener("input",function(){save();renderClever()});
+
+  var lock=null;
+  $("present").addEventListener("click",function(){
+    document.body.classList.add("present");
+    var el=document.documentElement;
+    if(el.requestFullscreen)el.requestFullscreen().catch(function(){});
+    if(navigator.wakeLock)navigator.wakeLock.request("screen").then(function(l){lock=l}).catch(function(){});
+  });
+  document.addEventListener("fullscreenchange",function(){if(!document.fullscreenElement)document.body.classList.remove("present")});
+  document.addEventListener("keydown",function(e){if(e.key==="Escape")document.body.classList.remove("present")});
+
+  $("copy").addEventListener("click",function(){
+    var t=enc.textContent.replace(/^Encoded: /,""); if(!t)return;
+    var b=this;
+    navigator.clipboard.writeText(t).then(function(){b.textContent="Copied"},function(){
+      var r=document.createRange();r.selectNodeContents(enc);var sel=getSelection();sel.removeAllRanges();sel.addRange(r);b.textContent="Selected, press ⌘C";
+    });
+    setTimeout(function(){b.textContent="Copy encoded link"},2000);
+  });
+  render();renderClever();
+})();
+</script>
+</body>
+</html>

@@ -17,6 +17,7 @@ each tool runs entirely in the browser and produces a **self-contained
 | `/grade` (`grade.html`) | Mentor grading tool (performance reviews; hands unit-post links to `/grade-unit`) | mentors | weekly |
 | `/grade-unit` (`grade-unit.html`) | Unit/monthly post grader — mentors, and peer reviewers via the hub's Peer Review tile | mentors, grade 12 | per unit / month |
 | `/pair` (`pair.html`) | Peer-review pairing tool | teachers | per unit / month |
+| `/peer-qr` (`peer-qr.html`) | TV slide with QR codes that open the monthly Canvas assignment (and optional Clever sign-in) in Safari on iPads | teachers | per month |
 
 Students in grades 9–11 use the two post generators. Grade 12 fills in a weekly
 performance review **inside the rotation post generator**. The review is
