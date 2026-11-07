@@ -196,11 +196,11 @@ setInterval(()=>{
 const KT_ROTATIONS=["Art","Computer Lab","Physics","Machine Shop"];
 const KT_RE=/\*(\S(?:[^*\n]*\S)?)\*/g;          // the same rule as keyTerms()
 const KT_HIDE_KEY="dpea.kt.hidden";
-let _ktData=null, _ktLoading=null;
+let _ktData=null, _ktLoading=null, _ktKeep=new Set();
 function loadKeyTerms(){
   if(!_ktLoading)_ktLoading=fetch("keyterms.json")
     .then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})
-    .then(d=>{_ktData=d.grades||{};})
+    .then(d=>{_ktData=d.grades||{};_ktKeep=new Set(d.keepCase||[]);})
     .catch(()=>{_ktData={};});                    // offline or missing: no bank, nothing breaks
   return _ktLoading;
 }
@@ -218,13 +218,40 @@ function ktVariants(term){
   if(m&&/^[A-Z0-9]{2,}$/.test(m[1].trim()))out.push(m[1].trim());
   return out.length?out:[term];
 }
+// Students asked for chips to match where they land: capitalized to start a
+// sentence, lower case inside one. The bank is mostly Title Case ("Balanced
+// Force", "Angle of Reflection"), so mid-sentence every Title Case word is
+// lowered except names (keepCase in keyterms.json, from
+// tools/keyterms-names.json: "Arduino", "Ohm" for "Ohm's"). All-caps words,
+// single letters and anything with a digit or symbol stay as written: BOM, C++,
+// X, 3D. At a sentence start the first letter is capitalized, unless the term
+// opens with a number ("#25 drill", "3D printed").
+// A sentence starts at the top of the box, after a line break, or after
+// . ! ? (past any closing quote, bracket or key term asterisk) -- but not after
+// e.g. / i.e. / vs.
+function ktSentenceStart(before){
+  if(!before.trim()||/\n\s*$/.test(before))return true;
+  if(/\b(?:e\.g|i\.e|vs)\.\s*$/i.test(before))return false;
+  return /[.!?]["'\u201d\u2019)\]*]*\s*$/.test(before);
+}
+function ktCase(term,before){
+  let t=term.replace(/[A-Za-z][A-Za-z']*/g,(w,i)=>{
+    if(/[A-Za-z0-9]/.test(term[i-1]||"")||/[0-9]/.test(term[i+w.length]||""))return w;  // part of 3D, P95
+    if(!/^[A-Z][a-z]+(?:'s?)?$/.test(w)||_ktKeep.has(w.replace(/'s?$/,"")))return w;
+    return w.toLowerCase();
+  });
+  if(ktSentenceStart(before))t=t.replace(/^([^A-Za-z0-9]*)([a-z])/,(m,p,c)=>p+c.toUpperCase());
+  return t;
+}
 // Insert at the caret like insertAtCaret, with a space either side where the
 // term would otherwise run into a word (or after it at the very end, so the
 // student can keep typing). The caret stays put on screen
 // (preventScroll) since the student is already looking at that box.
-function ktInsert(ta,text){
+// The term arrives bare; it's cased for its spot (ktCase) and wrapped in *...*.
+function ktInsert(ta,term){
   const s=ta.selectionStart??ta.value.length, e=ta.selectionEnd??ta.value.length;
   const before=ta.value.slice(0,s), after=ta.value.slice(e);
+  const text="*"+ktCase(term,before)+"*";
   const ins=(before&&!/\s$/.test(before)?" ":"")+text+(!after||/^[A-Za-z0-9*]/.test(after)?" ":"");
   ta.value=before+ins+after;
   ta.selectionStart=ta.selectionEnd=s+ins.length;
@@ -321,7 +348,7 @@ function wireKeyTermBank(opts){
       b.onclick=()=>{
         const ta=last&&document.contains(last)&&!last.readOnly?last:null;
         if(!ta){notify("Tap in the box you're writing in first, then tap a term.","info");return;}
-        ktInsert(ta,"*"+ktVariants(list.terms[+b.dataset.i])[0]+"*");
+        ktInsert(ta,ktVariants(list.terms[+b.dataset.i])[0]);
       };
     });
   }

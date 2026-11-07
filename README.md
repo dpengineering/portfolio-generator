@@ -94,7 +94,9 @@ pages become links to `portfolio.dpeacl.org` and the builds can be retired.
 - A **key term word bank** (grades 9–11) pins under the key terms panel once the
   grade and unit (and, on the rotation post, the classroom) are picked; the unit
   post shows all four rotations as tabs. Tapping a chip types `*term*` into the
-  writing box used last, and a chip gets a ✓ once the term is highlighted in the
+  writing box used last, capitalized to start a sentence and lower case inside
+  one (names in `tools/keyterms-names.json`, acronyms and anything with a digit
+  keep their capitals), and a chip gets a ✓ once the term is highlighted in the
   post. With no list for that unit, the panel looks as it always did.
   The banks come from `keyterms.json`, built from the
   [key terms pages](https://sites.google.com/dpengineering.org/dpea-portfolios/key-terms)

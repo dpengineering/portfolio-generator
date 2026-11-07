@@ -93,6 +93,7 @@ from html.parser import HTMLParser
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_PATH = os.path.join(ROOT, "keyterms.json")
 DECISIONS_PATH = os.path.join(ROOT, "tools", "keyterms-decisions.json")
+NAMES_PATH = os.path.join(ROOT, "tools", "keyterms-names.json")
 DICT_PATH = "/usr/share/dict/words"
 
 PAGE_URL = "https://sites.google.com/dpengineering.org/dpea-portfolios/key-terms/{}-grade-key-terms"
@@ -589,6 +590,8 @@ def main():
                     "Edit the Google Sites pages (or tools/keyterms-decisions.json) and re-run; don't edit this file.",
         "source": {g: PAGE_URL.format(n) for g, n in GRADES.items()},
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        # names a chip keeps capitalized mid-sentence (see ktCase in shared.js)
+        "keepCase": sorted(set(load_json(NAMES_PATH, {}).get("names", []))),
         "grades": resolve(entries, report),
     }
     old = load_json(OUT_PATH, {})
@@ -603,6 +606,8 @@ def main():
                       " -- run with --prune to remove"), stale)
 
     changes = diff(old, new)
+    if old.get("keepCase") != new["keepCase"]:
+        changes.append("  Names that keep their capitals: " + (", ".join(new["keepCase"]) or "(none)"))
     counts = sum(len(rots) for units in new["grades"].values() for rots in units.values())
     print(f"\n{counts} word banks across grades {', '.join(new['grades'])}.")
     if changes:

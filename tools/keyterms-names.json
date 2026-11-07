@@ -1,0 +1,24 @@
+{
+  "_comment": "Words a word-bank chip keeps capitalized in the middle of a sentence. Every other Title Case word is lowercased there (\"Balanced Force\" -> \"balanced force\"); all-caps words, single letters and words with digits are always left alone. Add a name here when one shows up lowercased, then run tools/scrape_keyterms.py. A possessive matches its name: \"Kepler\" covers \"Kepler's\".",
+  "names": [
+    "Arduino",
+    "Bessel",
+    "Delrin",
+    "Dremel",
+    "Google",
+    "Kepler",
+    "Lorentz",
+    "Mega",
+    "Ohm",
+    "Ohms",
+    "Phillips",
+    "Python",
+    "Scratch",
+    "Sheets",
+    "Snell",
+    "Tapmatic",
+    "Torx",
+    "Uno",
+    "Velcro"
+  ]
+}
