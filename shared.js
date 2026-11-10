@@ -750,6 +750,19 @@ const ROTATIONS=["A","B","C","D"];
 function validSid(s){return /^\d{6}$/.test((s||"").trim());}
 const PERIODS=["1","2","3","4"];
 function isSenior(grade){return grade==="12";}
+// Fill a <select> with MENTORS, keeping its placeholder option. A saved value
+// that's no longer on the list is dropped, so the student has to pick again.
+function fillMentorSelect(sel,value){
+  MENTORS.forEach(n=>sel.add(new Option(n,n)));
+  sel.value=MENTORS.includes(value)?value:"";
+}
+// A senior's mentor. Picked on each 12th-grade post (weekly and monthly), not
+// in the hub profile, because a student's mentor can change during the year.
+// Posts carry it as meta.mentor so peer reviews can be handed to each mentor
+// sorted by student (tools/peer_review_sheet.py). A fixed list rather than free
+// text, so "Mr. Woods" and "woods" don't become two mentors.
+// Edit this list when the mentor roster changes.
+const MENTORS=["Abo-Shaeer","Buchanan","Gibson","Hapaz","Harlow","Ringer","Rogers","Shelton","Woods"];
 // A senior's home period is simply the earliest one they're present for, so
 // periods are kept in ascending order and the lowest is the match key.
 function sortPeriods(list){

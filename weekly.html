@@ -226,6 +226,11 @@
       </div>
       </div>
       <label>Project name<input type="text" id="project" placeholder="Proj"></label>
+      <!-- Grade 12 school posts only, and required: peer reviews are sorted into a tab per
+           mentor from this (tools/peer_review_sheet.py). Asked on every post
+           rather than in the hub profile because a mentor can change. -->
+      <div id="mentorWrap" hidden><label>Mentor
+        <select id="mentor"><option value="">Select your mentor...</option></select></label></div>
       <label>Cover color <span class="hint">(used when no photo is added)</span></label>
       <div class="gradpick" id="gradPick"></div>
       <div class="grad-custom-inputs" id="gradCustom" hidden>
@@ -271,7 +276,6 @@
           <p class="hint" style="margin:0 0 .7rem">This downloads as a <strong>second file</strong>, with your rotation post built into it. Submit it to the performance review assignment on Canvas; your mentor grades it from the link in its footer.</p>
           <div class="row">
             <div><label>Week of<input type="date" id="prWeek"></label></div>
-            <div><label>Mentor <span class="hint">(optional)</span><input type="text" id="prMentor" placeholder="Mentor name"></label></div>
           </div>
           <div class="selfscore">
             <div class="ssnum" id="prSelfNum">—</div>
@@ -462,7 +466,7 @@ function renderThumbs(id){
 // ---- collect + build ----
 function collect(){
   return {
-    meta:{first:val("firstName"),last:val("lastName"),student:(val("firstName")+" "+val("lastName")).trim(),project:val("project"),classroom:val("classroom"),grade:val("grade"),unit:val("unit"),...scheduleMeta(),personal:$("personalMode").checked},
+    meta:{first:val("firstName"),last:val("lastName"),student:(val("firstName")+" "+val("lastName")).trim(),project:val("project"),classroom:val("classroom"),grade:val("grade"),unit:val("unit"),...scheduleMeta(),...(prIsOn()&&val("mentor")?{mentor:val("mentor")}:{}),personal:$("personalMode").checked},
     cover:state.cover||null,
     coverRef:state.coverRef||null,
     weeks:[...document.querySelectorAll(".week")].map(card=>{
@@ -612,6 +616,7 @@ function validate(){
   const relaxed=personal||(g12&&G12_RELAXED);
   const clsOK=!!$("classroom").value, grOK=!!$("grade").value, unOK=!!$("unit").value;
   const projectOK=!!$("project").value.trim();
+  const mentorOK=!!$("mentor").value;
   const focusOK=!!(wk&&wk.querySelector(".w-title").value.trim());
   const kt=keyTermCount(), ktOK=kt>=MIN_KEYTERMS;
   const row=(ok,label)=>`<div class="req ${ok?'ok':'no'}"><span class="mark">${ok?'✓':'○'}</span>${label}</div>`;
@@ -635,13 +640,13 @@ function validate(){
     (personal
       ? row(projectOK,`Enter a project name`)+row(focusOK,`Enter this week's focus`)
       : row(grOK,`Choose your grade`)+(g12
-          ? row(projectOK,`Enter a project name`)+row(focusOK,`Enter this week's focus`)
+          ? row(projectOK,`Enter a project name`)+row(mentorOK,`Choose your mentor`)+row(focusOK,`Enter this week's focus`)
           : row(clsOK,`Choose your classroom`)+row(unOK,`Choose your unit`)))+
     writtenRows+
     imageRows+
     row(capOK,`Caption every image (${captioned}/${all.length} captioned)`)+
     row(ktOK,`Highlight at least ${MIN_KEYTERMS} key terms with *asterisks* (now ${kt})`);
-  const metaOK=personal?(projectOK&&focusOK):(grOK&&(g12?(projectOK&&focusOK):(clsOK&&unOK)));
+  const metaOK=personal?(projectOK&&focusOK):(grOK&&(g12?(projectOK&&mentorOK&&focusOK):(clsOK&&unOK)));
   const ok=writtenOK&&imgsOK&&capOK&&nameOK&&metaOK&&ktOK;
   $("download").disabled=!ok;
   $("download").title=ok?"":"Finish the requirements above to enable download";
@@ -792,7 +797,7 @@ $("clear").onclick=()=>{
   ["classroom","unit","reflection"].forEach(id=>$(id).value="");
   applyProfile(PROFILE_FIELDS);
   $("personalMode").checked=false;
-  ["prWeek","prMentor","prNotes"].forEach(id=>{if($(id))$(id).value="";});
+  ["prWeek","prNotes"].forEach(id=>{if($(id))$(id).value="";});
   prSetCodes({});
   $("prDeltas").innerHTML="";
   applyFieldVisibility();
@@ -817,6 +822,9 @@ function loadData(d){
   $("classroom").value=d.meta?.classroom||"";
   $("grade").value=d.meta?.grade||"";
   $("unit").value=d.meta?.unit||"";
+  // Older drafts kept the mentor only on the review, as free text.
+  const mentor=d.meta?.mentor||(d.perf&&d.perf.mentor)||"";
+  $("mentor").value=MENTORS.includes(mentor)?mentor:"";
   $("personalMode").checked=!!(d.meta&&d.meta.personal);
   applyFieldVisibility();
   $("reflection").value=d.reflection||"";
@@ -825,7 +833,6 @@ function loadData(d){
   prApplyVisibility();                    // build the review UI before filling it
   if(d.perf){
     $("prWeek").value=d.perf.week||"";
-    $("prMentor").value=d.perf.mentor||"";
     $("prNotes").value=d.perf.notes||"";
     prSetCodes(d.perf.codes||{});
     $("prDeltas").innerHTML="";
@@ -848,7 +855,7 @@ function loadData(d){
 // single rule that decides whether it exists at all.
 function prIsOn(){return $("grade").value==="12" && !$("personalMode").checked;}
 function prCollect(){
-  return {week:val("prWeek"),mentor:val("prMentor"),notes:val("prNotes"),
+  return {week:val("prWeek"),mentor:val("mentor"),notes:val("prNotes"),
     codes:prGetCodes(),deltas:prCollectDeltas()};
 }
 function prOnEdit(){autosave();prUpdateScore();validate();}
@@ -898,6 +905,7 @@ function applyFieldVisibility(){
   const personal=$("personalMode").checked, g12=$("grade").value==="12";
   $("schoolFields").style.display=personal?"none":"";            // toggle hides grade + classroom + unit
   $("clsUnitFields").style.display=(personal||g12)?"none":"";    // 12th grade also drops classroom + unit
+  $("mentorWrap").hidden=personal||!g12;                         // ...and adds a mentor
   // Personal projects are deliberately ungraded — a student's own work for
   // their own site — so they never carry a performance review, even for a senior.
   prApplyVisibility();
@@ -908,7 +916,9 @@ const schoolGrade=()=>$("personalMode").checked?"":$("grade").value;
 $("personalMode").addEventListener("change",()=>{applyFieldVisibility();fillGradeProject(schoolGrade());refGradeChanged();autosave();schedulePreview();validate();});
 $("grade").addEventListener("change",()=>{applyFieldVisibility();fillGradeProject(schoolGrade());refGradeChanged();autosave();schedulePreview();validate();});
 wireRefCover({grade:schoolGrade,onChange:()=>{renderCover();autosave();updatePreview();}});
-["prWeek","prMentor","prNotes"].forEach(id=>$(id).addEventListener("input",prOnEdit));
+["prWeek","prNotes"].forEach(id=>$(id).addEventListener("input",prOnEdit));
+fillMentorSelect($("mentor"));
+$("mentor").addEventListener("change",()=>{autosave();schedulePreview();prOnEdit();});
 $("prAddDelta").onclick=()=>{prAddDelta("prDeltas",null,prOnEdit);prOnEdit();};
 initGradPicker(DEFAULT_GRAD,()=>{autosave();schedulePreview();});
 wireStarter($("reflection"),$("reflection-starter"),STARTERS.reflection,Math.floor(Math.random()*STARTERS.reflection.length));

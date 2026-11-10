@@ -10,6 +10,8 @@ pairings.json
 pairings*.json
 aliases*.json
 peer-review-status*.json
+peer-reviews*.xlsx
+mentors*.csv
 submissions/
 *.zip
 

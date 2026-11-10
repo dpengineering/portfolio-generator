@@ -36,8 +36,17 @@ Usage
     python3 tools/assign_peer_reviews.py --course 1234 --assignment 5678 --status
     python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --status
 
+    # reviews also handed in on a second assignment (as the reviewer's own
+    # submission) count too
+    python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --also 9012 --status
+
 Assigning is idempotent: anything already assigned is left alone, so running it
 twice is a no-op and a re-run after a partial failure only fills the gaps.
+
+A pairing that would give a student a SECOND review -- they already review, or
+are already reviewed by, someone from an earlier pairing file -- is listed and
+skipped, so pairing a late batch can't double up anyone paired the first time.
+--allow-second assigns it anyway.
 
 --undo removes exactly the pairings in the file you give it, so peer reviews
 assigned by hand outside it are untouched. A review the reviewer has already
@@ -384,6 +393,16 @@ def check_comment(text, author_name):
     return problems
 
 
+def html_to_text(s):
+    """A Canvas text-entry body is HTML; get back the plain text that was pasted."""
+    if not s:
+        return ""
+    s = re.sub(r"(?i)<br\s*/?>|</p>|</div>|</li>", "\n", s)
+    s = re.sub(r"<[^>]+>", "", s)
+    s = __import__("html").unescape(s).replace("\xa0", " ")
+    return re.sub(r"\n{3,}", "\n\n", s).strip()
+
+
 def do_status(base, token, args, plan):
     """Report every peer review on the assignment and write it out for pair.html.
 
@@ -406,34 +425,65 @@ def do_status(base, token, args, plan):
     comments = {}                                   # (author, commenter) -> [comment]
     for sub in subs:
         for cm in sub.get("submission_comments") or []:
-            comments.setdefault((sub.get("user_id"), cm.get("author_id")), []).append(cm)
+            comments.setdefault((sub.get("user_id"), cm.get("author_id")), []).append(
+                {"text": cm.get("comment") or "", "at": cm.get("created_at"),
+                 "files": len(cm.get("attachments") or []), "where": str(a)})
     existing = fetch_existing(base, token, c, a)
+
+    # A review can also be handed in on a separate assignment, as the reviewer's
+    # OWN submission: their partner's post attached, the review in the text box
+    # or in a comment they left on it. Who they were reviewing still comes from
+    # the peer reviews on the main assignment.
+    also = {}                                       # reviewer -> [comment-shaped dict]
+    also_names = {}
+    for b in args.also or []:
+        bsg, _ = api(base, token, f"/api/v1/courses/{c}/assignments/{b}")
+        also_names[str(b)] = bsg.get("name") or str(b)
+        for sub in api_list(base, token, f"/api/v1/courses/{c}/assignments/{b}/submissions",
+                            {"include[]": "submission_comments"}):
+            who = sub.get("user_id")
+            if sub.get("workflow_state") in (None, "unsubmitted") and not sub.get("submission_comments"):
+                continue
+            files = len(sub.get("attachments") or [])
+            body = html_to_text(sub.get("body"))
+            if body:
+                also.setdefault(who, []).append(
+                    {"text": body, "at": sub.get("submitted_at"), "files": files, "where": str(b)})
+            for cm in sub.get("submission_comments") or []:
+                if cm.get("author_id") == who:      # the reviewer's own words, not a teacher's
+                    also.setdefault(who, []).append(
+                        {"text": cm.get("comment") or "", "at": cm.get("created_at"),
+                         "files": files, "where": str(b)})
+            if files and not any(x["where"] == str(b) for x in also.get(who, [])):
+                also.setdefault(who, []).append(
+                    {"text": "", "at": sub.get("submitted_at"), "files": files, "where": str(b)})
 
     rows = []
     for (author, reviewer), pr in existing.items():
-        mine = sorted(comments.get((author, reviewer), []), key=lambda m: m.get("created_at") or "")
-        texts = [m.get("comment") or "" for m in mine]
-        files = sum(len(m.get("attachments") or []) for m in mine)
-        if not mine:
+        mine = sorted(comments.get((author, reviewer), []) + also.get(reviewer, []),
+                      key=lambda m: m.get("at") or "")
+        texts = [m["text"] for m in mine if m["text"].strip()]
+        if not texts:
             verdict, problems = "missing", (
+                ["left an attachment but no review text"] if mine else
                 ["Canvas says complete but there's no comment"]
                 if pr.get("workflow_state") == "completed" else [])
         else:
             # A reviewer who commented twice ("oops, here's the real one") gets
-            # credit for whichever comment is closest to the generator's.
+            # credit for whichever comment is closest to the generator's. The
+            # header check also catches a review of someone other than their
+            # assigned partner.
             problems = min((check_comment(t, name.get(author, "")) for t in texts), key=len)
-            if files and not any(t.strip() for t in texts):
-                problems = ["left an attachment instead of pasting the review as a comment"]
             verdict = "flag" if problems else "ok"
         rows.append({
             "reviewer": name.get(reviewer, str(reviewer)), "reviewerId": reviewer,
             "reviewerSort": sortable.get(reviewer, str(reviewer)),
             "author": name.get(author, str(author)), "authorId": author,
+            "authorSort": sortable.get(author, str(author)),
             "schedule": plan.get((author, reviewer), ""),
             "state": pr.get("workflow_state") or "assigned",
             "verdict": verdict, "problems": problems,
-            "comments": [{"text": m.get("comment") or "", "at": m.get("created_at"),
-                          "files": len(m.get("attachments") or [])} for m in mine],
+            "comments": mine,
         })
 
     # Two reviewers handing in the same text is worth a look whatever its format.
@@ -463,8 +513,20 @@ def do_status(base, token, args, plan):
     count = lambda v: sum(1 for r in rows if r["verdict"] == v)
 
     print(f"{course.get('name', c)} · {asg.get('name', a)}")
+    for b, bname in also_names.items():
+        print(f"  also reading reviews handed in on {bname} ({b})")
     print(f"{len(rows)} peer reviews assigned: {count('ok')} done, "
-          f"{count('flag')} flagged, {count('missing')} not done\n")
+          f"{count('flag')} flagged, {count('missing')} not done")
+    if also_names:
+        def used(r):                                # where the review that counted lives
+            good = [m for m in r["comments"] if m["text"].strip()]
+            best = min(good, key=lambda m: len(check_comment(m["text"], r["author"])))
+            return best["where"]
+        done = [r for r in rows if r["verdict"] != "missing"]
+        for w in [str(a)] + list(also_names):
+            n = sum(1 for r in done if used(r) == w)
+            print(f"  {n} found on {also_names.get(w, asg.get('name', a))}")
+    print()
     for v, title in (("flag", "FLAGGED — commented, but check it"),
                      ("missing", "NOT DONE"), ("ok", "DONE")):
         group = [r for r in rows if r["verdict"] == v]
@@ -492,8 +554,17 @@ def do_status(base, token, args, plan):
         "generated": __import__("datetime").datetime.now().astimezone().isoformat(timespec="seconds"),
         "course": {"id": c, "name": course.get("name")},
         "assignment": {"id": a, "name": asg.get("name")},
+        "also": [{"id": b, "name": n} for b, n in also_names.items()],
+        "canvas": base.rstrip("/"),
         "reviews": rows,
         "unassigned": [name[s["id"]] for s in unassigned],
+        "unassignedStudents": [{"id": s["id"], "name": name[s["id"]], "sort": sortable[s["id"]],
+                                "sid": next((str(s.get(f)) for f in ("sis_user_id", "login_id")
+                                             if re.fullmatch(r"\d{6}", str(s.get(f) or ""))), "")}
+                               for s in unassigned],
+        "students": {str(s["id"]): next((str(s.get(f)) for f in ("sis_user_id", "login_id")
+                                         if re.fullmatch(r"\d{6}", str(s.get(f) or ""))), "")
+                     for s in students},
         "neverAssigned": never,
     }
     with open(args.out, "w") as f:
@@ -514,6 +585,9 @@ def main():
                     help="remove the peer reviews in this file instead of assigning them")
     ap.add_argument("--force", action="store_true",
                     help="with --undo, also remove reviews a student has already completed")
+    ap.add_argument("--allow-second", action="store_true",
+                    help="assign a pairing even when the reviewer already reviews someone, or the "
+                         "author is already reviewed, from an earlier pairing (skipped by default)")
     ap.add_argument("--probe", action="store_true",
                     help="diagnose a single pair against Canvas and report exactly what it says")
     ap.add_argument("--check", action="store_true",
@@ -521,6 +595,10 @@ def main():
     ap.add_argument("--status", action="store_true",
                     help="report who has completed their peer review and flag comments that "
                          "don't look like the generator's; pairings.json is optional")
+    ap.add_argument("--also", metavar="ASSIGNMENT", action="append",
+                    help="with --status, also count reviews handed in on this assignment as "
+                         "the reviewer's own submission (text box or their own comment); "
+                         "repeatable")
     ap.add_argument("--out", default="peer-review-status.json",
                     help="where --status writes its report (default: %(default)s)")
     ap.add_argument("--aliases", metavar="FILE",
@@ -723,6 +801,38 @@ def do_probe(base, token, planned, label, args):
     return 0
 
 
+def doubled_up(todo, planned, existing, label):
+    """Pairs in todo that would give a student a second review to write or receive.
+
+    Only peer reviews already on the assignment that are NOT in this file count:
+    the file's own pairs are the plan, so re-running it, or a trio inside it,
+    never trips this. What it catches is a new pairing file that overlaps an old
+    one -- a whole-class snapshot paired again, or a late batch that includes
+    someone who submitted on time and resubmitted after the deadline.
+
+    Returns [(pair, [reasons])].
+    """
+    mine = {(p[2], p[1]) for p in planned}
+    writes, receives = {}, {}                      # student -> who, from earlier pairings
+    for (owner, assessor) in existing:
+        if (owner, assessor) in mine:
+            continue
+        writes.setdefault(assessor, []).append(owner)
+        receives.setdefault(owner, []).append(assessor)
+    names = lambda ids: ", ".join(sorted(str(label.get(i, i)) for i in ids))
+    out = []
+    for p in todo:
+        _, reviewer_id, author_id = p
+        why = []
+        if reviewer_id in writes:
+            why.append(f"{label[reviewer_id]} already reviews {names(writes[reviewer_id])}")
+        if author_id in receives:
+            why.append(f"{label[author_id]} is already reviewed by {names(receives[author_id])}")
+        if why:
+            out.append((p, why))
+    return out
+
+
 def do_apply(base, token, planned, existing, label, path_for, args):
     todo = [p for p in planned if (p[2], p[1]) not in existing]
     already = len(planned) - len(todo)
@@ -731,6 +841,24 @@ def do_apply(base, token, planned, existing, label, path_for, args):
     if not todo:
         print("\nNothing to do; every pairing in this file is already assigned.")
         return 0
+
+    doubles = doubled_up(todo, planned, existing, label)
+    if doubles:
+        verb = "will be assigned anyway (--allow-second)" if args.allow_second else "will be SKIPPED"
+        print(f"\n  ! {len(doubles)} would give someone a second peer review, and {verb}:")
+        for (r, reviewer_id, author_id), why in doubles:
+            print(f"      {label[reviewer_id]} → {label[author_id]}")
+            for w in why:
+                print(f"          {w}")
+        if not args.allow_second:
+            print("    Usually this means the pairing file overlaps an earlier one. Pair only the")
+            print("    students who have no review yet (--status lists them), or pass")
+            print("    --allow-second if the extra review is deliberate.")
+            skip = {id(p) for p, _ in doubles}
+            todo = [p for p in todo if id(p) not in skip]
+            if not todo:
+                print("\nNothing left to assign.")
+                return 0
 
     print(f"\n{len(todo)} to assign.")
     if not args.apply:

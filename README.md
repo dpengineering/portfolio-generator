@@ -239,7 +239,11 @@ Reviews → Manually Assign** and pair them in two steps:
 
 Assigning is **idempotent** — anything already assigned is left alone, so a
 re-run after a partial failure fills only the gaps and running it twice does
-nothing. `--undo` reverses it, and `--undo --apply` commits that:
+nothing. A pairing that would give someone a **second** review — they already
+review, or are already reviewed by, someone from an earlier pairing file — is
+listed and skipped, so pairing a late batch can't double up anyone paired the
+first time (`--allow-second` assigns it anyway). `--undo` reverses it, and
+`--undo --apply` commits that:
 
 ```bash
 # put a live assignment back the way it was
@@ -313,6 +317,52 @@ themselves). Drop that file on `pair.html` under **Check completion** to get one
 alphabetical list you can filter and search, with each comment one click away.
 Given the `pairings.json`, it also labels each review by rotation/period and
 lists pairings that were planned but never assigned.
+
+**Reviews handed in on a second assignment.** If reviewers also submit to a
+separate assignment (their partner's post attached, the review in the text box
+or in a comment on their own submission), `--also B` reads that too. Who they
+were reviewing still comes from the peer reviews on the main assignment, and
+the header check still catches a review of the wrong partner. Repeatable.
+
+```bash
+python3 tools/assign_peer_reviews.py pairings.json --course N --assignment M --also B --status
+```
+
+### Spreadsheet for mentors
+
+[`tools/peer_review_sheet.py`](tools/peer_review_sheet.py) turns the status
+report into an `.xlsx` with a Summary tab and one tab per mentor. Each tab lists
+the mentor's students alphabetically in two sections: **reviews of your
+students** and **reviews your students wrote**. Each row has links to the Canvas
+submissions, the reviewer, the peer score and section scores, and the full comment.
+
+Mentors come from the posts: every 12th-grade weekly and monthly post asks
+for one in a required dropdown (`MENTORS` in `shared.js`) and carries it as
+`meta.mentor`. It's asked per post, not in the hub profile, because a mentor
+can change. Point the tool at the unzipped submissions download. For posts made
+before that field existed, `--mentors` reads a roster (`.xlsx` or `.csv`, with
+first name, last name and mentor columns, found by header). The roster wins
+over a post, so it also corrects one. `--template` writes a `student,mentor`
+CSV of everyone, filled in from both, to check by hand:
+
+```bash
+python3 tools/peer_review_sheet.py peer-review-status.json --posts submissions/
+python3 tools/peer_review_sheet.py peer-review-status.json --posts submissions/ --mentors roster.xlsx
+python3 tools/peer_review_sheet.py peer-review-status.json --mentors roster.xlsx --template mentors.csv
+```
+
+**Building the official roster.** When names don't line up between Canvas and
+the mentor roster, [`tools/build_mentor_roster.py`](tools/build_mentor_roster.py)
+joins an IDs sheet (ID, first, last) to a mentor sheet (first, last, mentor) and
+writes `mentors.csv` keyed by student ID, so `--mentors` never matches on a name.
+Names that only nearly match are left blank with suggestions, not guessed:
+
+```bash
+python3 tools/build_mentor_roster.py --ids roster.xlsx:IDs --mentors "roster.xlsx:Enterprise Groups"
+```
+
+Needs `openpyxl`. The output and `mentors*.csv` hold student names and are
+gitignored.
 
 "Check it" means the reviewer commented but the comment doesn't look like the
 one the grader composes: no `Peer review of …'s … post` header, a missing
