@@ -40,6 +40,9 @@ Usage
     # submission) count too
     python3 tools/assign_peer_reviews.py pairings.json --course 1234 --assignment 5678 --also 9012 --status
 
+    # a second round (late submitters) lives in its own file; pass both
+    python3 tools/assign_peer_reviews.py pairings.json pairings-late.json --course 1234 --assignment 5678 --status
+
 Assigning is idempotent: anything already assigned is left alone, so running it
 twice is a no-op and a re-run after a partial failure only fills the gaps.
 
@@ -566,6 +569,12 @@ def do_status(base, token, args, plan):
                                          if re.fullmatch(r"\d{6}", str(s.get(f) or ""))), "")
                      for s in students},
         "neverAssigned": never,
+        # who handed in a post on the main assignment, so the mentor sheet can
+        # flag students with nothing to review rather than a missing review
+        # (submitted_at, not workflow_state: a graded 0 or "missing" turns an
+        # empty submission "graded" too)
+        "submitted": sorted(sub["user_id"] for sub in subs
+                            if sub.get("submitted_at") or sub.get("submission_type")),
     }
     with open(args.out, "w") as f:
         json.dump(out, f, indent=2, ensure_ascii=False)
@@ -576,7 +585,8 @@ def do_status(base, token, args, plan):
 # ---- main -------------------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser(description="Assign Canvas peer reviews from pairings.json")
-    ap.add_argument("pairings", nargs="?", help="pairings.json exported from pair.html (not needed with --check or --status)")
+    ap.add_argument("pairings", nargs="*", help="pairings.json exported from pair.html (not needed with --check or "
+                    "--status); give several, e.g. a late round, and their reviews are combined")
     ap.add_argument("--course", required=True, help="Canvas course id")
     ap.add_argument("--assignment", required=True, help="Canvas assignment id")
     ap.add_argument("--apply", action="store_true",
@@ -618,10 +628,15 @@ def main():
     if not args.pairings:
         sys.exit("Give me a pairings.json (or run --check or --status on their own).")
 
-    data = json.load(open(args.pairings))
-    reviews = data.get("reviews") or []
-    if not reviews:
-        sys.exit(f"{args.pairings} has no reviews in it.")
+    reviews = []
+    for path in args.pairings:
+        rs = json.load(open(path)).get("reviews") or []
+        if not rs:
+            sys.exit(f"{path} has no reviews in it.")
+        if len(args.pairings) > 1:
+            print(f"{path}: {len(rs)} reviews")
+        reviews += rs
+    args.pairings = " + ".join(args.pairings)       # for the messages below
 
     # What identity does this file actually carry? If it has nothing from the
     # Canvas filename, every student will fall through to the name they typed,
@@ -670,6 +685,9 @@ def main():
         if reviewer_id and author_id:
             if reviewer_id == author_id:
                 problems.append(f"{label.get(reviewer_id, reviewer_id)} would review their own post — skipped")
+            elif any(p[1:] == (reviewer_id, author_id) for p in planned):
+                problems.append(f"{label.get(reviewer_id, reviewer_id)} → {label.get(author_id, author_id)} "
+                                "is in more than one pairing file — counted once")
             else:
                 planned.append((r, reviewer_id, author_id))
 

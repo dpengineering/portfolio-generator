@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """Turn peer-review-status.json into a spreadsheet for mentors: one tab each.
 
-Each mentor's tab lists their students alphabetically, in two sections:
+Each mentor's tab lists their students alphabetically with the peer review each
+one wrote: who they reviewed, and what they said about their partner's post.
 
-  Reviews of your students    who reviewed each student's post, and what they said
-  Reviews your students wrote what each student said about their partner's post
-
-Every row links to the Canvas submission: the student's post, or the review
-the reviewer handed in. Scores are pulled out of the comment the Peer Review
+Every row links to the review on Canvas and to the partner's post. Mentors
+enter a grade in the Mentor score column (shaded yellow, right of Feedback);
+a hidden Canvas ID column ties each row to the student for --grade. Scores are pulled out of the comment the Peer Review
 tile composes; the full comment is in the Feedback column.
 
 Usage
@@ -31,7 +30,14 @@ Usage
 
 The roster wins over a post when both name a mentor, so it's also how to correct
 one. Mentors are matched to the MENTORS list in shared.js ("Mr. Woods" ->
-"Woods"). Students with no mentor from either land on a "No mentor" tab.
+"Woods"); a student with several ("Harlow, Woods") goes to the first listed.
+Students with no mentor from either land on a "No mentor" tab.
+
+A review of a partner who handed in no post is shaded and flagged ("Partner
+submitted no post"), as is a student with no post and so no review to write;
+the Canvas links stay.
+The status report lists who submitted; one from before that falls back to the
+posts download, which is only a guess.
 
 Needs openpyxl (pip3 install openpyxl). Like the status report, the output
 holds student names and comments: it's gitignored, keep it off shared drives
@@ -128,8 +134,15 @@ def known_mentors():
         return []
 
 
+MENTOR_SPLIT = re.compile(r"\s*(?:,|;|/|&|\band\b)\s*", re.I)
+
+
 def canonical_mentor(value, mentors):
-    """Match a mentor as written in a roster to the hub's spelling, if possible."""
+    """Match a mentor as written in a roster to the hub's spelling, if possible.
+
+    A student with more than one ("Harlow, Woods") goes to the first listed.
+    """
+    value = next((p for p in MENTOR_SPLIT.split(value.strip()) if p), value)
     v = norm(re.sub(r"(?i)^(mr|mrs|ms|mx|dr)\.?\s+", "", value.strip()))
     for m in mentors:
         if norm(m) == v or norm(m) in v.split() or v.endswith(norm(m)):
@@ -160,7 +173,7 @@ def read_mentor_table(path, people):
     the header row is.
 
     Returns (matches, unmatched names, ambiguous names, mentor values that
-    aren't on the hub's MENTORS list).
+    aren't on the hub's MENTORS list, students listing more than one mentor).
     """
     rows = read_table(path)
     head_at, cols = None, {}
@@ -192,7 +205,7 @@ def read_mentor_table(path, people):
             loose.setdefault(norm(words[0] + words[-1]), set()).add(uid)
 
     mentors = known_mentors()
-    out, missed, ambiguous, odd = {}, [], [], set()
+    out, missed, ambiguous, odd, multi = {}, [], [], set(), []
     get = lambda row, k: row[cols[k]] if cols[k] is not None and cols[k] < len(row) else ""
     for row in rows[head_at + 1:]:
         mentor = get(row, "mentor")
@@ -213,8 +226,10 @@ def read_mentor_table(path, people):
             m = canonical_mentor(mentor, mentors)
             if mentors and m not in mentors:
                 odd.add(m)
+            if len([p for p in MENTOR_SPLIT.split(mentor) if p]) > 1:
+                multi.append(f"{people[next(iter(hits))]['name']} ({mentor} -> {m})")
             out[next(iter(hits))] = m
-    return out, missed, ambiguous, sorted(odd)
+    return out, missed, ambiguous, sorted(odd), multi
 
 
 # ---- reading a review -------------------------------------------------------
@@ -249,14 +264,21 @@ def status_text(r):
 
 # ---- writing ----------------------------------------------------------------
 TITLE = dict(font=Font(bold=True, color="FFFFFF", size=12), fill=PatternFill("solid", fgColor="2E5496"))
-SECTION = dict(font=Font(bold=True, color="1F3864"), fill=PatternFill("solid", fgColor="D6E0F0"))
 HEAD = dict(font=Font(bold=True), fill=PatternFill("solid", fgColor="D9D9D9"))
 LINK = Font(color="0563C1", underline="single")
+NO_POST = PatternFill("solid", fgColor="FCE4D6")
+NO_POST_TEXT = "No post submitted"
+NO_PARTNER_POST_TEXT = "Partner submitted no post — nothing to review"
 TOP = Alignment(vertical="top", wrap_text=True)
 
-COLS = ("Student", "Period", "Post", "Peer reviewer", "Review", "Status",
-        "Peer score", "Project update", "Reflection", "File mgmt", "Feedback")
-WIDTHS = (24, 8, 10, 24, 10, 22, 10, 14, 11, 10, 90)
+COLS = ("Student", "Period", "Their review", "Reviewed", "Partner's post", "Status",
+        "Peer score", "Project update", "Reflection", "File mgmt", "Feedback",
+        "Mentor score", "Canvas ID")
+WIDTHS = (24, 8, 10, 24, 10, 22, 10, 14, 11, 10, 90, 13, 10)
+# Mentors fill in Mentor score; --grade later reads it back, matching rows to
+# students by the Canvas user id in the (hidden) last column, not by name.
+SCORE_COL, ID_COL = COLS.index("Mentor score") + 1, COLS.index("Canvas ID") + 1
+SCORE_FILL = PatternFill("solid", fgColor="FFF2CC")
 
 
 def style(cell, s):
@@ -304,7 +326,7 @@ def main():
                 print(f"      {fn}")
     mentor = {uid: p["mentor"] for uid, p in posts.items() if p.get("mentor")}
     if args.mentors:
-        extra, missed, ambiguous, odd = read_mentor_table(args.mentors, people)
+        extra, missed, ambiguous, odd, multi = read_mentor_table(args.mentors, people)
         changed = sum(1 for uid, m in extra.items() if mentor.get(uid) not in (None, m))
         mentor.update(extra)
         print(f"Read {len(extra)} mentor(s) from {args.mentors}" + (f", {changed} overriding a post" if changed else ""))
@@ -314,6 +336,10 @@ def main():
             print(f"  ! {who!r} in {args.mentors} matches more than one student — skipped")
         if odd:
             print(f"  ! not on the hub's MENTORS list (shared.js): {', '.join(odd)}")
+        if multi:
+            print(f"  {len(multi)} student(s) list more than one mentor; using the first:")
+            for who in multi:
+                print(f"      {who}")
 
     order = sorted(people, key=lambda u: people[u]["sort"].lower())
     if args.template:
@@ -326,6 +352,21 @@ def main():
         print("Fill in the blanks, then run again with --mentors.")
         return 0
 
+    # Who handed in a post. Newer status reports carry it; for older ones the
+    # posts download stands in. A student with no post gets a flag instead of
+    # a "Not done" their reviewer couldn't have avoided.
+    if "submitted" in status:
+        submitted = set(status["submitted"])
+    elif args.posts:
+        # a post somebody reviewed was evidently handed in, download or not
+        submitted = set(posts) | {r["authorId"] for r in status["reviews"] if r["verdict"] != "missing"}
+        print("  ! The status report predates its submitted list, so no-post flags are a guess from\n"
+              "    the posts download. Re-run assign_peer_reviews.py --status for exact ones.")
+    else:
+        submitted = None
+        print("  ! Can't tell who submitted a post: re-run --status, or pass --posts.")
+    no_post = lambda uid: submitted is not None and uid not in submitted
+
     base = (status.get("canvas") or args.canvas or "").rstrip("/")
     course, main_a = status["course"]["id"], status["assignment"]["id"]
     sub_url = lambda a, uid: f"{base}/courses/{course}/assignments/{a}/submissions/{uid}" if base else ""
@@ -337,9 +378,8 @@ def main():
         m = re.search(r"Period\s+([\d, ]+)", (r or {}).get("schedule") or "")
         return m.group(1).strip() if m else ""
 
-    received, wrote = {}, {}
+    wrote = {}
     for r in status["reviews"]:
-        received.setdefault(r["authorId"], []).append(r)
         wrote.setdefault(r["reviewerId"], []).append(r)
 
     groups = {}
@@ -357,7 +397,7 @@ def main():
     style(summary["A1"], TITLE)
     summary.append([f"From the status report of {status.get('generated', '')[:16].replace('T', ' ')}"])
     summary.append([])
-    summary.append(["Mentor", "Students", "Posts reviewed", "Reviews written", "Not done"])
+    summary.append(["Mentor", "Students", "No post", "Reviews written", "Not done"])
     for c in range(1, 6):
         style(summary.cell(4, c), HEAD)
 
@@ -366,55 +406,55 @@ def main():
         ws = wb.create_sheet(re.sub(r"[\[\]:*?/\\]", "", m)[:31])
         band(ws, 1, f"Mentor: {m} — {title}", TITLE)
         row = 3
-        for heading, source, who_col in (("Reviews of your students", received, "author"),
-                                         ("Reviews your students wrote", wrote, "reviewer")):
-            band(ws, row, heading, SECTION)
-            row += 1
-            cols = COLS if who_col == "author" else \
-                ("Student", "Period", "Their review", "Reviewed", "Partner's post") + COLS[5:]
-            for c, h in enumerate(cols, 1):
-                ws.cell(row, c, h)
-                style(ws.cell(row, c), HEAD)
-            row += 1
-            for uid in uids:
-                rs = source.get(uid) or [None]
-                for r in rs:
-                    ws.cell(row, 1, people[uid]["name"])
-                    ws.cell(row, 2, period(uid, r))
-                    if r is None:
-                        ws.cell(row, 6, "No reviewer assigned" if who_col == "author" else "No review assigned")
-                        if who_col == "author":
-                            link(ws, row, 3, sub_url(main_a, uid), "Open")
-                        row += 1
-                        continue
-                    c = best_comment(r)
-                    review_url = sub_url(c.get("where", main_a), r["reviewerId"] if c.get("where", str(main_a)) != str(main_a)
-                                         else r["authorId"]) if c else ""
-                    if who_col == "author":
-                        link(ws, row, 3, sub_url(main_a, uid), "Open")
-                        ws.cell(row, 4, r["reviewer"])
-                        link(ws, row, 5, review_url, "Open")
-                    else:
-                        link(ws, row, 3, review_url, "Open")
-                        ws.cell(row, 4, r["author"])
-                        link(ws, row, 5, sub_url(main_a, r["authorId"]), "Open")
-                    ws.cell(row, 6, status_text(r))
-                    for i, v in enumerate(scores(c["text"] if c else ""), 7):
-                        ws.cell(row, i, v)
-                    ws.cell(row, 11, c["text"] if c else "")
+        for c, h in enumerate(COLS, 1):
+            ws.cell(row, c, h)
+            style(ws.cell(row, c), HEAD)
+        row += 1
+        for uid in uids:
+            for r in wrote.get(uid) or [None]:
+                ws.cell(row, 1, people[uid]["name"])
+                ws.cell(row, SCORE_COL).fill = SCORE_FILL
+                ws.cell(row, ID_COL, uid)
+                ws.cell(row, 2, period(uid, r))
+                if r is None:
+                    # nothing to review, often because they had no post of their own
+                    ws.cell(row, 6, NO_POST_TEXT + "; no review assigned" if no_post(uid) else "No review assigned")
+                    if no_post(uid):
+                        for col in range(1, SCORE_COL):
+                            ws.cell(row, col).fill = NO_POST
                     row += 1
-            row += 1
+                    continue
+                flag = no_post(r["authorId"])
+                if flag:
+                    for col in range(1, SCORE_COL):
+                        ws.cell(row, col).fill = NO_POST
+                c = best_comment(r)
+                where = c.get("where", str(main_a)) if c else ""
+                review_url = sub_url(where, r["reviewerId"] if where != str(main_a) else r["authorId"]) if c else ""
+                link(ws, row, 3, review_url, "Open")
+                ws.cell(row, 4, r["author"])
+                link(ws, row, 5, sub_url(main_a, r["authorId"]), "Open")
+                st = status_text(r)
+                if flag:
+                    st = NO_PARTNER_POST_TEXT + ("" if r["verdict"] == "missing" else "; " + st)
+                ws.cell(row, 6, st)
+                for i, v in enumerate(scores(c["text"] if c else ""), 7):
+                    ws.cell(row, i, v)
+                ws.cell(row, 11, c["text"] if c else "")
+                row += 1
         for i, w in enumerate(WIDTHS, 1):
             ws.column_dimensions[get_column_letter(i)].width = w
+        ws.column_dimensions[get_column_letter(ID_COL)].hidden = True
+        ws.freeze_panes = "B4"
         for line in ws.iter_rows(min_row=3):
             for cell in line:
                 if cell.font != LINK:
                     cell.alignment = TOP
 
-        got = sum(1 for u in uids for r in received.get(u, []) if r["verdict"] != "missing")
         gave = sum(1 for u in uids for r in wrote.get(u, []) if r["verdict"] != "missing")
-        notdone = sum(1 for u in uids for r in wrote.get(u, []) if r["verdict"] == "missing")
-        summary.append([m, len(uids), got, gave, notdone])
+        notdone = sum(1 for u in uids for r in wrote.get(u, [])
+                      if r["verdict"] == "missing" and not no_post(r["authorId"]))
+        summary.append([m, len(uids), sum(1 for u in uids if no_post(u)), gave, notdone])
 
     summary.column_dimensions["A"].width = 22
     for col in "BCDE":
