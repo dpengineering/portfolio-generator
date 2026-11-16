@@ -18,6 +18,7 @@ each tool runs entirely in the browser and produces a **self-contained
 | `/grade-unit` (`grade-unit.html`) | Unit/monthly post grader — mentors, and peer reviewers via the hub's Peer Review tile | mentors, grade 12 | per unit / month |
 | `/pair` (`pair.html`) | Peer-review pairing tool | teachers | per unit / month |
 | `/peer-qr` (`peer-qr.html`) | TV slide with QR codes that open the monthly Canvas assignment (and optional Clever sign-in) in Safari on iPads | teachers | per month |
+| `/video2gif/` (`video2gif/index.html`) | Video → GIF converter, linked from the post generators' image sections. Client-side FFmpeg.wasm; `vendor/ffmpeg-core.wasm` (~32 MB) only loads on this page. Needs a served page, not `file://` | grades 9–12 | as needed |
 
 Students in grades 9–11 use the two post generators. Grade 12 fills in a weekly
 performance review **inside the rotation post generator**. The review is
@@ -56,13 +57,11 @@ site, so the tools are served from the repo root (`/unit`, `/grade` — extensio
 URLs work). The custom domain exists because **the student network blocks
 `github.io` URLs but not the custom domain.** Mentors are not blocked.
 
-The Google Sites pages stay up as a **fallback** during rollout: they hold the
-older single-file generators, so students have something that still works if the
-new site misbehaves. Those are the committed `*-standalone.html` builds, and
-they are **frozen** — [`tools/build_standalone.py`](tools/build_standalone.py)
-regenerates them from current source, which would mean re-pasting into Sites, so
-only run it when you mean to refresh the fallback. Once rollout is done the Sites
-pages become links to `portfolio.dpeacl.org` and the builds can be retired.
+`dpeacl.org` is approved on the district wifi, so the single-file
+`*-standalone.html` builds that used to be pasted into Google Sites as a
+fallback are retired, along with `tools/build_standalone.py`. They are kept at
+the `standalone-archive` tag; restore them with
+`git checkout standalone-archive -- portfolio-standalone.html unit-standalone.html tools/build_standalone.py`.
 
 > **`GRADE_URL` is permanent.** `review.html` bakes the grading-tool URL into
 > every submission it produces, and those files live forever. The old address

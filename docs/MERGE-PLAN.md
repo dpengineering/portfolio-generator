@@ -2,7 +2,9 @@
 
 Status: **phases 1a, 2 and 3 done** (this branch, `dev`). Nothing pushed.
 
-Phase 4 has started: the standalone builds are retired rather than maintained.
+Phase 4 is done: `dpeacl.org` was approved on the district wifi, and the
+standalone builds and `build_standalone.py` were deleted (kept at the
+`standalone-archive` tag).
 
 ## Why merge
 
@@ -55,7 +57,7 @@ move is a consolidation, not a fix for a broken path.
 | **2** ✅ | Hub at `/`; weekly generator moved to `/weekly`; grade asked once and remembered; review tile for grade 12 only; `?grade=` override; quota-aware autosave | yes — `/` is now the hub |
 | **1b** | Collapse the forked infra onto `shared.js`; move the review's image recompression into it; swap `alert()` for `notify()`; bump `?v=` | no |
 | **3** ✅ | `perfreview.js`: the review inside `weekly.html` for seniors, built on demand; two separately-gated downloads; round-trip dead | yes, large |
-| **4** | Flip the Google Sites pages to point at `portfolio.dpeacl.org`; delete `build_standalone.py` and the two frozen `*-standalone.html` files | coordination |
+| **4** ✅ | Flip the Google Sites pages to point at `portfolio.dpeacl.org`; delete `build_standalone.py` and the two frozen `*-standalone.html` files | coordination |
 
 ## Rollout
 
@@ -64,11 +66,9 @@ up **unchanged**, holding the older single-file generators, so students have a
 working path if the new site misbehaves, and Sites gains a link across to the
 new one.
 
-`build_standalone.py` is **deprecated — do not update or run it.** The point of
-this branch is to retire single-file builds. The committed `*-standalone.html`
-files are frozen copies of what Sites is serving; regenerating them would
-produce something Sites isn't serving and would need re-pasting. Script and
-files get deleted together once the Sites pages are switched over.
+`build_standalone.py` and the frozen `*-standalone.html` files have been
+deleted now that `dpeacl.org` is reachable on the district wifi. They are kept
+at the `standalone-archive` tag if they are ever needed again.
 
 This also retires the constraint that drove the original fork: the review no
 longer has to be one self-contained file, which is why phase 1b is now free of
