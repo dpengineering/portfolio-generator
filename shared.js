@@ -32,7 +32,7 @@ function countWords(t){const m=(t||"").trim().match(/[A-Za-z0-9][A-Za-z0-9'-]*/g
 // Native alert()/confirm() are silently suppressed inside a sandboxed iframe
 // (e.g. the Google Sites embed used on the district network), so surface every
 // message in-page instead. type: "error" | "warn" | "info". Styles are injected
-// once so this stays self-contained (both generators + the standalone build).
+// once so this stays self-contained (both generators).
 function notify(msg,type){
   let host=$("app-toasts");
   if(!host){

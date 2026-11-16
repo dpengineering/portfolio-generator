@@ -56,13 +56,11 @@ site, so the tools are served from the repo root (`/unit`, `/grade` — extensio
 URLs work). The custom domain exists because **the student network blocks
 `github.io` URLs but not the custom domain.** Mentors are not blocked.
 
-The Google Sites pages stay up as a **fallback** during rollout: they hold the
-older single-file generators, so students have something that still works if the
-new site misbehaves. Those are the committed `*-standalone.html` builds, and
-they are **frozen** — [`tools/build_standalone.py`](tools/build_standalone.py)
-regenerates them from current source, which would mean re-pasting into Sites, so
-only run it when you mean to refresh the fallback. Once rollout is done the Sites
-pages become links to `portfolio.dpeacl.org` and the builds can be retired.
+`dpeacl.org` is approved on the district wifi, so the single-file
+`*-standalone.html` builds that used to be pasted into Google Sites as a
+fallback are retired, along with `tools/build_standalone.py`. They are kept at
+the `standalone-archive` tag; restore them with
+`git checkout standalone-archive -- portfolio-standalone.html unit-standalone.html tools/build_standalone.py`.
 
 > **`GRADE_URL` is permanent.** `review.html` bakes the grading-tool URL into
 > every submission it produces, and those files live forever. The old address
