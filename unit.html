@@ -209,6 +209,11 @@
           </select></label></div>
       </div>
       <label>Project name<input type="text" id="project" placeholder="Proj"></label>
+      <!-- Grade 12 only, and required: peer reviews are sorted into a tab per
+           mentor from this (tools/peer_review_sheet.py). Asked on every post
+           rather than in the hub profile because a mentor can change. -->
+      <div id="mentorWrap" hidden><label>Mentor
+        <select id="mentor"><option value="">Select your mentor...</option></select></label></div>
       <label>Cover color <span class="hint">(used when no photo is added)</span></label>
       <div class="gradpick" id="gradPick"></div>
       <div class="grad-custom-inputs" id="gradCustom" hidden>
@@ -303,6 +308,7 @@ function applyGradeMode(){
   const sel=$("unit"), monthly=isMonthly(), prev=sel.value;
   const opts=monthly?MONTHS:UNITS;
   $("unitLabel").textContent=monthly?"Month":"Unit";
+  $("mentorWrap").hidden=!monthly;
   sel.innerHTML='<option value="">Select...</option>'+opts.map(o=>`<option value="${o}">${o}</option>`).join("");
   // Keep the current selection if it's still valid; otherwise default Grade 12 to
   // the current month (a convenience the student can still change), else leave blank.
@@ -505,7 +511,7 @@ function renderThumbs(id){
 // ---- collect + build ----
 function collect(){
   return {
-    meta:{first:val("firstName"),last:val("lastName"),student:(val("firstName")+" "+val("lastName")).trim(),project:val("project"),grade:val("grade"),unit:val("unit"),...scheduleMeta()},
+    meta:{first:val("firstName"),last:val("lastName"),student:(val("firstName")+" "+val("lastName")).trim(),project:val("project"),grade:val("grade"),unit:val("unit"),...scheduleMeta(),...(isMonthly()&&val("mentor")?{mentor:val("mentor")}:{})},
     cover:state.cover||null,
     coverRef:state.coverRef||null,
     weeks:[...document.querySelectorAll(".week")].map(card=>{
@@ -725,13 +731,14 @@ function validate(){
   const rubOK=rubRows.length>0&&rubDone===rubRows.length;
   const lvN=Object.keys(pickedLevels()).length, lvOK=!levelMode()||lvN===UR_CRITERIA.length;
   const nameOK=!!$("firstName").value.trim() && !!$("lastName").value.trim();
-  const grOK=!!$("grade").value, unOK=!!$("unit").value;
+  const grOK=!!$("grade").value, unOK=!!$("unit").value, mnOK=!isMonthly()||!!$("mentor").value;
   const kt=keyTermCount(), ktOK=kt>=MIN_KEYTERMS;
   const row=(ok,label)=>`<div class="req ${ok?'ok':'no'}"><span class="mark">${ok?'✓':'○'}</span>${label}</div>`;
   $("gate").innerHTML='<div class="ghead">To download, finish these:</div>'+
     row(nameOK,`Enter your first and last name`)+
     row(grOK,`Choose your grade`)+
     row(unOK,isMonthly()?`Choose your month`:`Choose your unit`)+
+    (isMonthly()?row(mnOK,`Choose your mentor`):"")+
     row(ok1,`Project Update pt. 1: ${PART_MIN}–${PART_MAX} words (now ${w1})`)+
     row(ok2,`Project Update pt. 2: ${PART_MIN}–${PART_MAX} words (now ${w2})`)+
     row(ktOK,`Highlight at least ${MIN_KEYTERMS} key terms with *asterisks* (now ${kt})`)+
@@ -741,7 +748,7 @@ function validate(){
     row(fmOK,`Add exactly ${FILEMGMT_IMAGES} File Management screenshots (now ${fmN})`)+
     (levelMode()?row(lvOK,`Self Grade Rubric: pick a level for all ${UR_CRITERIA.length} criteria (${lvN}/${UR_CRITERIA.length})`):"")+
     row(rubOK,`Self Grade Rubric: add a comment for all ${rubRows.length} categories (${rubDone}/${rubRows.length})`);
-  const ok=ok1&&ok2&&imgOK&&capOK&&okR&&fmOK&&rubOK&&lvOK&&nameOK&&grOK&&unOK&&ktOK;
+  const ok=ok1&&ok2&&imgOK&&capOK&&okR&&fmOK&&rubOK&&lvOK&&nameOK&&grOK&&unOK&&mnOK&&ktOK;
   $("download").disabled=!ok;
   $("download").title=ok?"":"Finish the requirements above to enable download";
   return ok;
@@ -868,6 +875,7 @@ function loadData(d){
   $("unit").value="";                     // drop any leftover value so applyGradeMode starts fresh (not inherited from a prior load)
   applyGradeMode();                       // set Unit/Month options (and any Grade 12 month default) to match grade
   if(d.meta?.unit)$("unit").value=d.meta.unit;   // restore a saved unit/month over the default, if the draft had one
+  $("mentor").value=MENTORS.includes(meta.mentor)?meta.mentor:"";
   $("reflection").value=d.reflection||"";
   $("publicView").checked=!!d.publicView;
   state.cover=d.cover||null;state.coverRef=(d.cover&&d.coverRef)||null;renderCover();syncRefToggle();
@@ -897,7 +905,8 @@ function collectLight(){
 }
 
 // autosave() now lives in shared.js (persists collect() under DRAFT_KEY)
-["firstName","lastName","project","grade","unit","reflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
+fillMentorSelect($("mentor"));
+["firstName","lastName","project","grade","unit","mentor","reflection"].forEach(id=>$(id).addEventListener("input",()=>{autosave();schedulePreview();validate();}));
 $("grade").addEventListener("change",()=>{applyGradeMode();fillGradeProject($("grade").value);refGradeChanged();autosave();schedulePreview();validate();});
 wireRefCover({grade:()=>$("grade").value,onChange:()=>{renderCover();autosave();updatePreview();}});
 $("publicView").addEventListener("change",()=>{autosave();schedulePreview();});
