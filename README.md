@@ -461,9 +461,13 @@ in **Testing**, only the listed test users can sign in. Publishing it needs the
 [privacy page](privacy.html) and a verified `dpeacl.org`. sbunified.org students
 also need district IT to mark the client ID **Trusted** for the student OU.
 
-While it's in Testing, `DRIVE_TESTING` at the top of `drive.js` labels the hub
-card **In testing** and warns that only test accounts can sign in. Set it to
-`false` when the app is published and approved. The sign-in button follows
+Approved by district IT in Nov 2026, so `DRIVE_TESTING` at the top of
+`drive.js` is `false`. Setting it to `true` labels the hub card **In testing**,
+folds it shut, and warns that only test accounts can sign in.
+
+On the generators, a signed-in student doesn't see the "Your work isn't saved
+automatically" caution: anything marked `.save-warn` is hidden while the Drive
+chip is live, and reappears if the sign-in lapses (☁️ Reconnect Drive). The sign-in button follows
 [Google's branding guidelines](https://developers.google.com/identity/branding-guidelines)
 (official "G" logo, Roboto Medium, light theme), so don't restyle it to match
 the site.

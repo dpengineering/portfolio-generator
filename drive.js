@@ -64,11 +64,10 @@ function drivePostFolder(kind,meta){
 const DRIVE_STATE_KEY="dpea.drive.v1";      // localStorage: {email, folders:{root, drafts, ...}}
 const DRIVE_TOKEN_KEY="dpea.drive.token";   // sessionStorage: {token, exp}
 const DRIVE_MULTIPART_MAX=4*1024*1024;      // above this, upload in two steps (resumable)
-// While the OAuth consent screen is in Testing, only listed test users can sign
-// in; everyone else hits Google's "Access blocked" page. The hub card says so
-// up front. Set to false once the app is published and the district has
-// approved it.
-const DRIVE_TESTING=true;
+// While the OAuth consent screen was in Testing, only listed test users could
+// sign in, and the hub card said so up front. Published and approved by
+// district IT in Nov 2026; flip back to true only if it's ever pulled again.
+const DRIVE_TESTING=false;
 
 // ---- availability -----------------------------------------------------------
 // Google sign-in needs a real https origin registered on the OAuth client
@@ -371,6 +370,7 @@ function driveStyles(){
 .drive-chip.ok{color:#15803d;border-color:#bbf7d0;background:#f0fdf4}
 .drive-chip.busy{color:#1d4ed8;border-color:#bfdbfe;background:#eff6ff}
 button.drive-chip{cursor:pointer}
+.drive-live .save-warn{display:none}
 button.drive-chip.warn{color:#9a3412;border-color:#fed7aa;background:#fff7ed}
 .drive-banner{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin:.75rem 0;padding:.7rem .9rem;border-radius:10px;
   background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;font-size:.86rem}
@@ -445,6 +445,10 @@ function driveTool(cfg){
 // The chip in the toolbar: what Drive is doing, or a Reconnect button.
 function driveChipState(kind,text){
   if(!driveChip)return;
+  // Signed in, drafts go to Drive as they type, so the page's "Your work isn't
+  // saved automatically" caution (.save-warn) is hidden. It comes back while
+  // the sign-in has lapsed, because then it's true again.
+  document.body.classList.toggle("drive-live",kind!=="reconnect");
   if(kind==="reconnect"){
     const b=document.createElement("button");
     b.type="button";b.className="drive-chip warn";b.textContent="☁️ Reconnect Drive";
