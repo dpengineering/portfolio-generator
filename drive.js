@@ -366,7 +366,8 @@ function driveStyles(){
   const st=document.createElement("style");st.id="drive-styles";
   st.textContent=
 `.drive-chip{display:inline-flex;align-items:center;gap:.3rem;font:600 .78rem/1.2 system-ui,-apple-system,sans-serif;color:#475569;
-  background:#fff;border:1px solid #e2e8f0;border-radius:999px;padding:.3rem .65rem;white-space:nowrap}
+  background:#fff;border:1px solid #e2e8f0;border-radius:999px;padding:.3rem .65rem;white-space:nowrap;
+  min-width:13.5em;justify-content:center}
 .drive-chip.ok{color:#15803d;border-color:#bbf7d0;background:#f0fdf4}
 .drive-chip.busy{color:#1d4ed8;border-color:#bfdbfe;background:#eff6ff}
 button.drive-chip{cursor:pointer}
@@ -490,7 +491,8 @@ async function drivePushDraft(){
   if(draftBusy){clearTimeout(draftTimer);draftTimer=setTimeout(drivePushDraft,2000);return;}
   if(!driveToken()){driveChipState("reconnect");return;}
   draftBusy=true;draftDirty=false;
-  driveChipState("busy","☁️ Saving…");
+  // No "Saving…" flash for background saves: it fires every pause in typing,
+  // and a chip changing colour and text mid-sentence is a distraction.
   try{
     const f=await driveSaveFile("drafts",driveDraftName(),JSON.stringify(driveCfg.collect()),"application/json",{tool:driveCfg.tool});
     draftLastPush=Date.now();

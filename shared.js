@@ -626,10 +626,13 @@ let autoTimer=null, quotaWarned=false;
 function tryStore(data){
   try{localStorage.setItem(DRAFT_KEY,JSON.stringify(data));return true;}catch(e){return false;}
 }
+// Fades out rather than emptying: the note lives in a wrapping toolbar, and
+// text coming and going reflowed the whole page on every pause in typing.
 function savedNote(msg){
   const n=$("autonote");if(!n)return;
-  n.textContent=msg;
-  setTimeout(()=>{if(n.textContent===msg)n.textContent="";},1500);
+  n.textContent=msg;n.style.opacity="1";
+  clearTimeout(n._fade);
+  n._fade=setTimeout(()=>{n.style.opacity="0";},1500);
 }
 function warnOnce(msg){
   if(quotaWarned)return;

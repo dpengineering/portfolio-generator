@@ -56,7 +56,9 @@
   .thumb .rm.armed{background:#b91c1c;color:#fff}
   .thumb .fignum{font-size:.68rem;font-weight:700;color:var(--accent);padding:.2rem .4rem;border-top:1px solid var(--border)}
   .week .whead{display:flex;justify-content:space-between;align-items:center}
-  .savednote{font-size:.78rem;color:var(--ok)}
+  /* Always takes up the same space, even when blank: it sits in a wrapping
+     toolbar, so text appearing/disappearing used to reflow the page every save. */
+  .savednote{display:inline-block;min-width:13em;min-height:1.3em;font-size:.78rem;color:var(--ok);transition:opacity .6s}
   .help{background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:.6rem .75rem;font-size:.82rem;color:#0e7490;margin-bottom:1rem}
   button:disabled{opacity:.5;cursor:not-allowed}
   .gate{border:1px solid var(--border);border-radius:8px;padding:.6rem .75rem;margin-bottom:1rem;background:#fff;font-size:.84rem}
@@ -316,9 +318,9 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=19"></script>
+<script src="shared.js?v=20"></script>
 <script src="perfreview.js?v=2"></script>
-<script src="drive.js?v=6"></script>
+<script src="drive.js?v=7"></script>
 <script>
 const state={images:{},cover:null};
 const DRAFT_KEY="portfolioDraft";

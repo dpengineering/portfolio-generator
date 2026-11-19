@@ -36,7 +36,9 @@
   .btn.danger{background:#fff;color:#b91c1c;border:1px solid #fecaca}
   button:disabled{opacity:.5;cursor:not-allowed}
   .toolbar{background:#f1f5f9;padding:.5rem 0 .75rem;display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem;border-bottom:1px solid var(--border)}
-  .savednote{font-size:.78rem;color:var(--ok)}
+  /* Always takes up the same space, even when blank: it sits in a wrapping
+     toolbar, so text appearing/disappearing used to reflow the page every save. */
+  .savednote{display:inline-block;min-width:13em;min-height:1.3em;font-size:.78rem;color:var(--ok);transition:opacity .6s}
   .help{background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:.6rem .75rem;font-size:.82rem;color:#3730a3;margin-bottom:1rem}
   .help a{color:#4338ca;font-weight:600}
   .gate{border:1px solid var(--border);border-radius:8px;padding:.6rem .75rem;margin-bottom:1rem;background:#fff;font-size:.84rem}
@@ -726,8 +728,10 @@ function autosave(){
     try{
       var c=collect();
       localStorage.setItem("perfReviewDraft",JSON.stringify({meta:c.meta,codes:c.codes,notes:c.notes,deltas:c.deltas}));
-      $("autonote").textContent="✓ saved in this browser";
-      setTimeout(function(){$("autonote").textContent="";},1500);
+      var n=$("autonote");               // fade, don't empty: emptying reflows the toolbar
+      n.textContent="✓ saved in this browser";n.style.opacity="1";
+      clearTimeout(n._fade);
+      n._fade=setTimeout(function(){n.style.opacity="0";},1500);
     }catch(e){}
   },600);
 }
