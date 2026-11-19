@@ -81,6 +81,8 @@
   .starter-label{color:var(--muted);font-weight:600;white-space:nowrap}
   .starter-text{flex:1;min-width:0;text-align:left;background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;border-radius:999px;padding:.22rem .6rem;font:inherit;font-size:.78rem;cursor:pointer;transition:opacity .5s ease}
   .starter-text:hover{background:#ffedd5}
+  /* guiding questions (QUESTIONS): pink, and not tappable */
+  .starter.is-question .starter-text{background:#fdf2f8;border-color:#fbcfe8;color:#be185d;cursor:default}
   .starter-nav{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:.15rem .45rem;font-size:.85rem;line-height:1.2;cursor:pointer;min-width:1.7rem;text-align:center}
   .starter-nav:hover{background:#fff;color:var(--ink)}
   .gradpick{display:flex;gap:.4rem;flex-wrap:wrap;margin:.2rem 0 .5rem}
@@ -288,7 +290,7 @@
 </div>
 
 <script src="heic2any.min.js"></script>
-<script src="shared.js?v=20"></script>
+<script src="shared.js?v=21"></script>
 <script src="unitrubric.js?v=1"></script>
 <script src="drive.js?v=8"></script>
 <script>
@@ -316,6 +318,7 @@ function applyGradeMode(){
   // the current month (a convenience the student can still change), else leave blank.
   sel.value=opts.includes(prev)?prev:(monthly?MONTHS[new Date().getMonth()]:"");
   if($("rubricRows").children.length)updateRubricLevels();   // Grade 12 grades per criterion
+  setStarterList($("reflection-starter"),reflectionPrompts());   // seniors: starters only
 }
 
 // ===== Sentence starters — EDIT THESE LISTS FREELY ===================
@@ -347,8 +350,41 @@ const STARTERS={
     "This unit's work builds on _____ from earlier, because _____.",
     "If I did this again, I would _____, because _____.",
     "My next step is to _____, so that _____.",
+    "Based on what I learned from _____, next time I would adjust my process by _____.",
+    "I can use the skills I learned from _____ outside the DPEA by _____.",
   ],
 };
+// Guiding questions for the reflection, grades 9–11 only (seniors post monthly
+// and get starters only). Open-ended on purpose: staff found students were boxed
+// in by the fill-in-the-blank starters. Shown in pink, mixed in with the
+// starters; tapping one inserts nothing. Each sits next to the starter it pairs
+// with. Same questions as weekly.html, reworded for a unit.
+const QUESTIONS={
+  reflection:[
+    "What skill or achievement are you most proud of from this unit, and why?",
+    "What surprised you during this unit, and how did it change your thinking?",
+    "What learning moment this unit changed how you understood an earlier concept, principle, or method?",
+    "What was the greatest challenge you faced this unit? What steps did you take to overcome it, and why those steps?",
+    "What skill did you strengthen during this unit, and how can you see yourself using it in the future?",
+    "How does this unit's work build on what you learned earlier?",
+    "What would you do differently if you tried this work again?",
+    "What is your next immediate step, and why is it critical to your project or progress?",
+    "Based on your experience this unit, how would you adjust your process next time? Be specific!",
+    "What is a specific skill you learned this unit that you could apply to an interest of yours outside the DPEA?",
+    "How does this learning relate to something in your life outside of school?",
+  ],
+};
+// Starter, its question, next starter, its question... so ‹ › alternate.
+function withQuestions(starters,questions){
+  const out=[];
+  for(let i=0;i<Math.max(starters.length,questions.length);i++){
+    if(i<starters.length)out.push(starters[i]);
+    if(i<questions.length)out.push({q:questions[i]});
+  }
+  return out;
+}
+const REFLECTION_MIXED=withQuestions(STARTERS.reflection,QUESTIONS.reflection);
+const reflectionPrompts=()=>isMonthly()?STARTERS.reflection:REFLECTION_MIXED;
 // =====================================================================
 
 // The sentence-starter engine (showStarter/advanceStarter/randomStarter/
@@ -1009,7 +1045,7 @@ function setRubric(arr){
 }
 buildRubric();
 initGradPicker(DEFAULT_GRAD,()=>{autosave();schedulePreview();});
-wireStarter($("reflection"),$("reflection-starter"),STARTERS.reflection,Math.floor(Math.random()*STARTERS.reflection.length));
+{const r=reflectionPrompts();wireStarter($("reflection"),$("reflection-starter"),r,Math.floor(Math.random()*r.length));}
 
 // ---- student profile ----
 // Name and grade come from the hub so they aren't retyped every unit. Prefill

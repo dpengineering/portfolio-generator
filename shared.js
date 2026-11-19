@@ -144,11 +144,32 @@ function wireDrop(el,onFiles){
 // each suggestion stays before changing; boxes are spread across STAGGER_SLOTS ticks
 // so the boxes never change at the same moment.
 const FADE_MS=500, ROTATE_MS=12000, STAGGER_SLOTS=3;
+// A list item is either a sentence starter (a string, tapped to insert it) or a
+// guiding question ({q:"..."}), which is only something to think about: tapping
+// it inserts nothing. Questions are styled by .starter.is-question per page.
 let _starterCount=0;   // assigns each starter bar a distinct stagger phase
+const isQuestion=item=>!!(item&&item.q);
 function showStarter(bar,fade){
-  const el=bar.querySelector(".starter-text"), txt=bar._list[+bar.dataset.idx];
-  if(fade){el.style.opacity="0";setTimeout(()=>{el.textContent=txt;el.style.opacity="1";},FADE_MS);}
-  else{el.textContent=txt;el.style.opacity="1";}
+  const el=bar.querySelector(".starter-text"), item=bar._list[+bar.dataset.idx];
+  const paint=()=>{
+    const q=isQuestion(item);
+    bar.classList.toggle("is-question",q);
+    bar.querySelector(".starter-label").textContent=q?"🤔 Think about:":"💡 Try:";
+    el.title=q?"A question to think about as you write":"Click to insert this starter";
+    el.textContent=q?item.q:item;el.style.opacity="1";
+  };
+  if(fade){el.style.opacity="0";setTimeout(paint,FADE_MS);}else paint();
+}
+// Swap a wired bar's list (e.g. the grade changed). Keeps the item on show if
+// it's still in the new list, so this never flickers when nothing changed.
+function setStarterList(bar,list){
+  if(!bar||!bar._list||!list||!list.length)return;
+  const cur=bar._list[+bar.dataset.idx];
+  if(bar._list===list)return;
+  bar._list=list;
+  const i=list.findIndex(it=>it===cur||(isQuestion(it)&&isQuestion(cur)&&it.q===cur.q));
+  bar.dataset.idx=i>=0?i:Math.floor(Math.random()*list.length);
+  if(i<0)showStarter(bar,false);
 }
 function advanceStarter(bar,dir){const n=bar._list.length;bar.dataset.idx=((+bar.dataset.idx)+(dir||1)+n)%n;showStarter(bar,true);}
 function randomStarter(bar){const n=bar._list.length;if(n>1){let j;do{j=Math.floor(Math.random()*n);}while(j===(+bar.dataset.idx));bar.dataset.idx=j;}showStarter(bar,true);}
@@ -169,7 +190,10 @@ function wireStarter(ta,bar,list,seed){
   bar.dataset.phase=(_starterCount++)%STAGGER_SLOTS;   // stagger so bars don't rotate in unison
   bar.dataset.idx=((seed%list.length)+list.length)%list.length;
   showStarter(bar,false);
-  bar.querySelector(".starter-text").onclick=()=>insertAtCaret(ta,list[+bar.dataset.idx]);
+  bar.querySelector(".starter-text").onclick=()=>{
+    const item=bar._list[+bar.dataset.idx];
+    if(isQuestion(item))ta.focus();else insertAtCaret(ta,item);
+  };
   bar.querySelector(".starter-prev").onclick=()=>advanceStarter(bar,-1);
   bar.querySelector(".starter-next").onclick=()=>advanceStarter(bar,1);
   bar.querySelector(".starter-rand").onclick=()=>randomStarter(bar);
